@@ -5,7 +5,9 @@
 #include <iostream>
 
 #include <boost/test/unit_test.hpp>
+#ifdef SOFTPOSIT
 #include "softposit.h"
+#endif
 
 #include "posit_decoder.hpp"
 #include "posit_dim.hpp"
@@ -38,6 +40,7 @@ BOOST_AUTO_TEST_CASE(LZOCShiftTest)
 	} while (i != 0); 
 }
 
+#ifdef SOFTPOSIT
 BOOST_AUTO_TEST_CASE(PositToValueTestPosit16) 
 {
 	uint16_t i = 0;
@@ -70,4 +73,5 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 		i += 1;
 	}while(i != 0);
 }
+#endif
 
