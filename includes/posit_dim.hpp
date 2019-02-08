@@ -40,14 +40,14 @@ class Quire
 	public:
 		Quire(ap_uint<PositDim<N>::ExtQuireSize> val):_val(val){}
 
-		ap_uint<2*PositDim<N>::WF+2> getQuireValue()
+		ap_uint<PositDim<N>::WQ-N> getQuireValue()
 		{
 			return _val.range(PositDim<N>::WQ-N -1, 0);
 		}
 
-		ap_uint<PositDim<N>::WE> getCarry()
+		ap_uint<N-1> getCarry()
 		{
-			return _val.range(PositDim<N>::WQ -1, 
+			return _val.range(PositDim<N>::WQ-1 -1, 
 					PositDim<N>::WQ-N);
 		}
 
