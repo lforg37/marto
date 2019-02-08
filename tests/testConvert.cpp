@@ -5,10 +5,13 @@
 #include <iostream>
 
 #include <boost/test/unit_test.hpp>
+#ifdef SOFTPOSIT
 #include "softposit.h"
+#endif
 
 #include "posit_decoder.hpp"
 #include "posit_dim.hpp"
+#include "lzoc_shifter.hpp"
 
 using namespace std;
 
@@ -21,6 +24,23 @@ int twoCompClean(int input, int nb_clear)
 	return cleaned_val;
 }
 
+BOOST_AUTO_TEST_CASE(LZOCShiftTest)
+{
+	uint16_t i = 0;
+	do {
+		ap_uint<1<<4> entry = i;
+		auto ret = lzoc_shifter<4>(entry, ap_uint<1>(0));	
+		auto shift = ret.range(19, 16);
+		auto val = ret.range(15, 0);
+		unsigned int intval = val.to_uint();
+		unsigned int shiftint = shift.to_uint();
+		BOOST_REQUIRE_MESSAGE((intval >> shiftint) == (unsigned int) i,
+				"Error : " << i << " gave " << ret);
+		i += 1;
+	} while (i != 0); 
+}
+
+#ifdef SOFTPOSIT
 BOOST_AUTO_TEST_CASE(PositToValueTestPosit16) 
 {
 	uint16_t i = 0;
@@ -53,4 +73,5 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 		i += 1;
 	}while(i != 0);
 }
+#endif
 
