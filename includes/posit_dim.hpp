@@ -51,6 +51,11 @@ class Quire
 					PositDim<N>::WQ-N);
 		}
 
+		ap_uint<PositDim<N>::ExtQuireSize-2> getQuireWithoutNaR()
+		{
+			return _val.range(PositDim<N>::ExtQuireSize-1 -1, 0);
+		}
+
 		ap_uint<1> getSignBit()
 		{
 			return _val[ExtQuireSize-1 -1];
