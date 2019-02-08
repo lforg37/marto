@@ -16,8 +16,9 @@ constexpr int get2Power(int N)
 template<int N>
 class PositDim {
 	public:
-	static constexpr int WE = get2Power(N>>3); 
-	static constexpr int WF = N - (WE+3);
+	static constexpr int WES = get2Power(N>>3); 
+	static constexpr int WE = (N-2)*get2Power(WES); 
+	static constexpr int WF = N - (WES+3);
 	//Quire dimension
 	static constexpr int WQ = (N*N) >> 1;
 
@@ -27,12 +28,11 @@ class PositDim {
 	static constexpr int ProdExpSize = WE + 1;
 	static constexpr int ProdSize = 1 + ProdExpSize + ProdSignificandSize;
 
-	static constexpr bool HAS_ES = (WE > 0);
+	static constexpr bool HAS_ES = (WES > 0);
 };
 
 //One bit is NaR + quire
 template<int N>
-using Quire = ap_uint<PositDim<N>::ExtQuireSize>;
 class Quire
 {
 	//Storage :
@@ -58,13 +58,18 @@ class Quire
 
 		ap_uint<1> getSignBit()
 		{
-			return _val[ExtQuireSize-1 -1];
+			return _val[PositDim<N>::ExtQuireSize-1 -1];
 		}
 
 
 		ap_uint<1> getIsNaR()
 		{
 			return _val[PositDim<N>::ExtQuireSize -1];
+		}
+
+		ap_uint<1> getBit(unsigned int i)
+		{
+			return _val[i];
 		}
 
 	private:
@@ -79,7 +84,7 @@ class PositProd
 	//Storage :
 	// isNar Exp Sign ImplicitBit Fraction
 	public:
-		PositProdValue(ap_uint<PositDim<N>::ProdSize> val):_val(val){}
+		PositProd(ap_uint<PositDim<N>::ProdSize> val):_val(val){}
 
 		ap_uint<2*PositDim<N>::WF+2> getSignificand()
 		{
@@ -100,6 +105,11 @@ class PositProd
 		ap_uint<1> getIsNaR()
 		{
 			return _val[PositDim<N>::WE+1+2*PositDim<N>::WF+2 -1];
+		}
+
+		ap_uint<1> getBit(unsigned int i)
+		{
+			return _val[i];
 		}
 
 	private:
@@ -136,6 +146,11 @@ class PositValue
 		ap_uint<1> getIsNaR()
 		{
 			return _val[PositDim<N>::WF+2+PositDim<N>::WE];
+		}
+
+		ap_uint<1> getBit(unsigned int i)
+		{
+			return _val[i];
 		}
 
 	private:
