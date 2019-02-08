@@ -33,6 +33,39 @@ class PositDim {
 //One bit is NaR + quire
 template<int N>
 using Quire = ap_uint<PositDim<N>::ExtQuireSize>;
+class Quire
+{
+	//Storage :
+	// isNar Sign Carry 2sCompValue
+	public:
+		Quire(ap_uint<PositDim<N>::ExtQuireSize> val):_val(val){}
+
+		ap_uint<2*PositDim<N>::WF+2> getQuireValue()
+		{
+			return _val.range(PositDim<N>::WQ-N -1, 0);
+		}
+
+		ap_uint<PositDim<N>::WE> getCarry()
+		{
+			return _val.range(PositDim<N>::WQ -1, 
+					PositDim<N>::WQ-N);
+		}
+
+		ap_uint<1> getSignBit()
+		{
+			return _val[ExtQuireSize-1 -1];
+		}
+
+
+		ap_uint<1> getIsNaR()
+		{
+			return _val[PositDim<N>::ExtQuireSize -1];
+		}
+
+	private:
+		ap_uint<PositDim<N>::ProdSize> _val;	
+};
+
 
 // One bit isNar + WE+1 + 2(WF+1) 
 template<int N>
