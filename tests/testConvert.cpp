@@ -9,6 +9,7 @@
 
 #include "posit_decoder.hpp"
 #include "posit_dim.hpp"
+#include "lzoc_shifter.hpp"
 
 using namespace std;
 
@@ -19,6 +20,22 @@ int twoCompClean(int input, int nb_clear)
 	int neg_val_dirty = inverted + 1; 
 	int cleaned_val = neg_val_dirty & ((1 << nb_clear) - 1);
 	return cleaned_val;
+}
+
+BOOST_AUTO_TEST_CASE(LZOCShiftTest)
+{
+	uint16_t i = 0;
+	do {
+		ap_uint<1<<4> entry = i;
+		auto ret = lzoc_shifter<4>(entry, ap_uint<1>(0));	
+		auto shift = ret.range(19, 16);
+		auto val = ret.range(15, 0);
+		unsigned int intval = val.to_uint();
+		unsigned int shiftint = shift.to_uint();
+		BOOST_REQUIRE_MESSAGE((intval >> shiftint) == (unsigned int) i,
+				"Error : " << i << " gave " << ret);
+		i += 1;
+	} while (i != 0); 
 }
 
 BOOST_AUTO_TEST_CASE(PositToValueTestPosit16) 

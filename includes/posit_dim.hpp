@@ -39,7 +39,7 @@ class PositProd
 	//Storage :
 	// isNar Exp Sign ImplicitBit Fraction
 	public:
-		PositProdValue(ap_uint<PositDim<N>::ProdSize> val):_val(val){}
+		PositProd(ap_uint<PositDim<N>::ProdSize> val):_val(val){}
 
 		ap_uint<2*PositDim<N>::WF+2> getSignificand()
 		{
