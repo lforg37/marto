@@ -73,7 +73,7 @@ class Quire
 		}
 
 	private:
-		ap_uint<PositDim<N>::ProdSize> _val;	
+		ap_uint<PositDim<N>::ExtQuireSize> _val;	
 };
 
 
