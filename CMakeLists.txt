@@ -20,7 +20,8 @@ if(BUILD_UNIT_TEST)
 	endif()
 
 	add_executable(testConvert_exe tests/testConvert.cpp)
-	target_link_libraries(testConvert_exe libpositquire ${Boost_LIBRARIES})
+	target_include_directories(testConvert_exe PRIVATE ${SOFTPOSIT_H})
+	target_link_libraries(testConvert_exe libpositquire ${Boost_LIBRARIES} ${SOFTPOSIT_LIB})
 	add_test(testConvert testConvert_exe)
 
 	#add_executable(IntConstMultShiftAddCostFunction_exe tests/ConstMult/testNodeCost.cpp ${CMAKE_CURRENT_BINARY_DIR}/Factories.cpp ${CMAKE_CURRENT_BINARY_DIR}/VHDLLexer.cpp	)

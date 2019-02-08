@@ -5,6 +5,8 @@
 #include <iostream>
 
 #include <boost/test/unit_test.hpp>
+#include "softposit.h"
+
 #include "posit_decoder.hpp"
 #include "posit_dim.hpp"
 
@@ -21,7 +23,9 @@ int twoCompClean(int input, int nb_clear)
 
 BOOST_AUTO_TEST_CASE(PositToValueTestPosit16) 
 {
-	for (size_t i = 0 ; i < (1<<16) - 1 ; ++i) {
+	uint16_t i = 0;
+	do {
+		//cout << "Testing " << i << endl;
 		PositEncoding<16> encoding(i);
 		auto decoded = posit_decoder(encoding);
 		int value = decoded.getSignificand().to_int();
@@ -37,9 +41,16 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 		}
 		double factor = pow(2.0, exp);
 		value *= factor;
-		//TODO Compare with the corresponding posit N
+		//cout << "Decoded value : " << value << endl;
 
-	}
-	BOOST_REQUIRE_MESSAGE(false, "test!!!");
+		posit16_t posit_val = castP16(i);
+		double soft_posit_val = convertP16ToDouble(posit_val);
+		//cout << "Soft Posit decoded value : " << soft_posit_val << endl << endl;
+		BOOST_REQUIRE_MESSAGE(
+				soft_posit_val == value,
+			   "Error in conversion : decoding of value " << i << 
+			   " gives " << value << " instead of " << soft_posit_val );
+		i += 1;
+	}while(i != 0);
 }
 
