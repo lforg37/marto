@@ -17,7 +17,7 @@ template<int N>
 class PositDim {
 	public:
 	static constexpr int WES = get2Power(N>>3); 
-	static constexpr int WE = (N-2)*get2Power(WES); 
+	static constexpr int WE = (N-2)*(1 << WES); 
 	static constexpr int WF = N - (WES+3);
 	//Quire dimension
 	static constexpr int WQ = (N*N) >> 1;
@@ -125,6 +125,19 @@ class PositValue
 	//Storage :
 	// isNar Exp Sign ImplicitBit Fraction
 	public:
+		PositValue(
+				ap_uint<1> isNar,
+				ap_uint<PositDim<N>::WE> exp,
+				ap_uint<1> sign,
+				ap_uint<1> implicit_bit,
+				ap_uint<PositDim<N>::WF> fraction)
+		{
+			ap_uint<1+PositDim<N>::WE> tmp = isNar.concat(exp); 
+			ap_uint<2> frac_lead = sign.concat(implicit_bit);
+			ap_uint<2+PositDim<N>::WF> full_frac = frac_lead.concat(fraction);
+			_val = tmp.concat(full_frac);
+		}
+				
 		PositValue(ap_uint<PositDim<N>::ValSize> val):_val(val){}
 
 		ap_uint<PositDim<N>::WF+1> getSignificand()
