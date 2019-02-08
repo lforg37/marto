@@ -34,7 +34,37 @@ using Quire = ap_uint<PositDim<N>::ExtQuireSize>;
 
 // One bit isNar + WE+1 + 2(WF+1) 
 template<int N>
-using PositProd = ap_uint<PositDim<N>::ProdSize>;
+class PositProd
+{
+	//Storage :
+	// isNar Exp Sign ImplicitBit Fraction
+	public:
+		PositProdValue(ap_uint<PositDim<N>::ProdSize> val):_val(val){}
+
+		ap_uint<2*PositDim<N>::WF+2> getSignificand()
+		{
+			return _val.range(2*PositDim<N>::WF+2 -1, 0);
+		}
+
+		ap_uint<1> getSignBit()
+		{
+			return _val[2*PositDim<N>::WF+2];
+		}
+
+		ap_uint<PositDim<N>::WE> getExp()
+		{
+			return _val.range(PositDim<N>::WE+1+2*PositDim<N>::WF+2 -1, 
+					2*PositDim<N>::WF+2+1);
+		}
+
+		ap_uint<1> getIsNaR()
+		{
+			return _val[PositDim<N>::WE+1+2*PositDim<N>::WF+2 -1];
+		}
+
+	private:
+		ap_uint<PositDim<N>::ProdSize> _val;	
+};
 
 template<int N>
 using PositEncoding = ap_uint<N>;
@@ -47,7 +77,7 @@ class PositValue
 	public:
 		PositValue(ap_uint<PositDim<N>::ValSize> val):_val(val){}
 
-		ap_uint<PositDim<N>::WF+2> getSignificand()
+		ap_uint<PositDim<N>::WF+1> getSignificand()
 		{
 			return _val.range(PositDim<N>::WF, 0);
 		}
