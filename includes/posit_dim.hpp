@@ -23,9 +23,9 @@ class PositDim {
 
 	static constexpr int ValSize = 3 + WE + WF;
 	static constexpr int ExtQuireSize = WQ + 1;
-	static constexpr int ProdFracSize = 2*WF + 2;
+	static constexpr int ProdSignificandSize = 2*WF + 2;
 	static constexpr int ProdExpSize = WE + 1;
-	static constexpr int ProdSize = 1 + ProdExpSize + ProdFracSize;
+	static constexpr int ProdSize = 1 + ProdExpSize + ProdSignificandSize;
 
 	static constexpr bool HAS_ES = (WE > 0);
 };
