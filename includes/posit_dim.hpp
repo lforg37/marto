@@ -13,6 +13,32 @@ constexpr int get2Power(int N)
 	return (N<=1) ? 0 : 1 + get2Power(N >> 1); 
 }
 
+constexpr int ceil2Power(int N)
+{
+	if(N==0){
+		return 0;
+	}
+	else{
+		int tmp_N = N;
+		int result = 1;
+		while(tmp_N!=0){
+			tmp_N = tmp_N>>1;
+			result = result<<1;
+		}
+		if((result>>1) == N){
+			return N;
+		}
+		else{
+			return result;	
+		}
+	}
+}
+
+constexpr int ceilLog2(int N)
+{
+	return (int) ceil(log2(N));
+}
+
 template<int N>
 class PositDim {
 	public:
