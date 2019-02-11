@@ -21,7 +21,6 @@ ap_uint<N> posit_add(
 		PositValue<N> in1, 
 		PositValue<N> in2
 ){
-
 	bool in1IsGreater = in1.getExp() > in2.getExp();
 
 	ap_uint<S_WE> subExpOp1, subExpOp2;

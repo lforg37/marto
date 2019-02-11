@@ -51,7 +51,9 @@ class PositDim {
 
 	static constexpr int ValSize = 3 + WE + WF;
 	static constexpr int ExtQuireSize = WQ + 1;
-	static constexpr int ProdSignificandSize = 2*WF + 2;
+	static constexpr int ProdSignificandSize = 2*WF + 4; 
+	//Bit sign + implicit bit sign, twice
+	
 	static constexpr int ProdExpSize = WE + 1;
 	static constexpr int ProdSize = 1 + ProdExpSize + ProdSignificandSize;
 
@@ -111,29 +113,51 @@ template<int N>
 class PositProd
 {
 	//Storage :
-	// isNar Exp Sign ImplicitBit Fraction
+	// isNar Exp Signed_significand
 	public:
+		PositProd(
+				ap_uint<1> isNar, 
+				ap_uint<PositDim<N>::ProdExpSize> exp,
+				ap_uint<PositDim<N>::ProdSignificandSize> fraction
+			) {
+			ap_uint<PositDim<N>::ProdExpSize + PositDim<N>::ProdSignificandSize> prod =
+				exp.concat(fraction);
+			_val = isNar.concat(prod);
+		}
+
 		PositProd(ap_uint<PositDim<N>::ProdSize> val):_val(val){}
 
-		ap_uint<2*PositDim<N>::WF+2> getSignificand()
+		ap_uint<PositDim<N>::ProdSignificandSize> getSignificand()
 		{
-			return _val.range(2*PositDim<N>::WF+2 -1, 0);
+			return _val.range(PositDim<N>::ProdSignificandSize - 1, 0);
+		}
+		
+		ap_int<PositDim<N>::ProdSignificandSize> getSignedSignificand()
+		{
+			return _val.range(PositDim<N>::ProdSignificandSize - 1, 0);
+		}
+
+		ap_uint<PositDim<N>::ProdSignificandSize> getSignificand()
+		{
+			return _val.range(PositDim<N>::ProdSignificandSize - 1, 0);
 		}
 
 		ap_uint<1> getSignBit()
 		{
-			return _val[2*PositDim<N>::WF+2];
+			return _val[PositDim<N>::ProdSignificandSize - 1];
 		}
 
-		ap_uint<PositDim<N>::WE> getExp()
+		ap_uint<PositDim<N>::ProdExpSize> getExp()
 		{
-			return _val.range(PositDim<N>::WE+1+2*PositDim<N>::WF+2 -1, 
-					2*PositDim<N>::WF+2+1);
+			return _val.range(
+					PositDim<N>::ProdSignificandSize + PositDim<N>::ProdExpSize-1, 
+					PositDim<N>::ProdSignificandSize
+				);
 		}
 
 		ap_uint<1> getIsNaR()
 		{
-			return _val[PositDim<N>::WE+1+2*PositDim<N>::WF+2 -1];
+			return _val[PositDim<N>::ProdSize - 1];
 		}
 
 		ap_uint<1> getBit(unsigned int i)
@@ -169,6 +193,7 @@ class PositValue
 				
 		PositValue(ap_uint<PositDim<N>::ValSize> val):_val(val){}
 
+
 		ap_uint<PositDim<N>::WF+1> getSignificand()
 		{
 			return _val.range(PositDim<N>::WF, 0);
@@ -193,6 +218,12 @@ class PositValue
 		ap_uint<1> getIsNaR()
 		{
 			return _val[PositDim<N>::WF+2+PositDim<N>::WE];
+		}
+
+		ap_int<PositDim<N>::WF+2> getSignedSignificand()
+		{
+			ap_uint<1> sign = getSignBit();
+			return (ap_int<PositDim<N>::WF+2>) sign.concat(getSignificand());
 		}
 
 		ap_uint<1> getBit(unsigned int i)
