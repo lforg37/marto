@@ -137,11 +137,6 @@ class PositProd
 			return _val.range(PositDim<N>::ProdSignificandSize - 1, 0);
 		}
 
-		ap_uint<PositDim<N>::ProdSignificandSize> getSignificand()
-		{
-			return _val.range(PositDim<N>::ProdSignificandSize - 1, 0);
-		}
-
 		ap_uint<1> getSignBit()
 		{
 			return _val[PositDim<N>::ProdSignificandSize - 1];
