@@ -170,6 +170,11 @@ class PositProd
 			return _val[i];
 		}
 
+		bool operator==(PositProd<N> const & lhs) 
+		{
+			return lhs._val == _val;
+		}
+
 	private:
 		ap_uint<PositDim<N>::ProdSize> _val;	
 };
@@ -185,7 +190,7 @@ class PositValue
 	public:
 		PositValue(
 				ap_uint<1> isNar,
-				ap_uint<PositDim<N>::WE> exp,
+				ap_uint<PositDim<N>::WE> exp, //Warning : biased exp
 				ap_uint<1> sign,
 				ap_uint<1> implicit_bit,
 				ap_uint<PositDim<N>::WF> fraction)
@@ -256,7 +261,7 @@ class PositValue
 		void printContent(){
 			fprintf(stderr, "isNaR: %d\n", (int) this->getIsNaR());
 			
-			fprintf(stderr, "exp: ");
+			fprintf(stderr, "biased exp: ");
 			printApUint(this->getExp());
 
 			fprintf(stderr, "sign: %d\n", (int) this->getSignBit());
@@ -264,6 +269,9 @@ class PositValue
 			fprintf(stderr, "significand: %d.", (int) (this->getSignificand())[PositDim<N>::WF+1 -1]);
 			printApUint(this->getSignificandWoImp());
 
+			double temp = getSignedSignificand().to_int();
+			double exp = pow(2, getExp().to_int() - PositDim<N>::WF - PositDim<N>::EXP_BIAS);
+			fprintf(stderr, "Value : %f\n", temp*exp);
 		}
 
 	private:
