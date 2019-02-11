@@ -61,10 +61,15 @@ PositValue<N> posit_decoder(PositEncoding<N> positN)
 	ap_uint<logN + 1> extended_neg_count = signed_extended_neg_count;
 	ap_uint<logN + 1> comp2_range_count = RangeCount^extended_neg_count;
 
-	auto exponent = getExponent<N>(comp2_range_count, usefulBits, s);	
+	ap_uint<PositDim<N>::WE> exponent = getExponent<N>(
+			comp2_range_count,
+		   	usefulBits,
+		   	s
+		);
+   ap_uint<PositDim<N>::WE> biased_exp = exponent + ap_uint<PositDim<N>::WE>(PositDim<N>::EXP_BIAS);	
 	return PositValue<N>(
 			isNAR, 
-			exponent,
+			biased_exp,
 			s,
 			implicit_bit,
 			fraction

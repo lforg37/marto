@@ -57,10 +57,7 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 		
 		double floatingPointVal = value;
 
-		int exp = decoded.getExp();
-		if (exp >= (1 << (PositDim<16>::WE - 1))) { // exp should be negated
-			exp = twoCompClean(exp, PositDim<16>::WE);
-		}
+		int exp = decoded.getExp() - PositDim<16>::EXP_BIAS;
 		double factor = pow(2.0, (exp-12));
 		floatingPointVal *= factor;
 		//cout << "Decoded value : " << value << endl;

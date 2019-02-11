@@ -55,6 +55,8 @@ class PositDim {
 	static constexpr int ProdExpSize = WE + 1;
 	static constexpr int ProdSize = 1 + ProdExpSize + ProdSignificandSize;
 
+	static constexpr int EXP_BIAS = (N-2) * (1 << WES) + 1; //Add one because negative mantissa have an exponent shift of one compared to their opposite due to sign bit
+
 	static constexpr bool HAS_ES = (WES > 0);
 };
 
