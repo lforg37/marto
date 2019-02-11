@@ -192,6 +192,25 @@ class PositValue
 			return _val[i];
 		}
 
+		void printContent(){
+			fprintf(stderr, "isNaR: %d\n", (int) this->getIsNaR());
+			
+			fprintf(stderr, "exp: ");
+			for(int i=PositDim<N>::WE -1; i>=0; i--){
+				fprintf(stderr, "%d", (int) (this->getExp())[i]);
+			}
+			fprintf(stderr, "\n");
+
+			fprintf(stderr, "sign: %d\n", (int) this->getSignBit());
+
+			fprintf(stderr, "significand: %d.", (int) (this->getSignificand())[PositDim<N>::WF+1 -1]);
+			for(int i=PositDim<N>::WF+1-1 -1; i>=0; i--){
+				fprintf(stderr, "%d", (int) (this->getSignificand())[i]);
+			}
+			fprintf(stderr, "\n");
+
+		}
+
 	private:
 		ap_uint<PositDim<N>::ValSize> _val;	
 };
