@@ -4,8 +4,6 @@
 
 #include "ap_int.h"
 
-ap_uint<4+16> lzoc_shifter_16bits(ap_uint<16> in, ap_uint<1> leading);
-
 template<int S>
 struct LZOCStageInfo
 {

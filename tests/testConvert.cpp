@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 
 #include <boost/test/unit_test.hpp>
 #ifdef SOFTPOSIT
@@ -21,7 +22,7 @@ int twoCompClean(int input, int nb_clear)
 	int inverted = input ^ mask;
 	int neg_val_dirty = inverted + 1; 
 	int cleaned_val = neg_val_dirty & ((1 << nb_clear) - 1);
-	return cleaned_val;
+	return -1 * cleaned_val;
 }
 
 BOOST_AUTO_TEST_CASE(LZOCShiftTest)
@@ -48,9 +49,10 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 		//cout << "Testing " << i << endl;
 		PositEncoding<16> encoding(i);
 		auto decoded = posit_decoder(encoding);
-		int value = decoded.getSignificand().to_int();
+		ap_uint<14> complete_sig = decoded.getSignBit().concat(decoded.getSignificand());
+		int value = complete_sig.to_int();
 		if (decoded.getSignBit() == 1) {
-			value = twoCompClean(value, PositDim<16>::WF + 1);
+			value = twoCompClean(value, PositDim<16>::WF + 2);
 		}
 		
 		double floatingPointVal = value;
@@ -59,17 +61,21 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 		if (exp >= (1 << (PositDim<16>::WE - 1))) { // exp should be negated
 			exp = twoCompClean(exp, PositDim<16>::WE);
 		}
-		double factor = pow(2.0, exp);
-		value *= factor;
+		double factor = pow(2.0, (exp-12));
+		floatingPointVal *= factor;
 		//cout << "Decoded value : " << value << endl;
+		
+		if (decoded.getIsNaR() == 1) {
+			floatingPointVal = numeric_limits<double>::infinity();
+		}
 
 		posit16_t posit_val = castP16(i);
 		double soft_posit_val = convertP16ToDouble(posit_val);
 		//cout << "Soft Posit decoded value : " << soft_posit_val << endl << endl;
 		BOOST_REQUIRE_MESSAGE(
-				soft_posit_val == value,
+				soft_posit_val == floatingPointVal,
 			   "Error in conversion : decoding of value " << i << 
-			   " gives " << value << " instead of " << soft_posit_val );
+			   " gives " << floatingPointVal << " instead of " << soft_posit_val );
 		i += 1;
 	}while(i != 0);
 }

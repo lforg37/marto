@@ -43,7 +43,7 @@ template<int N>
 class PositDim {
 	public:
 	static constexpr int WES = get2Power(N>>3); 
-	static constexpr int WE = (N-2)*(1 << WES); 
+	static constexpr int WE = get2Power(N) + WES + 1; 
 	static constexpr int WF = N - (WES+3);
 	//Quire dimension
 	static constexpr int WQ = (N*N) >> 1;
