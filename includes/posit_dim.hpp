@@ -4,6 +4,7 @@
 using namespace std;
 
 #include "ap_int.h"
+#include "utils.hpp"
 
 //N.B.: We are using int instead of size_t because of ap_uint is templatized
 //=====  with int
@@ -171,6 +172,11 @@ class PositValue
 			return _val.range(PositDim<N>::WF, 0);
 		}
 
+		ap_uint<PositDim<N>::WF> getSignificandWoImp()
+		{
+			return _val.range(PositDim<N>::WF-1, 0);
+		}
+
 		ap_uint<1> getSignBit()
 		{
 			return _val[PositDim<N>::WF + 1];
@@ -196,18 +202,12 @@ class PositValue
 			fprintf(stderr, "isNaR: %d\n", (int) this->getIsNaR());
 			
 			fprintf(stderr, "exp: ");
-			for(int i=PositDim<N>::WE -1; i>=0; i--){
-				fprintf(stderr, "%d", (int) (this->getExp())[i]);
-			}
-			fprintf(stderr, "\n");
+			printApUint(this->getExp());
 
 			fprintf(stderr, "sign: %d\n", (int) this->getSignBit());
 
 			fprintf(stderr, "significand: %d.", (int) (this->getSignificand())[PositDim<N>::WF+1 -1]);
-			for(int i=PositDim<N>::WF+1-1 -1; i>=0; i--){
-				fprintf(stderr, "%d", (int) (this->getSignificand())[i]);
-			}
-			fprintf(stderr, "\n");
+			printApUint(this->getSignificandWoImp());
 
 		}
 
