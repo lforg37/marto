@@ -11,6 +11,7 @@
 #endif
 
 #include "posit_decoder.hpp"
+#include "posit_encoder.hpp"
 #include "posit_dim.hpp"
 #include "lzoc_shifter.hpp"
 
@@ -78,3 +79,17 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 }
 #endif
 
+
+BOOST_AUTO_TEST_CASE(PositEncoder)
+{
+	uint16_t i = 0;
+	do {
+		PositEncoding<16> encoding(i);
+		auto decoded = posit_decoder(encoding);
+		auto encoded = posit_encoder(decoded);
+
+		BOOST_REQUIRE_MESSAGE(encoding == encoded,
+				"Error : " << i << " gave is not encoded correctly");
+		i += 1;
+	} while (i != 0); 
+}
