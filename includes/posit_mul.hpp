@@ -1,11 +1,11 @@
 #ifndef POSIT_MUL_HPP
 #define POSIT_MUL_HPP
 
-#include "posit_dim.tpp"
+#include "posit_dim.hpp"
 
 using namespace std;
 
-template <size_t N>
+template<int N>
 PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 {
 	ap_uint<1> isNar = in1.getIsNaR() | in2.getIsNaR();
@@ -18,6 +18,6 @@ PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 	ap_uint<PositDim<N>::ProdExpSize> exponent = 
 		in1.getExp() + in2.getExp();
 
-	return PositProd(isNar, exponent, significand);
+	return PositProd<N>(isNar, exponent, significand);
 }
 #endif

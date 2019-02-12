@@ -10,10 +10,12 @@
 #include "softposit.h"
 #endif
 
+#include "decoded_to_product.hpp"
+#include "lzoc_shifter.hpp"
 #include "posit_decoder.hpp"
 #include "posit_encoder.hpp"
 #include "posit_dim.hpp"
-#include "lzoc_shifter.hpp"
+#include "posit_mul.hpp"
 
 using namespace std;
 
@@ -40,6 +42,32 @@ BOOST_AUTO_TEST_CASE(LZOCShiftTest)
 				"Error : " << i << " gave " << ret);
 		i += 1;
 	} while (i != 0); 
+}
+
+BOOST_AUTO_TEST_CASE(PositValueToProd)
+{
+	uint16_t value = 0;
+	PositValue<16> one(0, PositDim<16>::EXP_BIAS, 0, 1, 0);
+	one.printContent();
+	do {
+		PositEncoding<16> posit_encoding{value};
+		auto posit_val = posit_decoder<16>(posit_encoding);
+
+		auto posit_prod_direct = decoded_to_product(posit_val);
+		auto posit_prod_by_one = posit_mul<16>(posit_val, one);
+
+		if (posit_val.getIsNaR() == 1) {
+			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getIsNaR() == 1, "Prod by one should be NAR");
+			BOOST_REQUIRE_MESSAGE(posit_prod_direct.getIsNaR() == 1, "Direct conversion should be NAR");
+		} else if (posit_val.getSignedSignificand() == 0) {
+			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getSignificand() == 0, "Prod by one significand should be zero");
+			BOOST_REQUIRE_MESSAGE(posit_prod_direct.getSignificand() == 0, "Direct conversion significand should be zero");
+		} else {
+			BOOST_REQUIRE_MESSAGE(posit_prod_by_one == posit_prod_direct, "Error for conversion with value " << value);
+		}
+		value += 1;
+	} while (value != 0);
+
 }
 
 #ifdef SOFTPOSIT
