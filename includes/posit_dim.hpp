@@ -49,7 +49,8 @@ class PositDim {
 	//Quire dimension
 	static constexpr int WQ = (N*N) >> 1;
 
-	static constexpr int ValSize = 3 + WE + WF;
+	// The "2" is for the guard bit and the sticky 
+	static constexpr int ValSize = 2 + 3 + WE + WF;
 	static constexpr int ExtQuireSize = WQ + 1;
 	static constexpr int ProdSignificandSize = 2*WF + 4; 
 	//Bit sign + implicit bit sign, twice
@@ -171,7 +172,7 @@ template<int N>
 class PositValue
 {
 	//Storage :
-	// isNar Exp Sign ImplicitBit Fraction
+	// Guard Sticky isNar Exp Sign ImplicitBit Fraction
 	public:
 		PositValue(
 				ap_uint<1> isNar,
@@ -184,6 +185,23 @@ class PositValue
 			ap_uint<2> frac_lead = sign.concat(implicit_bit);
 			ap_uint<2+PositDim<N>::WF> full_frac = frac_lead.concat(fraction);
 			_val = tmp.concat(full_frac);
+		}
+
+		PositValue(
+				ap_uint<1> guard,
+				ap_uint<1> sticky,
+				ap_uint<1> isNar,
+				ap_uint<PositDim<N>::WE> exp,
+				ap_uint<1> sign,
+				ap_uint<1> implicit_bit,
+				ap_uint<PositDim<N>::WF> fraction)
+		{
+			ap_uint<2> guardAndSticky = guard.concat(sticky);
+			ap_uint<1+PositDim<N>::WE> tmp = isNar.concat(exp); 
+			ap_uint<2> frac_lead = sign.concat(implicit_bit);
+			ap_uint<2+PositDim<N>::WF> full_frac = frac_lead.concat(fraction);
+			ap_uint<2+PositDim<N>::WF+1+PositDim<N>::WE> allWoGuardAndSticky = tmp.concat(full_frac);
+			_val = guardAndSticky.concat(allWoGuardAndSticky);
 		}
 				
 		PositValue(ap_uint<PositDim<N>::ValSize> val):_val(val){}
