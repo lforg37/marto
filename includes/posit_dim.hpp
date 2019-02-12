@@ -14,30 +14,34 @@ constexpr int get2Power(int N)
 	return (N<=1) ? 0 : 1 + get2Power(N >> 1); 
 }
 
-constexpr int ceil2Power(int N)
+constexpr int ceilLog2(int N, uint8_t remains = 0)
 {
-	if(N==0){
-		return 0;
-	}
-	else{
-		int tmp_N = N;
-		int result = 1;
-		while(tmp_N!=0){
-			tmp_N = tmp_N>>1;
-			result = result<<1;
-		}
-		if((result>>1) == N){
-			return N;
-		}
-		else{
-			return result;	
-		}
-	}
+	return (N <= 1) ? remains : 1 + ceilLog2(N>>1, remains | (N%2));
 }
 
-constexpr int ceilLog2(int N)
+constexpr int ceil2Power(int N)
 {
-	return (int) ceil(log2(N));
+	return 1 << ceilLog2(N);
+}
+
+template<int N>
+static ap_uint<N> positiveMaxPosit() {
+    return (((ap_uint<N>)1)<<(N-1))-2;
+}
+
+template<int N>
+static ap_uint<N> negativeMaxPosit() {
+    return (((ap_uint<N>)1)<<(N-1))+1;
+}
+
+template<int N>
+static ap_uint<N> positiveMinPosit() {
+    return ((ap_uint<N>)1);
+}
+
+template<int N>
+static ap_uint<N> negativeMinPosit() {
+    return ((ap_uint<N>)-1);
 }
 
 template<int N>
@@ -61,6 +65,11 @@ class PositDim {
 	static constexpr int EXP_BIAS = (N-2) * (1 << WES) + 1; //Add one because negative mantissa have an exponent shift of one compared to their opposite due to sign bit
 
 	static constexpr bool HAS_ES = (WES > 0);
+
+	// static constexpr int maxpos = maxPosit();
+	// static constexpr ap_uint<N> minpos = ZERO_AND_ZEROS.concat(ONE_ONE);
+	// static constexpr ap_uint<N> minusMaxpos = ONE_AND_ZEROS.concat(ONE_ONE);
+	// static constexpr ap_uint<N> minusMinpos = ONE_AND_ONES.concat(ONE_ONE);
 };
 
 //One bit is NaR + quire
