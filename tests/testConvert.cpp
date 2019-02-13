@@ -70,6 +70,15 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 
 }
 
+BOOST_AUTO_TEST_CASE(TestZeroExpZero) 
+{
+	PositEncoding<16> val{0};
+	auto decoded = posit_decoder(val);
+	BOOST_REQUIRE_MESSAGE(decoded.getExp() == 0, 
+			"Decoded biased exp of 0 should be zero after decoding"
+		);
+}
+
 #ifdef SOFTPOSIT
 BOOST_AUTO_TEST_CASE(TestMinMax)
 {
