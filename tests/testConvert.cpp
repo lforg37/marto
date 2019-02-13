@@ -1,6 +1,7 @@
 #define BOOST_TEST_DYN_LINK   
 #define BOOST_TEST_MODULE PositToValueTest
 
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -48,7 +49,6 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 {
 	uint16_t value = 0;
 	PositValue<16> one(0, PositDim<16>::EXP_BIAS, 0, 1, 0);
-	one.printContent();
 	do {
 		PositEncoding<16> posit_encoding{value};
 		auto posit_val = posit_decoder<16>(posit_encoding);
@@ -71,6 +71,40 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 }
 
 #ifdef SOFTPOSIT
+BOOST_AUTO_TEST_CASE(TestMinMax)
+{
+	array<uint16_t, 4> encodings = {
+		1, // MinPos
+		(1<<15) - 1, //MaxPos
+		numeric_limits<uint16_t>::max(), //MinNeg
+		(1<<15) + 1 //MaxNeg
+	};
+
+	array<PositValue<16>, 4> values = {
+		PositValue<16>::getMinPos(),
+		PositValue<16>::getMaxPos(),
+		PositValue<16>::getMinNeg(),
+		PositValue<16>::getMaxNeg()
+	};
+
+	array<string, 4> names = {
+		"MinPos", 
+		"MaxPos",
+		"MinNeg",
+		"MaxNeg"
+	};
+
+	for (size_t i = 0 ; i < 4 ; ++i) {
+		uint16_t enc = encodings[i];
+		PositValue<16> & valStat = values[i];
+		string& name = names[i];
+		auto decoded = posit_decoder(PositEncoding<16>{enc});
+		BOOST_REQUIRE_MESSAGE(decoded == valStat, 
+				"Error in " << name << " generated value should be identical to decoded one");
+	}
+
+}
+
 BOOST_AUTO_TEST_CASE(PositToValueTestPosit16) 
 {
 	uint16_t i = 0;

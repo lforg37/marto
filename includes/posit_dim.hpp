@@ -258,6 +258,11 @@ class PositValue
 			return _val[i];
 		}
 
+		bool operator==(PositValue<N> const & rhs)
+		{
+			return _val == rhs._val;
+		}
+
 		void printContent(){
 			fprintf(stderr, "isNaR: %d\n", (int) this->getIsNaR());
 			
@@ -272,6 +277,50 @@ class PositValue
 			double temp = getSignedSignificand().to_int();
 			double exp = pow(2, getExp().to_int() - PositDim<N>::WF - PositDim<N>::EXP_BIAS);
 			fprintf(stderr, "Value : %f\n", temp*exp);
+		}
+
+		static PositValue getMaxPos() 
+		{ //isNar Exp Sign Implicit Frac
+			return PositValue(
+					0, //isNar
+					2*PositDim<N>::EXP_BIAS - 1, //Biased Exp
+					0, //sign
+					1, //implicit bit
+					0 //fraction
+				);
+		}	
+
+		static PositValue getMinPos()
+		{
+			return PositValue(
+					0, //isNar
+					1, // Biased exp
+					0, // sign
+					1, // implicit bit
+					0 // fraction
+				);
+		}
+
+		static PositValue getMaxNeg()
+		{
+			return PositValue(
+					0,
+					2*PositDim<N>::EXP_BIAS - 2, // Biased Exp
+					1, //sign
+					0, //implicit bit
+					0  //fraction
+				);
+		}
+
+		static PositValue getMinNeg()
+		{
+			return PositValue(
+				0, //isNar
+				0, // Biased Exp
+				1, // sign
+				0, // implicit bit
+				0 // fraction
+			);
 		}
 
 	private:
