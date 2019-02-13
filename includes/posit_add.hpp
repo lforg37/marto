@@ -9,23 +9,33 @@
 #define S_WE PositDim<N>::WE
 #define S_WES PositDim<N>::WES
 #define K_SIZE (S_WE-S_WES)
-#define EXT_SUM_SIZE ceil2Power(S_WF+1 + S_WF +1)
-#define LOG2_EXT_SUM_SIZE ceilLog2(EXT_SUM_SIZE)
 
 
 #define DEBUG_ADDER
 
 
 template<int N>
-ap_uint<N> posit_add(
+PositValue<N> posit_add(
 		PositValue<N> in1, 
 		PositValue<N> in2
 ){
+	static constexpr int EXT_SUM_SIZE = ceil2Power(S_WF+1 + S_WF +1);
+	static constexpr int LOG2_EXT_SUM_SIZE = ceilLog2(EXT_SUM_SIZE);
+	
 	bool in1IsGreater = in1.getExp() > in2.getExp();
 
 	ap_uint<S_WE> subExpOp1, subExpOp2;
 	ap_uint<S_WE+1> shiftValue;
 	ap_uint<S_WF+1> mostSignificantSignificand, lessSignificantSignificand;
+
+#ifdef DEBUG_ADDER
+	fprintf(stderr, "=== Input 1 ===\n");
+	in1.printContent();
+	fprintf(stderr, "=== Input 2 ===\n");
+	in2.printContent();
+	fprintf(stderr, "\n");
+#endif
+
 
 	if(in1IsGreater){
 		subExpOp1 = in1.getExp();
@@ -97,96 +107,134 @@ ap_uint<N> posit_add(
 	ap_uint<S_WE +1 +1> computedExp = subExpOp1 +1 - (lzoc-1);
 	ap_uint<1> expIsNegative = computedExp[S_WE +1 +1 -1];
 	ap_uint<1> expOverflowed = computedExp[S_WE +1 +1 -1 -1] == 1;
-	ap_uint<S_WE> finalExp =computedExp.range(S_WE-1, 0) - PositDim<N>::EXP_BIAS;
+// 	ap_uint<S_WE> finalExp =computedExp.range(S_WE-1, 0) - PositDim<N>::EXP_BIAS;
 
 #ifdef DEBUG_ADDER
-	fprintf(stderr, "final exp: \t");
-	printApUint(finalExp);
+	fprintf(stderr, "computedExp: \t");
+	printApUint(computedExp);
 #endif
 
-	ap_uint<S_WES> es = finalExp.range(S_WES-1,0);
-	ap_int<K_SIZE> k = finalExp.range(S_WE-1,S_WES);
+// 	ap_uint<S_WES> es = finalExp.range(S_WES-1,0);
+// 	ap_int<K_SIZE> k = finalExp.range(S_WE-1,S_WES);
 
-	ap_uint<EXT_SUM_SIZE-1> shiftedSumWoImplicitBit = shiftedSum.range(EXT_SUM_SIZE-1 -1, 0);
-	ap_uint<S_WES+EXT_SUM_SIZE-1> esAndExactSignificand = es.concat(shiftedSumWoImplicitBit);
+// 	ap_uint<EXT_SUM_SIZE-1> shiftedSumWoImplicitBit = shiftedSum.range(EXT_SUM_SIZE-1 -1, 0);
+// 	ap_uint<S_WES+EXT_SUM_SIZE-1> esAndExactSignificand = es.concat(shiftedSumWoImplicitBit);
 
-	ap_uint<2> zero_one = 0b01;
-	ap_uint<2> one_zero = 0b10;
+// 	ap_uint<2> zero_one = 0b01;
+// 	ap_uint<2> one_zero = 0b10;
 
-	ap_int<2+S_WES+EXT_SUM_SIZE-1> reverseBitAndEsAndExactSignificand;
+// 	ap_int<2+S_WES+EXT_SUM_SIZE-1> reverseBitAndEsAndExactSignificand;
 
-	if(k[K_SIZE-1] == 1){
-		reverseBitAndEsAndExactSignificand = zero_one.concat(esAndExactSignificand);
-	}
-	else{
-		reverseBitAndEsAndExactSignificand = one_zero.concat(esAndExactSignificand);
-	}
+// 	if(k[K_SIZE-1] == 1){
+// 		reverseBitAndEsAndExactSignificand = zero_one.concat(esAndExactSignificand);
+// 	}
+// 	else{
+// 		reverseBitAndEsAndExactSignificand = one_zero.concat(esAndExactSignificand);
+// 	}
 
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "exact posit before shift : \n");
-	printApInt(reverseBitAndEsAndExactSignificand);
-#endif
+// #ifdef DEBUG_ADDER
+// 	fprintf(stderr, "exact posit before shift : \n");
+// 	printApInt(reverseBitAndEsAndExactSignificand);
+// #endif
 
-	ap_uint<K_SIZE-1> abs_k;
+// 	ap_uint<K_SIZE-1> abs_k;
 	
-	if(k[K_SIZE-1] == 1){
-		abs_k = ~k;
-	}
-	else{
-		abs_k = k;
-	}
+// 	if(k[K_SIZE-1] == 1){
+// 		abs_k = ~k;
+// 	}
+// 	else{
+// 		abs_k = k;
+// 	}
+
+// #ifdef DEBUG_ADDER
+// 	fprintf(stderr, "shift value when reconstructing the posit: \t");
+// 	printApUint(abs_k);
+// #endif
+
+// 	ap_int<2+S_WES+EXT_SUM_SIZE+K_SIZE-1> shiftedReverseBitAndEsAndExactSignificand = (((ap_int<2+S_WES+EXT_SUM_SIZE+K_SIZE-1>) reverseBitAndEsAndExactSignificand) << K_SIZE-1) >> abs_k;
+
+// #ifdef DEBUG_ADDER
+// 	fprintf(stderr, "result as posit with infinite accuracy: \n");
+// 	printApInt(shiftedReverseBitAndEsAndExactSignificand);
+// #endif
+
+// 	ap_uint<N-1> unroundedPositWoSign = shiftedReverseBitAndEsAndExactSignificand.range(2+S_WES+EXT_SUM_SIZE+K_SIZE-1-1, 2+S_WES+EXT_SUM_SIZE+K_SIZE-1-1 -(N-1) +1);
+// 	ap_uint<2+S_WES+EXT_SUM_SIZE+K_SIZE-1 - (N-1)> remainingBits = shiftedReverseBitAndEsAndExactSignificand.range(2+S_WES+EXT_SUM_SIZE+K_SIZE-1-1 -(N-1) +1 +1, 0);
+
+// #ifdef DEBUG_ADDER
+// 	fprintf(stderr, "result as posit N without sign: \n");
+// 	printApUint(unroundedPositWoSign);
+// 	fprintf(stderr, "remaining bits: \n");
+// 	printApUint(remainingBits);
+// #endif
+
+	// ap_uint<1> resultSign = 0;
+
+	// ap_uint<N> result = resultSign.concat(unroundedPositWoSign);
+
+	ap_uint<S_WF+1> resultSignificand = shiftedSum.range(EXT_SUM_SIZE-1,EXT_SUM_SIZE-1 -(S_WF+1)+1);
+	ap_uint<EXT_SUM_SIZE -(S_WF+1)+1> resultRest = shiftedSum.range(EXT_SUM_SIZE-1 -(S_WF+1),0);
 
 #ifdef DEBUG_ADDER
-	fprintf(stderr, "shift value when reconstructing the posit: \t");
-	printApUint(abs_k);
+	fprintf(stderr, "result significand: \n");
+	printApUint(resultSignificand);
+	fprintf(stderr, "result rest: \n");
+	printApUint(resultRest);
 #endif
 
-	ap_int<2+S_WES+EXT_SUM_SIZE+K_SIZE-1> shiftedReverseBitAndEsAndExactSignificand = (((ap_int<2+S_WES+EXT_SUM_SIZE+K_SIZE-1>) reverseBitAndEsAndExactSignificand) << K_SIZE-1) >> abs_k;
 
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "result as posit with infinite accuracy: \n");
-	printApInt(shiftedReverseBitAndEsAndExactSignificand);
-#endif
+	ap_uint<1> guardBit = resultRest[EXT_SUM_SIZE -(S_WF+1)];
+	ap_uint<1> stickyBit = !(resultRest.range(EXT_SUM_SIZE -(S_WF+1) -1, 0) == 0);
 
-	ap_uint<N-1> unroundedPositWoSign = shiftedReverseBitAndEsAndExactSignificand.range(2+S_WES+EXT_SUM_SIZE+K_SIZE-1-1, 2+S_WES+EXT_SUM_SIZE+K_SIZE-1-1 -(N-1) +1);
-	ap_uint<2+S_WES+EXT_SUM_SIZE+K_SIZE-1 - (N-1)> remainingBits = shiftedReverseBitAndEsAndExactSignificand.range(2+S_WES+EXT_SUM_SIZE+K_SIZE-1-1 -(N-1) +1 +1, 0);
 
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "result as posit N without sign: \n");
-	printApUint(unroundedPositWoSign);
-	fprintf(stderr, "remaining bits: \n");
-	printApUint(remainingBits);
-#endif
-
-	ap_uint<1> resultSign = 0;
-
-	ap_uint<N> result = resultSign.concat(unroundedPositWoSign);
-
-	ap_uint<S_WF+1> resultSignificand = shiftedSum.range(EXT_SUM_SIZE-1,EXT_SUM_SIZE -S_WF+1);
-	ap_uint<EXT_SUM_SIZE -S_WF+1> resultRest = shiftedSum.range(EXT_SUM_SIZE -S_WF+1 -1,0);
-
-	ap_uint<1> firstRestBit = resultRest[EXT_SUM_SIZE -S_WF+1 -1];
-	ap_uint<1> remainingRestBitsAreZeros = resultRest.range(EXT_SUM_SIZE -S_WF+1 -1 -1, 0) == 0;
-
-	ap_uint<1> roudingBit = (firstRestBit && !remainingRestBitsAreZeros) || (firstRestBit && remainingRestBitsAreZeros && (resultSignificand[0]==1));
-	// What if this sum overflows?
-	ap_uint<S_WF+1> roundedResultSignificand = resultSignificand + roudingBit;
+	// ap_uint<1> roudingBit = (firstRestBit && !remainingRestBitsAreZeros) || (firstRestBit && remainingRestBitsAreZeros && (resultSignificand[0]==1));
+	// // What if this sum overflows?
+	// ap_uint<S_WF+1> roundedResultSignificand = resultSignificand + roudingBit;
 
 
 	ap_uint<1> resultIsNaR = in1.getIsNaR() || in1.getIsNaR();
-	ap_uint<1> resultS =  (roundedResultSignificand == 0) ? 1 : (!roundedResultSignificand[S_WF+1 -1]); 
+	ap_uint<1> isZero = (resultSignificand == 0) && ((guardBit == 0) || ((guardBit == 1) && (stickyBit == 0)));
+	ap_uint<1> resultS =  (isZero) ? 0 : (!resultSignificand[S_WF+1 -1]); 
 
-	ap_uint<S_WE> resultExp = (roundedResultSignificand == 0) ? 1 : computedExp.range(S_WE-1,0);
+	ap_uint<S_WE> resultExp = (isZero) ? 0 : computedExp.range(S_WE-1,0);
 
-	if (expIsNegative){
-		// return minpos;
-	}
-	else if (expOverflowed){
-		// return maxpos;
-	}
-	else{
-		// return result;		
-	}
+	// if (expIsNegative){
+	// 	// return minpos;
+	// }
+	// else if (expOverflowed){
+	// 	// return maxpos;
+	// }
+	// else{
+	// 	// return result;		
+	// }
+// #ifdef DEBUG_ADDER
+// 	fprintf(stderr, "\n\n");
+// 	fprintf(stderr, "guard: %d\n", (int)guardBit);
+// 	fprintf(stderr, "sticky: %d\n", (int)stickyBit);
+// 	fprintf(stderr, "resultIsNaR: %d\n", (int)resultIsNaR);
+// 	fprintf(stderr, "resultExp: \n");
+// 	printApUint(resultExp);
+// 	fprintf(stderr, "resultS: %d\n", (int)resultS);
+// 	fprintf(stderr, "impbit: %d\n", (int)(resultSignificand[S_WF+1 -1]));
+// 	fprintf(stderr, "resultSignificand: \n");
+// 	printApUint((ap_uint<S_WF+1 -1>)(resultSignificand.range(S_WF+1 -1 -1, 0)));
+// #endif
+
+	PositValue<N> result = PositValue<N>(
+				guardBit,
+				stickyBit,
+				resultIsNaR,
+				resultExp,
+				resultS,
+				resultSignificand[S_WF+1 -1],
+				resultSignificand.range(S_WF+1 -1 -1, 0));
+
+
+#ifdef DEBUG_ADDER
+	fprintf(stderr, "\n\n");
+	// fprintf(stderr, "=== result === \n");
+	// result.printContent();
+#endif
 
 	return result;
 
