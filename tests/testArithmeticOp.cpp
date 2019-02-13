@@ -6,9 +6,7 @@
 #include <limits>
 
 #include <boost/test/unit_test.hpp>
-#ifdef SOFTPOSIT
 #include "softposit.h"
-#endif
 
 #include "posit_decoder.hpp"
 #include "posit_encoder.hpp"
@@ -18,7 +16,6 @@
 
 using namespace std;
 
-#ifdef SOFTPOSIT
 BOOST_AUTO_TEST_CASE(TestAllSumPosit8) 
 {
 	uint16_t value = 0;
@@ -40,4 +37,3 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit8)
 		value++;
 	} while (value != 0);
 }
-#endif

@@ -22,7 +22,6 @@ if(BUILD_UNIT_TEST)
 		target_link_libraries(testConvert_exe ${SOFTPOSIT_LIB})
 
 		add_executable(testAritOps_exe tests/testArithmeticOp.cpp)
-		target_compile_definitions(testAritOps_exe PRIVATE SOFTPOSIT)
 		target_include_directories(testAritOps_exe PRIVATE ${SOFTPOSIT_H})
 		target_link_libraries(testAritOps_exe libpositquire ${Boost_LIBRARIES} ${SOFTPOSIT_LIB}) 
 		add_test(testAritOps testAritOps_exe)
@@ -31,11 +30,5 @@ if(BUILD_UNIT_TEST)
 	endif()
 
 	add_test(testConvert testConvert_exe)
-
-	#add_executable(IntConstMultShiftAddCostFunction_exe tests/ConstMult/testNodeCost.cpp ${CMAKE_CURRENT_BINARY_DIR}/Factories.cpp ${CMAKE_CURRENT_BINARY_DIR}/VHDLLexer.cpp	)
-	#target_include_directories(IntConstMultShiftAddCostFunction_exe PUBLIC ${Boost_INCLUDE_DIR} ${PAGSUITE_INCLUDE_DIR})
-	#target_link_libraries(IntConstMultShiftAddCostFunction_exe FloPoCoLib ${Boost_LIBRARIES} ${RPAG_LIB})
-
-	#add_test(IntConstMultShiftAddCost IntConstMultShiftAddCostFunction_exe)
 endif()
 enable_testing()

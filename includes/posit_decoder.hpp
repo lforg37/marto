@@ -45,10 +45,11 @@ PositValue<N> posit_decoder(PositEncoding<N> positN)
 	ap_uint<2> pad = 0;
 	ap_uint<N> input_shift = remainder.concat(pad);
 
-	ap_uint<1> ZeroNAR = not(remainder.or_reduce() or count_type);
-	ap_uint<1> isNAR = ZeroNAR and s;
+	ap_uint<1> zero_NAR = not(remainder.or_reduce() or count_type);
+	ap_uint<1> is_NAR = zero_NAR and s;
+	ap_uint<1> is_zero = zero_NAR and not s;
 	
-	ap_uint<1> implicit_bit = not(s) and not(ZeroNAR);
+	ap_uint<1> implicit_bit = not(s) and not(zero_NAR);
 
 	constexpr int logN = get2Power(N);
 	auto lzoc_shifted = lzoc_shifter<logN>(input_shift, count_type);
@@ -67,9 +68,15 @@ PositValue<N> posit_decoder(PositEncoding<N> positN)
 		   	s
 		);
    ap_uint<PositDim<N>::WE> biased_exp = exponent + ap_uint<PositDim<N>::WE>(PositDim<N>::EXP_BIAS);	
+
+   ap_int<1> is_not_zero = not is_zero;
+   ap_int<PositDim<N>::WE> extended_is_not_zero = is_not_zero;
+   ap_uint<PositDim<N>::WE> unsigned_ext_is_not_zero = extended_is_not_zero;
+   ap_uint<PositDim<N>::WE> final_biased_exp = biased_exp & unsigned_ext_is_not_zero;
+
 	return PositValue<N>(
-			isNAR, 
-			biased_exp,
+			is_NAR, 
+			final_biased_exp,
 			s,
 			implicit_bit,
 			fraction
