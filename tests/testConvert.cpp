@@ -110,6 +110,7 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 
 BOOST_AUTO_TEST_CASE(PositEncoder)
 {
+	// Should be tested on 32 bits as well when possible
 	uint16_t i = 0;
 	do {
 		PositEncoding<16> encoding(i);
@@ -117,7 +118,7 @@ BOOST_AUTO_TEST_CASE(PositEncoder)
 		auto encoded = posit_encoder(decoded);
 
 		BOOST_REQUIRE_MESSAGE(encoding == encoded,
-				"Error : " << i << " gave is not encoded correctly");
+				"Error : " << i << " is not encoded correctly");
 		i += 1;
 	} while (i != 0); 
 }

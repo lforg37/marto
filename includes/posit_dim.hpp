@@ -220,10 +220,25 @@ class PositValue
 				
 		PositValue(ap_uint<PositDim<N>::ValSize> val):_val(val){}
 
+		ap_uint<1> getGuardBit()
+		{
+			return _val[PositDim<N>::ValSize-1];
+		}
+
+		ap_uint<1> getStickyBit()
+		{
+			return _val[PositDim<N>::ValSize-1 -1];
+		}
+
 
 		ap_uint<PositDim<N>::WF+1> getSignificand()
 		{
 			return _val.range(PositDim<N>::WF, 0);
+		}
+
+		ap_uint<1> getImplicitBit()
+		{
+			return _val[PositDim<N>::WF];
 		}
 
 		ap_uint<PositDim<N>::WF> getSignificandWoImp()
@@ -259,6 +274,10 @@ class PositValue
 		}
 
 		void printContent(){
+
+			fprintf(stderr, "guard: %d\n", (int)this->getGuardBit());
+			fprintf(stderr, "sticky: %d\n", (int)this->getStickyBit());
+
 			fprintf(stderr, "isNaR: %d\n", (int) this->getIsNaR());
 			
 			fprintf(stderr, "biased exp: ");

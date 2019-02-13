@@ -55,7 +55,8 @@ PositEncoding<N> posit_encoder(PositValue<N> positValue)
 	// }
 
 	ap_uint<N-1> trunctatedEsAndSignificand = shiftedResverseBitAndEsAndSignificand.range(2+S_WES+N-1-2-S_WES-1, 2+S_WES+N-1-2-S_WES-1-(N-1)+1);
-	ap_uint<N> output = sign.concat(trunctatedEsAndSignificand);
+	ap_uint<N> normalOutput = sign.concat(trunctatedEsAndSignificand);
+	ap_uint<N> zero = 0;
 
-	return output;
+	return (not(positValue.getSignBit()) and not(positValue.getImplicitBit()) ? zero : normalOutput);
 }
