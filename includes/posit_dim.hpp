@@ -295,7 +295,7 @@ class PositValue
 
 			double temp = getSignedSignificand().to_int();
 			double exp = pow(2, getExp().to_int() - PositDim<N>::WF - PositDim<N>::EXP_BIAS);
-			fprintf(stderr, "Value : %f\n", temp*exp);
+			fprintf(stderr, "Value : %1.20f\n", temp*exp);
 		}
 
 		static PositValue getMaxPos() 

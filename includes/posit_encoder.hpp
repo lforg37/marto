@@ -9,12 +9,6 @@
 template<int N>
 PositEncoding<N> posit_encoder(PositValue<N> positValue)
 {
-	// ap_uint<1> s_in = fp[WE+WF];
-	// ap_uint<WE> fp_exp_in = fp.range(WE+WF-1, WF);
-	// ap_uint<WF> fp_mant_in = fp.range(WF-1, 0);
-
-	// fp_exp_in -= FP_BIAS;
-
 	ap_uint<S_WE> expWoBias = positValue.getExp() - PositDim<N>::EXP_BIAS;
 
 	ap_uint<1> sign = positValue.getSignBit();
@@ -44,18 +38,23 @@ PositEncoding<N> posit_encoder(PositValue<N> positValue)
 		absK = k;
 	}
 
-	ap_uint<2+S_WES+N-1-2-S_WES> shiftedResverseBitAndEsAndSignificand = reverseBitAndEsAndSignificand >> absK;
+	ap_uint<2> guardBitAndSticky = positValue.getGuardBit().concat(positValue.getStickyBit());
+	ap_int<2+S_WES+N-1-2-S_WES+2> reverseBitAndEsAndSignificandAndGuardBitAndSticky = reverseBitAndEsAndSignificand.concat(guardBitAndSticky);
+	ap_uint<K_SIZE-1> zeros = 0;
+	ap_int<2+S_WES+N-1-2-S_WES+2 + K_SIZE-1> readyToShift = reverseBitAndEsAndSignificandAndGuardBitAndSticky.concat(zeros);
 
-	// ap_uint<2+ES+N-1-2-ES>	shiftedResverseBitAndEsAndSignificandComp;
-	// if(s_in == 1){
-	// 	shiftedResverseBitAndEsAndSignificandComp = ~shiftedResverseBitAndEsAndSignificand+1;
-	// }
-	// else{
-	// 	shiftedResverseBitAndEsAndSignificandComp = shiftedResverseBitAndEsAndSignificand;	
-	// }
+	ap_uint<2+S_WES+N-1-2-S_WES+2+ K_SIZE-1> shifted = readyToShift >> absK;
 
-	ap_uint<N-1> trunctatedEsAndSignificand = shiftedResverseBitAndEsAndSignificand.range(2+S_WES+N-1-2-S_WES-1, 2+S_WES+N-1-2-S_WES-1-(N-1)+1);
-	ap_uint<N> normalOutput = sign.concat(trunctatedEsAndSignificand);
+	ap_uint<2+S_WES+N-1-2-S_WES> unroundedResult =  shifted.range(2+S_WES+N-1-2-S_WES+2+ K_SIZE-1-1,2+ K_SIZE-1);
+
+	ap_uint<1> guard = shifted[2+ K_SIZE-1-1];
+	ap_uint<1> sticky = not (shifted.range(2+ K_SIZE-1-1-1,0) == 0);
+
+	ap_uint<1> roundingBit = (guard and not(sticky) and unroundedResult[0]) or (guard and sticky);
+
+	ap_uint<2+S_WES+N-1-2-S_WES> roundedResult = unroundedResult + roundingBit;
+
+	ap_uint<N> normalOutput = sign.concat(roundedResult);
 	ap_uint<N-1> zero = 0;
 	ap_uint<1> isNaRBit = positValue.getIsNaR();
 	ap_uint<N> specialCasesValue = isNaRBit.concat(zero);
