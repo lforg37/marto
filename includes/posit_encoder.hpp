@@ -40,15 +40,25 @@ PositEncoding<N> posit_encoder(PositValue<N> positValue)
 
 	ap_uint<2> guardBitAndSticky = positValue.getGuardBit().concat(positValue.getStickyBit());
 	ap_int<2+S_WES+N-1-2-S_WES+2> reverseBitAndEsAndSignificandAndGuardBitAndSticky = reverseBitAndEsAndSignificand.concat(guardBitAndSticky);
-	ap_uint<K_SIZE-1> zeros = 0;
-	ap_int<2+S_WES+N-1-2-S_WES+2 + K_SIZE-1> readyToShift = reverseBitAndEsAndSignificandAndGuardBitAndSticky.concat(zeros);
+	ap_uint<(1<<(K_SIZE-1))> zeros = 0;
+	ap_int<2+S_WES+N-1-2-S_WES+2 + (1<<(K_SIZE-1))> readyToShift = reverseBitAndEsAndSignificandAndGuardBitAndSticky.concat(zeros);
 
-	ap_uint<2+S_WES+N-1-2-S_WES+2+ K_SIZE-1> shifted = readyToShift >> absK;
+	// printApInt(readyToShift);
 
-	ap_uint<2+S_WES+N-1-2-S_WES> unroundedResult =  shifted.range(2+S_WES+N-1-2-S_WES+2+ K_SIZE-1-1,2+ K_SIZE-1);
+	ap_uint<2+S_WES+N-1-2-S_WES+2+ (1<<(K_SIZE-1))> shifted = readyToShift >> absK;
 
-	ap_uint<1> guard = shifted[2+ K_SIZE-1-1];
-	ap_uint<1> sticky = not (shifted.range(2+ K_SIZE-1-1-1,0) == 0);
+	// printApUint(shifted);
+
+	ap_uint<2+S_WES+N-1-2-S_WES> unroundedResult =  shifted.range(2+S_WES+N-1-2-S_WES+2+ (1<<(K_SIZE-1))-1,2+ (1<<(K_SIZE-1)));
+
+	// printApUint(unroundedResult);
+
+	ap_uint<1> guard = shifted[2+ (1<<(K_SIZE-1))-1];
+	ap_uint<1> sticky = not (shifted.range(2+(1<<(K_SIZE-1))-1-1,0) == 0);
+
+	// printApUint(guard);
+	// printApUint(sticky);
+
 
 	ap_uint<1> roundingBit = (guard and not(sticky) and unroundedResult[0]) or (guard and sticky);
 

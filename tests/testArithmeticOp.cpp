@@ -14,12 +14,14 @@
 #include "posit_add.hpp"
 #include "lzoc_shifter.hpp"
 
+#include <omp.h>
+
 using namespace std;
 
 BOOST_AUTO_TEST_CASE(TestAllSumPosit8) 
 {
-	// ap_uint<16> value10 = 0b0000000000000001;
-	// ap_uint<16> value20 = 0b0000000000000001;
+	// ap_uint<16> value10 = 0b1111111111111111;
+	// ap_uint<16> value20 = 0b0000000000000000;
 	// PositValue<16> a = posit_decoder(value10);
 	// PositValue<16> b = posit_decoder(value20);
 	// // PositValue<16> b = posit_decoder((ap_uint<16>)0b0110111100000111);
@@ -48,11 +50,13 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit8)
 	// t.printContent();
 	// exit(0);
 
-	uint16_t value1 = 0;
+	// uint16_t value1 = 0;
 	uint16_t value2 = 0;
-	unsigned int counter = 0;
+	uint64_t counter = 0;
+	uint64_t TOTAL_TESTS = (((uint64_t)1)<<32);
 	unsigned int error_counter = 0;
-	do{
+	#pragma omp parallel for private(value2)
+	for(uint16_t value1 = 0; value1 <((1<<16)-1); value1++){
 		auto value2Encoding = PositEncoding<16> (value2);
 		auto decoded2 = posit_decoder(value2Encoding);
 
@@ -92,8 +96,12 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit8)
 			value1++;
 		} while (value1 != 0);
 		value2++;
-		fprintf(stderr, "nb error: %d\t/%d\n", error_counter, counter);
-		counter = 0;
+		if((value2%100) == 0){
+			#pragma omp atomic
+			counter+=100;
+			#pragma omp critical
+			fprintf(stderr, "steps completed : %d\t/%lu\n", counter, TOTAL_TESTS);
+		}
 		error_counter = 0;
 	}while (value2 != 0);
 }
