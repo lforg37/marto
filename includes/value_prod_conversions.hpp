@@ -28,9 +28,20 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 {
 	ap_uint<1> expIsZero = val.getExp() == 0;
 
-	ap_int<PositDim<N+1>::ProdExpSize> exp = (ap_int<PositDim<N+1>::ProdExpSize>)val.getExp()-PositDim<N>::EXP_BIAS;
 	ap_uint<1> isMinPos, isMaxPos;
 	ap_uint<1> isNaR = val.getIsNaR();
+
+	ap_uint<1> isZero = not(((ap_uint<4>) val.getSignificand().range(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
+
+	ap_int<PositDim<N+1>::ProdExpSize> exp;
+   
+	if (isZero) {
+		exp = 0;
+	} else {
+		exp	= (ap_int<PositDim<N+1>::ProdExpSize>)val.getExp()-PositDim<N>::EXP_BIAS;
+	}
+
+
 
 	if(exp<0 and not(isNaR)){
 		isMinPos = 1;
