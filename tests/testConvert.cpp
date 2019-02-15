@@ -11,7 +11,7 @@
 #include "softposit.h"
 #endif
 
-#include "decoded_to_product.hpp"
+#include "value_prod_conversions.hpp"
 #include "lzoc_shifter.hpp"
 #include "posit_decoder.hpp"
 #include "posit_encoder.hpp"
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 		PositEncoding<16> posit_encoding{value};
 		auto posit_val = posit_decoder<16>(posit_encoding);
 
-		auto posit_prod_direct = decoded_to_product(posit_val);
+		auto posit_prod_direct = PositValue_to_PositProd(posit_val);
 		auto posit_prod_by_one = posit_mul<16>(posit_val, one);
 
 		if (posit_val.getIsNaR() == 1) {
@@ -65,6 +65,18 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 		} else {
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one == posit_prod_direct, "Error for conversion with value " << value);
 		}
+		value += 1;
+	} while (value != 0);
+
+}
+
+BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
+{
+
+	uint16_t value = 0;
+	do {
+		ap_uint<16> current = value;
+		BOOST_REQUIRE_MESSAGE(posit_encoder(PositProd_to_PositValue(PositValue_to_PositProd(posit_decoder(current)))) == current, "Error for conversion with value " << value);		
 		value += 1;
 	} while (value != 0);
 
