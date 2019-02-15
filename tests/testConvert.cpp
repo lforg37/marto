@@ -81,6 +81,30 @@ BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
 	} while (value != 0);
 }
 
+BOOST_AUTO_TEST_CASE(TestOppositeProd)
+{
+	PositValue<16> minus_one(
+			0,
+			28,
+			1,
+			0,
+			0
+		);
+ 	for (int16_t i = 0 ; i > 0 ; ++i) {
+		PositEncoding<16> enc{i};
+		PositEncoding<16> opposite{i * -1};
+		auto value = posit_decoder(enc);
+		auto neg_prod = posit_mul(value, minus_one);
+		auto op_value = posit_decoder(opposite);
+		auto convert_op = PositValue_to_PositProd(op_value);
+		BOOST_REQUIRE_MESSAGE(
+				convert_op == neg_prod,
+				"Error with encoding " << i
+			);
+	}
+}
+
+
 BOOST_AUTO_TEST_CASE(TestZeroExpZero) 
 {
 	PositEncoding<16> val{0};
