@@ -6,11 +6,10 @@
 template<int N>
 PositProd<N> PositValue_to_PositProd(PositValue<N> val) 
 {
-	ap_int<PositDim<N>::WF + 4> signed_val_frac = val.getSignedSignificand();
-	ap_uint<PositDim<N>::WF + 4> sign_extended_frac = signed_val_frac;
+	ap_uint<PositDim<N>::WF + 1> signed_val_frac = val.getSignificand();
 
-	ap_uint<PositDim<N>::ProdSignificandSize> significand = sign_extended_frac.concat(
-			ap_uint<PositDim<N>::WF>(0)
+	ap_uint<PositDim<N>::ProdSignificandSize> significand = signed_val_frac.concat(
+			ap_uint<PositDim<N>::WF+1>(0)
 		);
 
 	ap_uint<PositDim<N>::ProdExpSize> exponent;
@@ -20,13 +19,12 @@ PositProd<N> PositValue_to_PositProd(PositValue<N> val)
 		exponent = ((ap_uint<PositDim<N>::ProdExpSize>) val.getExp()) + 
 		ap_uint<PositDim<N>::ProdExpSize>(PositDim<N>::EXP_BIAS);
 	}
-	return PositProd<N>(val.getIsNaR(), exponent, significand);
+	return PositProd<N>(val.getIsNaR(), exponent, val.getSignBit(), significand);
 }
 
 template<int N>
 PositValue<N> PositProd_to_PositValue(PositProd<N> val) 
 {
-
 	ap_uint<1> isMinPos, isMaxPos;
 	ap_uint<1> isNaR = val.getIsNaR();
 

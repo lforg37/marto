@@ -56,11 +56,11 @@ class PositDim {
 	// The "2" is for the guard bit and the sticky 
 	static constexpr int ValSize = 2 + 3 + WE + WF;
 	static constexpr int ExtQuireSize = WQ + 1; //+1 for NaR bit
-	static constexpr int ProdSignificandSize = 2*WF + 4; 
-	//Bit sign + implicit bit sign, twice
+	static constexpr int ProdSignificandSize = 2*WF + 2; 
+	//implicit bit twice 
 	
 	static constexpr int ProdExpSize = WE + 1;
-	static constexpr int ProdSize = 1 + ProdExpSize + ProdSignificandSize;
+	static constexpr int ProdSize = 2 + ProdExpSize + ProdSignificandSize; // + sign bit and isNaR
 
 	static constexpr int EXP_BIAS = (N-2) * (1 << WES) + 1; //Add one because negative mantissa have an exponent shift of one compared to their opposite due to sign bit
 
@@ -127,10 +127,12 @@ class PositProd : public PositProdSizedAPUint<N>
 		PositProd(
 				ap_uint<1> isNar, 
 				ap_uint<PositDim<N>::ProdExpSize> exp,
+				ap_uint<1> sign,
 				ap_uint<PositDim<N>::ProdSignificandSize> fraction
 			) {
-			ap_uint<PositDim<N>::ProdExpSize + PositDim<N>::ProdSignificandSize> prod =
-				exp.concat(fraction);
+			ap_uint<PositDim<N>::ProdSignificandSize + 1> signed_frac = sign.concat(fraction);
+			ap_uint<PositDim<N>::ProdExpSize + PositDim<N>::ProdSignificandSize + 1> prod =
+				exp.concat(signed_frac);
 			PositProdSizedAPUint<N>::operator=(isNar.concat(prod));
 		}
 
@@ -141,14 +143,14 @@ class PositProd : public PositProdSizedAPUint<N>
 			return PositProdSizedAPUint<N>::range(PositDim<N>::ProdSignificandSize - 1, 0);
 		}
 		
-		ap_int<PositDim<N>::ProdSignificandSize> getSignedSignificand()
+		ap_int<PositDim<N>::ProdSignificandSize + 1> getSignedSignificand()
 		{
-			return PositProdSizedAPUint<N>::range(PositDim<N>::ProdSignificandSize - 1, 0);
+			return PositProdSizedAPUint<N>::range(PositDim<N>::ProdSignificandSize, 0);
 		}
 
 		ap_uint<1> getSignBit()
 		{
-			return (*this)[PositDim<N>::ProdSignificandSize - 1];
+			return (*this)[PositDim<N>::ProdSignificandSize];
 		}
 
 		ap_uint<PositDim<N>::ProdExpSize> getExp()
@@ -170,6 +172,9 @@ class PositProd : public PositProdSizedAPUint<N>
 			
 			fprintf(stderr, "biased exp: ");
 			printApUint(this->getExp());
+
+			fprintf(stderr, "sign: ");
+			printApUint(getSignBit());
 
 			fprintf(stderr, "significand: ");
 			printApUint(this->getSignificand());

@@ -62,6 +62,12 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getIsNaR() == 1, "Prod by one should be NAR");
 			BOOST_REQUIRE_MESSAGE(posit_prod_direct.getIsNaR() == 1, "Direct conversion should be NAR");
 		} else {
+			if (posit_prod_by_one != posit_prod_direct) {
+				cerr << "=== posit_prod_by_one ===" << endl;
+				posit_prod_by_one.printContent();
+				cerr << "=== posit_prod_direct ===" << endl;
+				posit_prod_direct.printContent();
+			}
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one == posit_prod_direct, "Error for conversion with value " << value);
 		}
 		value += 1;
@@ -92,13 +98,19 @@ BOOST_AUTO_TEST_CASE(TestOppositeProd)
 			0,
 			0
 		);
- 	for (int16_t i = 0 ; i > 0 ; ++i) {
+ 	for (int16_t i = 0 ; i >= 0 ; ++i) {
 		PositEncoding<16> enc{i};
 		PositEncoding<16> opposite{i * -1};
 		auto value = posit_decoder(enc);
 		auto neg_prod = posit_mul(value, minus_one);
 		auto op_value = posit_decoder(opposite);
 		auto convert_op = PositValue_to_PositProd(op_value);
+		if (convert_op != neg_prod) {
+			cerr << "=== convert_op ===" << endl;
+			convert_op.printContent();
+			cerr << "=== neg_prod ===" << endl;
+			neg_prod.printContent();
+		}
 		BOOST_REQUIRE_MESSAGE(
 				convert_op == neg_prod,
 				"Error with encoding " << i
