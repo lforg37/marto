@@ -17,8 +17,9 @@
 #include <omp.h>
 
 using namespace std;
+namespace utf = boost::unit_test;
 
-BOOST_AUTO_TEST_CASE(TestAllSumPosit8) 
+BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long")) 
 {
 
 	// ap_uint<16> value10 = 0b1111111111111111;
