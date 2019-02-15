@@ -175,6 +175,19 @@ class PositProd
 			return lhs._val == _val;
 		}
 
+
+		void printContent(){
+
+			fprintf(stderr, "isNaR: %d\n", (int) this->getIsNaR());
+			
+			fprintf(stderr, "biased exp: ");
+			printApUint(this->getExp());
+
+			fprintf(stderr, "significand: ");
+			printApUint(this->getSignificand());
+
+		}
+
 	private:
 		ap_uint<PositDim<N>::ProdSize> _val;	
 };
