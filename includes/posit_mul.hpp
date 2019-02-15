@@ -16,12 +16,14 @@ PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 		in1.getSignedSignificand() * in2.getSignedSignificand();
 
 	//Compute the exponent
-	ap_uint<PositDim<N>::ProdExpSize> exponent = 
-		in1.getExp() + in2.getExp();
+	ap_uint<PositDim<N>::ProdExpSize> exponent;
+   if (isZero)
+   {
+		exponent = 0;
+   } else {
+	   exponent = in1.getExp() + in2.getExp();
+   }
 
-	ap_int<PositDim<N>::ProdExpSize> zeroMask = not isZero;
-	ap_uint<PositDim<N>::ProdExpSize> fin_exp = exponent and zeroMask;
-
-	return PositProd<N>(isNar, fin_exp, significand);
+	return PositProd<N>(isNar, exponent, significand);
 }
 #endif

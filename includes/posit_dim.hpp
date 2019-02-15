@@ -280,7 +280,7 @@ class PositValue
 
 		ap_uint<1> isZero()
 		{
-			ap_uint<1> isExponentNull = getExp().or_reduce();
+			ap_uint<1> isExponentNull = not(getExp().or_reduce());
 			return isExponentNull and (not getSignBit());
 		}
 

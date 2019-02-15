@@ -13,10 +13,13 @@ PositProd<N> PositValue_to_PositProd(PositValue<N> val)
 			ap_uint<PositDim<N>::WF>(0)
 		);
 
-	ap_uint<PositDim<N>::ProdExpSize> exponent = 
-		((ap_uint<PositDim<N>::ProdExpSize>) val.getExp()) + 
+	ap_uint<PositDim<N>::ProdExpSize> exponent;
+   	if (val.isZero()) {
+		exponent = 0;	
+	} else {
+		exponent = ((ap_uint<PositDim<N>::ProdExpSize>) val.getExp()) + 
 		ap_uint<PositDim<N>::ProdExpSize>(PositDim<N>::EXP_BIAS);
-
+	}
 	return PositProd<N>(val.getIsNaR(), exponent, significand);
 }
 

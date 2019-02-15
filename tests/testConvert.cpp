@@ -59,27 +59,26 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 		if (posit_val.getIsNaR() == 1) {
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getIsNaR() == 1, "Prod by one should be NAR");
 			BOOST_REQUIRE_MESSAGE(posit_prod_direct.getIsNaR() == 1, "Direct conversion should be NAR");
-		} else if (posit_val.getSignedSignificand() == 0) {
-			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getSignificand() == 0, "Prod by one significand should be zero");
-			BOOST_REQUIRE_MESSAGE(posit_prod_direct.getSignificand() == 0, "Direct conversion significand should be zero");
 		} else {
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one == posit_prod_direct, "Error for conversion with value " << value);
 		}
 		value += 1;
 	} while (value != 0);
-
 }
 
 BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
 {
-
 	uint16_t value = 0;
 	do {
-		ap_uint<16> current = value;
-		BOOST_REQUIRE_MESSAGE(posit_encoder(PositProd_to_PositValue(PositValue_to_PositProd(posit_decoder(current)))) == current, "Error for conversion with value " << value);		
+		PositEncoding<16> current = value;
+		auto decoded = posit_decoder(current);
+		auto prod = PositValue_to_PositProd(decoded);
+		auto casted_val = PositProd_to_PositValue(prod);
+		auto reencoding = posit_encoder(casted_val);
+
+		BOOST_REQUIRE_MESSAGE(reencoding == current, "Error for conversion with value " << value);		
 		value += 1;
 	} while (value != 0);
-
 }
 
 BOOST_AUTO_TEST_CASE(TestZeroExpZero) 
