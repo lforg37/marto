@@ -74,13 +74,8 @@ BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
 		auto decoded = posit_decoder(current);
 		auto prod = PositValue_to_PositProd(decoded);
 		auto casted_val = PositProd_to_PositValue(prod);
-
 		auto reencoding = posit_encoder(casted_val);
-		if(reencoding != current){
-			decoded.printContent();
-			prod.printContent();
-			casted_val.printContent();
-		}
+
 		BOOST_REQUIRE_MESSAGE(reencoding == current, "Error for conversion with value " << value);		
 		value += 1;
 	} while (value != 0);

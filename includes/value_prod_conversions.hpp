@@ -26,7 +26,6 @@ PositProd<N> PositValue_to_PositProd(PositValue<N> val)
 template<int N>
 PositValue<N> PositProd_to_PositValue(PositProd<N> val) 
 {
-	ap_uint<1> expIsZero = val.getExp() == 0;
 
 	ap_uint<1> isMinPos, isMaxPos;
 	ap_uint<1> isNaR = val.getIsNaR();
@@ -59,21 +58,7 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 
 	ap_uint<PositDim<N>::ProdSignificandSize> fraction = val.getSignificand();
 	// printApUint(fraction);
-	if(expIsZero){
-		return PositValue<N>(
-				// ap_uint<1> guard,
-				0,
-				// ap_uint<1> sticky,
-				0,
-				isNaR,
-				// ap_uint<PositDim<N>::WE> exp, //Warning : biased exp
-				0, //Warning : biased exp
-				0,
-				0,
-				// ap_uint<PositDim<N>::WF> fraction);
-				0
-				);
-	}
+
 	if(isMinPos and val.getSignBit() ){
 		return PositValue<N>::getMinNeg();
 	}
