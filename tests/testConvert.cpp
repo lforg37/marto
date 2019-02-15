@@ -123,8 +123,7 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 	for(uint32_t value = 0; value < (1<<16); value++) {
 		auto valueEncoding = PositEncoding<16> (value);
 		auto decoded = posit_decoder(valueEncoding);
-
-		auto prod = decoded_to_product(decoded);
+		auto prod = PositValue_to_PositProd(decoded);
 		cerr << "Prod : " << prod << endl;
 		Quire<16> quireConvert = add_sub_quire(quire, prod, 0);
 		cerr << "Quire convert : " << quireConvert << endl;
