@@ -9,6 +9,7 @@ template<int N>
 PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 {
 	ap_uint<1> isNar = in1.getIsNaR() | in2.getIsNaR();
+	ap_int<1> isZero = in1.isZero() or in2.isZero();
 
 	//Compute the significand
 	ap_uint<PositDim<N>::ProdSignificandSize> significand = 
@@ -18,6 +19,9 @@ PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 	ap_uint<PositDim<N>::ProdExpSize> exponent = 
 		in1.getExp() + in2.getExp();
 
-	return PositProd<N>(isNar, exponent, significand);
+	ap_int<PositDim<N>::ProdExpSize> zeroMask = not isZero;
+	ap_uint<PositDim<N>::ProdExpSize> fin_exp = exponent and zeroMask;
+
+	return PositProd<N>(isNar, fin_exp, significand);
 }
 #endif

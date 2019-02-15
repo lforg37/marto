@@ -278,6 +278,12 @@ class PositValue
 			return _val == rhs._val;
 		}
 
+		ap_uint<1> isZero()
+		{
+			ap_uint<1> isExponentNull = getExp().or_reduce();
+			return isExponentNull and (not getSignBit());
+		}
+
 		void printContent(){
 
 			fprintf(stderr, "guard: %d\n", (int)this->getGuardBit());
