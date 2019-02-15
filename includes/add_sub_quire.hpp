@@ -15,7 +15,7 @@ Quire<N> add_sub_quire(
 	
 	#pragma HLS UNROLL
 	for (int i=0; i<N; i++){
-		complementedInputIfIsSub[i] = input.getBit(i) ^ isSub;
+		complementedInputIfIsSub[i] = input[i] ^ isSub;
 	}
 
 	ap_int<PositDim<N>::ExtQuireSize-1> shiftedInput = complementedInputIfIsSub<<(input.getExp());

@@ -11,12 +11,14 @@
 #include "softposit.h"
 #endif
 
-#include "value_prod_conversions.hpp"
+#include "add_sub_quire.hpp"
 #include "lzoc_shifter.hpp"
 #include "posit_decoder.hpp"
-#include "posit_encoder.hpp"
 #include "posit_dim.hpp"
+#include "posit_encoder.hpp"
 #include "posit_mul.hpp"
+#include "quire_to_posit.hpp"
+#include "value_prod_conversions.hpp"
 
 using namespace std;
 
@@ -112,6 +114,27 @@ BOOST_AUTO_TEST_CASE(TestZeroExpZero)
 	BOOST_REQUIRE_MESSAGE(decoded.getExp() == 0, 
 			"Decoded biased exp of 0 should be zero after decoding"
 		);
+}
+
+BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
+{
+	Quire<16> quire{0};
+
+	for(uint32_t value = 0; value < (1<<16); value++) {
+		auto valueEncoding = PositEncoding<16> (value);
+		auto decoded = posit_decoder(valueEncoding);
+
+		auto prod = decoded_to_product(decoded);
+		cerr << "Prod : " << prod << endl;
+		Quire<16> quireConvert = add_sub_quire(quire, prod, 0);
+		cerr << "Quire convert : " << quireConvert << endl;
+		auto back_convert = quire_to_posit(quireConvert);
+		back_convert.printContent();
+		
+		BOOST_REQUIRE_MESSAGE(back_convert == decoded,
+				"Error for posit with encoding " << value
+			);
+	}
 }
 
 #ifdef SOFTPOSIT
