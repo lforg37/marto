@@ -156,8 +156,8 @@ class PositProd : public PositProdSizedAPUint<N>
 		ap_uint<PositDim<N>::ProdExpSize> getExp()
 		{
 			return PositProdSizedAPUint<N>::range(
-					PositDim<N>::ProdSignificandSize + PositDim<N>::ProdExpSize-1, 
-					PositDim<N>::ProdSignificandSize
+					PositDim<N>::ProdSignificandSize + 1 + PositDim<N>::ProdExpSize-1, 
+					PositDim<N>::ProdSignificandSize + 1
 				);
 		}
 
