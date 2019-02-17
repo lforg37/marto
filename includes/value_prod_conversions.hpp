@@ -33,10 +33,14 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 	ap_uint<1> isNaR = val.getIsNaR();
 	ap_uint<PositDim<N>::ProdSignificandSize> fraction = val.getSignificand();
 	ap_uint<1> implicitBit = fraction[PositDim<N>::ProdSignificandSize-1];
-	// ap_uint<1> isZero = not(((ap_uint<4>) val.getSignificand().range(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
-	ap_uint<1> isZero = not(val.getSignBit()) and not(implicitBit);
+	ap_uint<PositDim<N>::WF> resultFraction = fraction.range(PositDim<N>::ProdSignificandSize-1-1, PositDim<N>::ProdSignificandSize-1-1 -(PositDim<N>::WF)+1);
+	ap_uint<1> resultGuardBit = fraction[PositDim<N>::ProdSignificandSize-1-1 -(PositDim<N>::WF)+1-1];
+	ap_uint<1> resultStickyBit = not(fraction.range(PositDim<N>::ProdSignificandSize-1-1 -(PositDim<N>::WF)+1-1-1,0) == 0);
 
-	ap_int<PositDim<N+1>::ProdExpSize> exp;
+	// ap_uint<1> isZero = not(((ap_uint<4>) val.getSignificand().range(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
+	ap_uint<1> isZero = not(val.getSignBit()) and not(implicitBit) and val.getExp()==0;
+
+	ap_int<PositDim<N>::ProdExpSize+1> exp;
 	
 	ap_uint<PositDim<N>::ProdExpSize> expt = val.getExp();
 	// printApUint(expt);	
@@ -47,7 +51,7 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 	if (isZero) {
 		exp = 0;
 	} else {
-		exp	= (ap_int<PositDim<N+1>::ProdExpSize>)val.getExp()-PositDim<N>::EXP_BIAS;
+		exp	= (ap_int<PositDim<N>::ProdExpSize+1>)val.getExp()-PositDim<N>::EXP_BIAS;
 	}
 	// printApInt(exp);	
 
@@ -64,9 +68,12 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 		isMinPos = 0;
 		isMaxPos = 0;
 	}
-	// printApInt(exp);
 
-	ap_uint<PositDim<N>::WF> resultFraction = fraction.range(PositDim<N>::ProdSignificandSize-1-1, PositDim<N>::ProdSignificandSize-1-1 -(PositDim<N>::WF)+1);
+	// fprintf(stderr, "isminpos: ");
+	// printApUint(isMinPos);
+	// fprintf(stderr, "ismaxpos: ");
+	// printApUint(isMaxPos);
+
 
 	if(isMinPos and val.getSignBit() ){
 		return PositValue<N>::getMinNeg();
@@ -82,12 +89,9 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 	}
 	else{
 		return PositValue<N>(
-				// ap_uint<1> guard,
-				0,
-				// ap_uint<1> sticky,
-				0,
+				resultGuardBit,
+				resultStickyBit,
 				isNaR,
-				// ap_uint<PositDim<N>::WE> exp, //Warning : biased exp
 				exp.range(PositDim<N>::WE-1,0), //Warning : biased exp
 				val.getSignBit(),
 				implicitBit,

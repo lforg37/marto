@@ -26,38 +26,38 @@ namespace utf = boost::unit_test;
 BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long")) 
 {
 
-	ap_uint<16> value10 = 0b0000000000000000;
-	ap_uint<16> value20 = 0b1100000000000000;
-	PositValue<16> a = posit_decoder(value10);
-	PositValue<16> b = posit_decoder(value20);
-	// PositValue<16> b = posit_decoder((ap_uint<16>)0b0110111100000111);
+	// ap_uint<16> value10 = 0b1000000000000001;
+	// ap_uint<16> value20 = 0b1000000000000010;
+	// PositValue<16> a = posit_decoder(value10);
+	// PositValue<16> b = posit_decoder(value20);
+	// // PositValue<16> b = posit_decoder((ap_uint<16>)0b0110111100000111);
 
-	PositProd<16> res = posit_mul(a,b);  
+	// PositProd<16> res = posit_mul(a,b);  
 	
-	printf("===== a =====\n");
-	a.printContent();
-	printf("===== b =====\n");
-	b.printContent();
-	printf("===== res =====\n");
-	res.printContent();
-	auto resPosit = PositProd_to_PositValue(res);
-	printf("===== res as posit =====\n");
-	resPosit.printContent();
+	// printf("===== a =====\n");
+	// a.printContent();
+	// printf("===== b =====\n");
+	// b.printContent();
+	// printf("===== res =====\n");
+	// res.printContent();
+	// auto resPosit = PositProd_to_PositValue(res);
+	// printf("===== res as posit =====\n");
+	// resPosit.printContent();
 
-	ap_uint<16> encoded = posit_encoder(resPosit);
-	printApUint(encoded);
+	// ap_uint<16> encoded = posit_encoder(resPosit);
+	// printApUint(encoded);
 
-	posit16_t positValue1 = castP16(value10);
-	posit16_t positValue2 = castP16(value20);
-	posit16_t positMul = p16_mul(positValue1, positValue2);
-	ap_uint<16> softpositMul = (ap_uint<16>) castUI(positMul);
-	printApUint(softpositMul);
+	// posit16_t positValue1 = castP16(value10);
+	// posit16_t positValue2 = castP16(value20);
+	// posit16_t positMul = p16_mul(positValue1, positValue2);
+	// ap_uint<16> softpositMul = (ap_uint<16>) castUI(positMul);
+	// printApUint(softpositMul);
 
-	printf("===== encoding of soft result =====\n");
-	ap_uint<16> value30 = softpositMul;
-	PositValue<16> t = posit_decoder(value30);
-	t.printContent();
-	exit(0);
+	// printf("===== encoding of soft result =====\n");
+	// ap_uint<16> value30 = softpositMul;
+	// PositValue<16> t = posit_decoder(value30);
+	// t.printContent();
+	// exit(0);
 
 	uint64_t counter = 0;
 	uint64_t TOTAL_TESTS = (((uint64_t)1)<<32);
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 				printApUint(softpositMul);
 				fprintf(stderr, "=== Computed result === \n");
 				printApUint(encoded);
-				fprintf(stderr, "Tests Passed: %d\n", counter);
+				fprintf(stderr, "Tests Passed: %lu\n", counter);
 
 				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositMul);
 			}
@@ -95,11 +95,11 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 			#pragma omp atomic
 			counter+=(100*(1<<16));
 			#pragma omp critical
-			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\%  (%lu\t/%lu)", ((double)counter/(double)TOTAL_TESTS)*100, counter,TOTAL_TESTS);
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\% (%lu\t/%lu)", ((double)counter/(double)TOTAL_TESTS)*100, counter,TOTAL_TESTS);
 		}
 		error_counter = 0;
 	}
-	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\%  (%lu\t/%lu)\n", ((double)TOTAL_TESTS/(double)TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\% (%lu\t/%lu)\n", ((double)TOTAL_TESTS/(double)TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
 }
 
 
