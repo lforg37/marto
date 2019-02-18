@@ -110,6 +110,12 @@ class Quire : public QuireSizedAPUint<N>
 			return (*this)[PositDim<N>::ExtQuireSize -1];
 		}
 
+		void printContent(){
+
+			printApUint((ap_uint<PositDim<N>::ExtQuireSize>)QuireSizedAPUint<N>::range(PositDim<N>::ExtQuireSize-1 , 0));
+
+		}
+
 		static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2); 
 };
 
