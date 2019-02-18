@@ -10,11 +10,12 @@ Quire<N> add_sub_quire(
 	   	ap_uint<1> isSub
 ){
 	
-	ap_int<PositDim<N>::ProdSignificandSize> inputSignificand = input.getSignificand();
-	ap_int<PositDim<N>::ProdSignificandSize> complementedInputIfIsSub;
-	
+	ap_int<PositDim<N>::ProdSignificandSize+1> inputSignificand = input.getSignedSignificand();
+	ap_int<PositDim<N>::ProdSignificandSize+1> complementedInputIfIsSub;
+	// ap_uint<1> sign = inputSignificand[PositDim<N>::ProdSignificandSize];
+	// printApUint(sign);
 	#pragma HLS UNROLL
-	for (int i=0; i<PositDim<N>::ProdSignificandSize; i++){
+	for (int i=0; i<PositDim<N>::ProdSignificandSize+1; i++){
 		complementedInputIfIsSub[i] = input[i] ^ isSub;
 	}
 	
@@ -26,7 +27,7 @@ Quire<N> add_sub_quire(
 
 	ap_uint<PositDim<N>::ProdExpSize> shiftValue = input.getExp();
 	ap_int<PositDim<N>::ExtQuireSize-1> shiftedInput = (ap_int<PositDim<N>::ExtQuireSize-1>)complementedInputIfIsSub<<(shiftValue);
-	fprintf(stderr, "=== shiftdValue ===\n");
+	// fprintf(stderr, "=== shiftdValue ===\n");
 	// printApUint(shiftValue);
 
 	// fprintf(stderr, "=== shiftedInput ===\n");
