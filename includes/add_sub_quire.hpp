@@ -26,7 +26,8 @@ Quire<N> add_sub_quire(
 
 
 	ap_uint<PositDim<N>::ProdExpSize> shiftValue = input.getExp();
-	ap_int<PositDim<N>::ExtQuireSize-1> shiftedInput = (ap_int<PositDim<N>::ExtQuireSize-1>)complementedInputIfIsSub<<(shiftValue);
+	ap_int<PositDim<N>::ExtQuireSize-1 + PositDim<N>::ProdSignificandSize> shiftedInput = (ap_int<PositDim<N>::ExtQuireSize-1 +PositDim<N>::ProdSignificandSize>)complementedInputIfIsSub<<(shiftValue);
+	ap_int<PositDim<N>::ExtQuireSize-1> shiftedInputShrinked = shiftedInput.range(PositDim<N>::ExtQuireSize-1 + PositDim<N>::ProdSignificandSize-1-1, PositDim<N>::ProdSignificandSize-1);
 	// fprintf(stderr, "=== shiftdValue ===\n");
 	// printApUint(shiftValue);
 
@@ -35,7 +36,7 @@ Quire<N> add_sub_quire(
 
 	ap_uint<PositDim<N>::ExtQuireSize-1> quireWithoutSignAndNARBit = quire.getQuireWithoutNaR();
 
-	ap_uint<PositDim<N>::ExtQuireSize-1> sumResult = shiftedInput + quireWithoutSignAndNARBit + isSub;
+	ap_uint<PositDim<N>::ExtQuireSize-1> sumResult = shiftedInputShrinked + quireWithoutSignAndNARBit + isSub;
 
 	ap_uint<1> resultIsNaR = quire.getIsNaR() || input.getIsNaR();
 
