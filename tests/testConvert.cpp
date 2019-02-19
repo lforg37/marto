@@ -31,6 +31,46 @@ int twoCompClean(int input, int nb_clear)
 	return -1 * cleaned_val;
 }
 
+BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
+{
+	//Positive underflow
+	Quire<16> quire{0};
+	auto minpos = PositValue<16>::getMinPos();
+	auto prod = posit_mul(minpos, minpos);
+	auto quire_conv = add_sub_quire(quire, prod, 0);
+	auto decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == minpos, 
+			"Positive underflow does not returns minpos"
+		);
+
+	//Positive overflow
+	auto maxpos = PositValue<16>::getMaxPos();
+	prod = posit_mul(maxpos, maxpos);
+	quire_conv = add_sub_quire(quire, prod, 0);
+	decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == maxpos,
+			"Positive overflow doesn't return maxpos"
+			);
+
+	//Negative underflow
+	auto minneg = PositValue<16>::getMinPos();
+	prod = posit_mul(minpos, minneg);
+	quire_conv = add_sub_quire(quire, prod, 0);
+	decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == minneg,
+			"Negative underflow is not mapped to minneg"
+			);
+
+	//Negative overflow
+	auto maxneg = PositValue<16>::getMaxPos();
+	prod = posit_mul(maxpos, maxneg);
+	quire_conv = add_sub_quire(quire, prod, 0);
+	decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == maxneg,
+			"Negative overflow is not mapped to maxneg"
+			);
+}
+
 BOOST_AUTO_TEST_CASE(LZOCShiftTest)
 {
 	uint16_t i = 0;

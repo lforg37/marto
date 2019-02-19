@@ -90,7 +90,7 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 
 	ap_uint<logSize> fin_exp;
 	if (overflow) {
-		fin_exp = 2*PositDim<N>::EXP_BIAS + ((ap_uint<1>)sign);
+		fin_exp = 2*PositDim<N>::EXP_BIAS - (not((ap_uint<1>)sign));
 	} else if (isZero) {
 		fin_exp = 0;
 	} else if (underflow)
