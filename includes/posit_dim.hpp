@@ -44,6 +44,9 @@ static ap_uint<N> negativeMinPosit() {
     return ((ap_uint<N>)-1);
 }
 
+
+
+
 template<int N>
 class PositDim {
 	public:
@@ -114,6 +117,34 @@ class Quire : public QuireSizedAPUint<N>
 
 			printApUint((ap_uint<PositDim<N>::ExtQuireSize>)QuireSizedAPUint<N>::range(PositDim<N>::ExtQuireSize-1 , 0));
 
+		}
+
+		static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2); 
+};
+
+template<int N, int bankSize>
+static int getNbStages(){
+	return std::ceil(PositDim<N>::ExtQuireSize / bankSize);
+} 
+
+template<int N, int bankSize>
+static int getMantSpread(){
+	return std::ceil(PositDim<N>::ProdSignificandSize / bankSize);
+} 
+
+// Stored as normal quire then carry bits from most significant to less
+template<int N, int bankSize>
+class SegmentedQuire : public ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()>
+{
+	//Storage :
+	// isNar Sign Carry 2sCompValue
+	public:
+		SegmentedQuire(ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()> val):ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()>(val){}
+
+		
+
+		void printContent(){
+			printApUint(this);
 		}
 
 		static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2); 
