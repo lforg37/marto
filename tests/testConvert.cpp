@@ -31,16 +31,44 @@ int twoCompClean(int input, int nb_clear)
 	return -1 * cleaned_val;
 }
 
-BOOST_AUTO_TEST_CASE(Dummy)
+BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 {
-	uint16_t almost_two = (2<<13) + (2 << 12) - 1;
-	PositEncoding<16> encoding{almost_two};
-	auto val = posit_decoder(encoding);
-	val.printContent();
-	auto prod = PositValue_to_PositProd(val);
-	cerr << "Exp : " << prod.getExp() << endl;
-	auto quire = add_sub_quire(Quire<16>{0}, prod, 0);
-	cerr << "Prod : " << quire << endl;
+	//Positive underflow
+	Quire<16> quire{0};
+	auto minpos = PositValue<16>::getMinPos();
+	auto prod = posit_mul(minpos, minpos);
+	auto quire_conv = add_sub_quire(quire, prod, 0);
+	auto decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == minpos, 
+			"Positive underflow does not returns minpos"
+		);
+
+	//Positive overflow
+	auto maxpos = PositValue<16>::getMaxPos();
+	prod = posit_mul(maxpos, maxpos);
+	quire_conv = add_sub_quire(quire, prod, 0);
+	decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == maxpos,
+			"Positive overflow doesn't return maxpos"
+			);
+
+	//Negative underflow
+	auto minneg = PositValue<16>::getMinPos();
+	prod = posit_mul(minpos, minneg);
+	quire_conv = add_sub_quire(quire, prod, 0);
+	decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == minneg,
+			"Negative underflow is not mapped to minneg"
+			);
+
+	//Negative overflow
+	auto maxneg = PositValue<16>::getMaxPos();
+	prod = posit_mul(maxpos, maxneg);
+	quire_conv = add_sub_quire(quire, prod, 0);
+	decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded == maxneg,
+			"Negative overflow is not mapped to maxneg"
+			);
 }
 
 BOOST_AUTO_TEST_CASE(LZOCShiftTest)
@@ -157,15 +185,25 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 		PositEncoding<16> valueEncoding{value};
 		auto decoded = posit_decoder(valueEncoding);
 		auto prod = PositValue_to_PositProd(decoded);
-		cerr << "Prod : " << prod << endl;
 		Quire<16> quireConvert = add_sub_quire(quire, prod, 0);
-		cerr << "Quire convert : " << quireConvert << endl;
 		auto back_convert = quire_to_posit(quireConvert);
-		back_convert.printContent();
-		
-		BOOST_REQUIRE_MESSAGE(back_convert == decoded,
-				"Error for posit with encoding " << value
+		if (decoded.getIsNaR() == 0 and back_convert != decoded) {
+			cerr << "=== Original : ===" << endl;
+			decoded.printContent();
+			cerr << "=== Quire : ===" << endl;
+			cerr << quireConvert << endl;
+			cerr << "=== Decoded : ===" << endl;
+			back_convert.printContent();
+		}
+		if (decoded.getIsNaR() == 1) {
+			BOOST_REQUIRE_MESSAGE(back_convert.getIsNaR() == 1 ,
+				"Nar value decoding should be NaR"
 			);
+		} else {
+			BOOST_REQUIRE_MESSAGE(back_convert == decoded,
+					"Error for posit with encoding " << value
+				);
+		}
 	}
 }
 
