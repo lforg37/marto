@@ -7,10 +7,9 @@
 template<int N>
 PositValue<N> quire_to_posit(Quire<N> quire)
 {
-	constexpr int size_range = 2*Quire<N>::PositRangeOffset;
-	constexpr int logSize = ceilLog2(size_range);
-	constexpr int allsize = ceil2Power(size_range);
-	constexpr int padd_width = allsize - size_range;
+	constexpr int logSize = ceilLog2(Quire<N>::PositExpRange);
+	constexpr int allsize = ceil2Power(Quire<N>::PositExpRange);
+	constexpr int padd_width = allsize - Quire<N>::PositExpRange;
 
 	ap_int<1> sign = quire.getSignBit();
 
@@ -30,23 +29,23 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 	//Are the bits below posit range all null ?
 	ap_uint<1> low_bit_is_null = not(lower_sticky) and upper_low_null;
 
-	ap_uint<2*Quire<N>::PositRangeOffset> middle_bits = quire.range(
-			3 * Quire<N>::PositRangeOffset - 1,
+	ap_uint<Quire<N>::PositExpRange> middle_bits = quire.range(
+			Quire<N>::PositRangeOffset + Quire<N>::PositExpRange - 1,
 			Quire<N>::PositRangeOffset
 		);
 
-	ap_int<2*Quire<N>::PositRangeOffset> middle_s_ext = ((ap_int<1>) not sign);
-	ap_uint<2*Quire<N>::PositRangeOffset> underflow_base = middle_s_ext xor middle_bits;
+	ap_int<Quire<N>::PositExpRange> middle_s_ext = ((ap_int<1>) not sign);
+	ap_uint<Quire<N>::PositExpRange> underflow_base = middle_s_ext xor middle_bits;
 	ap_uint<1> middle_void_flag = underflow_base.and_reduce();
 	ap_uint<1> middle_is_null = not(middle_bits.or_reduce());
 
-	ap_uint<1> uperincludedbound = middle_bits[2*Quire<N>::PositRangeOffset - 1];
+	ap_uint<1> uperincludedbound = middle_bits[Quire<N>::PositExpRange - 1];
 
 	constexpr int remainingsize = 
-		PositDim<N>::ExtQuireSize - 2 - 4 * Quire<N>::PositRangeOffset;
+		PositDim<N>::ExtQuireSize - 2 - Quire<N>::PositCarryOffset;
 
 	ap_uint<remainingsize> uppercarry = quire.range(PositDim<N>::ExtQuireSize - 3,
-			4*Quire<N>::PositRangeOffset
+			Quire<N>::PositCarryOffset
 		); 
 
 	ap_int<remainingsize> upper_ext_sign = sign;
@@ -61,12 +60,8 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 						middle_is_null and 
 						low_bit_is_null;
 
-	ap_uint<1> underflow = 	not(underflow)
-		and not(overflow)
-		and middle_void_flag 
-		and not(sign and low_bit_is_null);
+	ap_uint<1> underflow = not(overflow) and middle_void_flag;
 
-	
 	ap_uint<allsize> padded_mid_bits = middle_bits.concat(
 			( (ap_uint<padd_width>)
 			quire.range(
@@ -79,7 +74,7 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 	auto lzocshifted = lzoc_shifter<logSize>(padded_mid_bits, sign);
 	ap_uint<logSize> exp = lzocshifted.range(logSize + allsize - 1, allsize);
 
-	ap_uint<logSize> biased_exp = ap_uint<logSize>{size_range} - exp;
+	ap_uint<logSize> biased_exp = ap_uint<logSize>{Quire<N>::PositExpRange} - exp ;
 	ap_uint<PositDim<N>::WF> frac = lzocshifted.range(allsize - 2, allsize - (PositDim<N>::WF + 1));
 	ap_uint<1> guard = lzocshifted[allsize - PositDim<N>::WF - 2];
 	ap_uint<allsize -( PositDim<N>::WF + 2)> stickycomp = lzocshifted.range(
@@ -95,7 +90,7 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 
 	ap_uint<logSize> fin_exp;
 	if (overflow) {
-		fin_exp = 2*PositDim<N>::EXP_BIAS - 1 - sign;
+		fin_exp = 2*PositDim<N>::EXP_BIAS + ((ap_uint<1>)sign);
 	} else if (isZero) {
 		fin_exp = 0;
 	} else if (underflow)

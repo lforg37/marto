@@ -31,18 +31,6 @@ int twoCompClean(int input, int nb_clear)
 	return -1 * cleaned_val;
 }
 
-BOOST_AUTO_TEST_CASE(Dummy)
-{
-	uint16_t almost_two = (2<<13) + (2 << 12) - 1;
-	PositEncoding<16> encoding{almost_two};
-	auto val = posit_decoder(encoding);
-	val.printContent();
-	auto prod = PositValue_to_PositProd(val);
-	cerr << "Exp : " << prod.getExp() << endl;
-	auto quire = add_sub_quire(Quire<16>{0}, prod, 0);
-	cerr << "Prod : " << quire << endl;
-}
-
 BOOST_AUTO_TEST_CASE(LZOCShiftTest)
 {
 	uint16_t i = 0;
@@ -157,15 +145,25 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 		PositEncoding<16> valueEncoding{value};
 		auto decoded = posit_decoder(valueEncoding);
 		auto prod = PositValue_to_PositProd(decoded);
-		cerr << "Prod : " << prod << endl;
 		Quire<16> quireConvert = add_sub_quire(quire, prod, 0);
-		cerr << "Quire convert : " << quireConvert << endl;
 		auto back_convert = quire_to_posit(quireConvert);
-		back_convert.printContent();
-		
-		BOOST_REQUIRE_MESSAGE(back_convert == decoded,
-				"Error for posit with encoding " << value
+		if (decoded.getIsNaR() == 0 and back_convert != decoded) {
+			cerr << "=== Original : ===" << endl;
+			decoded.printContent();
+			cerr << "=== Quire : ===" << endl;
+			cerr << quireConvert << endl;
+			cerr << "=== Decoded : ===" << endl;
+			back_convert.printContent();
+		}
+		if (decoded.getIsNaR() == 1) {
+			BOOST_REQUIRE_MESSAGE(back_convert.getIsNaR() == 1 ,
+				"Nar value decoding should be NaR"
 			);
+		} else {
+			BOOST_REQUIRE_MESSAGE(back_convert == decoded,
+					"Error for posit with encoding " << value
+				);
+		}
 	}
 }
 

@@ -116,7 +116,9 @@ class Quire : public QuireSizedAPUint<N>
 
 		}
 
-		static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2); 
+		static constexpr int PositRangeOffset = PositDim<N>::EXP_BIAS - 1;
+		static constexpr int PositExpRange = 2*PositRangeOffset + 1;
+		static constexpr int PositCarryOffset = PositRangeOffset + PositExpRange;
 };
 
 
