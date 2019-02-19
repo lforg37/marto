@@ -20,7 +20,7 @@ PositProd<N> PositValue_to_PositProd(PositValue<N> val)
 		exponent = 0;	
 	} else {
 		exponent = ((ap_uint<PositDim<N>::ProdExpSize>) val.getExp()) + 
-		ap_uint<PositDim<N>::ProdExpSize>(PositDim<N>::EXP_BIAS);
+		ap_uint<PositDim<N>::ProdExpSize>(PositDim<N>::EXP_BIAS - 1);
 	}
 
 	return PositProd<N>(val.getIsNaR(), exponent, val.getSignBit(), significand);
@@ -51,7 +51,7 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 	if (isZero) {
 		exp = 0;
 	} else {
-		exp	= (ap_int<PositDim<N>::ProdExpSize+1>)val.getExp()-PositDim<N>::EXP_BIAS;
+		exp	= (ap_int<PositDim<N>::ProdExpSize+1>)val.getExp()-(PositDim<N>::EXP_BIAS - 1);
 	}
 	// printApInt(exp);	
 

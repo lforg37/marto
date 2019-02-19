@@ -39,7 +39,7 @@ template <int N> PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
     if (isZero) {
 		exponent = 0;
     } else {
-		exponent = in1.getExp() + in2.getExp() + needs_shift + neg_neg_2power;
+		exponent = in1.getExp() + in2.getExp() - not(needs_shift) + neg_neg_2power;
     }
 
     return PositProd<N>(

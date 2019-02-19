@@ -24,19 +24,20 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 			0
 		);
 
-	ap_uint<1> lower_sticky = not(lower_low_bits.or_reduce());
+	ap_uint<1> lower_sticky = lower_low_bits.or_reduce();
 	ap_uint<1> upper_low_null = not(upper_low_bits.or_reduce());
 
-	ap_uint<1> low_bit_is_null = lower_sticky and upper_low_null;
+	//Are the bits below posit range all null ?
+	ap_uint<1> low_bit_is_null = not(lower_sticky) and upper_low_null;
 
 	ap_uint<2*Quire<N>::PositRangeOffset> middle_bits = quire.range(
-			Quire<N>::PositRangeOffset,
-			3 * Quire<N>::PositRangeOffset - 1
+			3 * Quire<N>::PositRangeOffset - 1,
+			Quire<N>::PositRangeOffset
 		);
 
-	ap_int<2*Quire<N>::PositRangeOffset> middle_s_ext = not sign;
+	ap_int<2*Quire<N>::PositRangeOffset> middle_s_ext = ((ap_int<1>) not sign);
 	ap_uint<2*Quire<N>::PositRangeOffset> underflow_base = middle_s_ext xor middle_bits;
-	ap_uint<1> middle_void_flag = underflow_base.or_reduce();
+	ap_uint<1> middle_void_flag = underflow_base.and_reduce();
 	ap_uint<1> middle_is_null = not(middle_bits.or_reduce());
 
 	ap_uint<1> uperincludedbound = middle_bits[2*Quire<N>::PositRangeOffset - 1];

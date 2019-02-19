@@ -31,6 +31,18 @@ int twoCompClean(int input, int nb_clear)
 	return -1 * cleaned_val;
 }
 
+BOOST_AUTO_TEST_CASE(Dummy)
+{
+	uint16_t almost_two = (2<<13) + (2 << 12) - 1;
+	PositEncoding<16> encoding{almost_two};
+	auto val = posit_decoder(encoding);
+	val.printContent();
+	auto prod = PositValue_to_PositProd(val);
+	cerr << "Exp : " << prod.getExp() << endl;
+	auto quire = add_sub_quire(Quire<16>{0}, prod, 0);
+	cerr << "Prod : " << quire << endl;
+}
+
 BOOST_AUTO_TEST_CASE(LZOCShiftTest)
 {
 	uint16_t i = 0;
@@ -142,7 +154,7 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 	Quire<16> quire{0};
 
 	for(uint32_t value = 0; value < (1<<16); value++) {
-		auto valueEncoding = PositEncoding<16> (value);
+		PositEncoding<16> valueEncoding{value};
 		auto decoded = posit_decoder(valueEncoding);
 		auto prod = PositValue_to_PositProd(decoded);
 		cerr << "Prod : " << prod << endl;
