@@ -26,7 +26,7 @@ inline ap_uint<(1 << N)> shifter_stage(
 	ap_uint<1> stageNeedsShift = count[S-1];
 	ap_uint<S-1> countnext = count.range(S-2, 0);
 
-	ap_uint<(1 << N) - (1 << S)> low = input.range((1 << N) - (1 << (S-1)) - 1, 0); 
+	ap_uint<(1 << N) - (1 << (S-1))> low = input.range((1 << N) - (1 << (S-1)) - 1, 0); 
 	ap_uint<1<<N> next_stage_input;
 
 	if (stageNeedsShift) {
