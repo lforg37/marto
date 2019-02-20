@@ -25,6 +25,14 @@ constexpr int ceil2Power(int N)
 }
 
 template<int N>
+class Static_Val
+{
+	public:
+		static constexpr int _log2 = ceilLog2(N);
+		static constexpr int _2pow = ceil2Power(N);
+};
+
+template<int N>
 static ap_uint<N> positiveMaxPosit() {
     return (((ap_uint<N>)1)<<(N-1))-2;
 }

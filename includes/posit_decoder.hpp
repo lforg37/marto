@@ -51,7 +51,7 @@ PositValue<N> posit_decoder(PositEncoding<N> positN)
 	
 	ap_uint<1> implicit_bit = not(s) and not(zero_NAR);
 
-	constexpr int logN = get2Power(N);
+	constexpr int logN = Static_Val<N>::_log2;
 	auto lzoc_shifted = lzoc_shifter<logN>(input_shift, count_type);
 	ap_uint<logN + 1> RangeCount = lzoc_shifted.range(N+logN-1, N);
 	ap_uint<N-3> usefulBits = lzoc_shifted.range(N-2, 2);

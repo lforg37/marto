@@ -43,6 +43,14 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 			"Positive underflow does not returns minpos"
 		);
 
+	//Positive sticky
+	prod = PositValue_to_PositProd(minpos);
+	quire_conv = add_sub_quire(quire_conv, prod, 0);
+	decoded = quire_to_posit(quire_conv);
+	BOOST_REQUIRE_MESSAGE(decoded xor minpos == 0b10000000000000000000,
+			"Error, sticky bit is not set for minpos * (1+minpos)"
+		);
+
 	//Positive overflow
 	auto maxpos = PositValue<16>::getMaxPos();
 	prod = posit_mul(maxpos, maxpos);

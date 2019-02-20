@@ -19,8 +19,8 @@ PositValue<N> posit_add(
 		PositValue<N> in1, 
 		PositValue<N> in2
 ){
-	static constexpr int EXT_SUM_SIZE = ceil2Power(S_WF+2 + S_WF +1);
-	static constexpr int LOG2_EXT_SUM_SIZE = ceilLog2(EXT_SUM_SIZE);
+	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
+	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<EXT_SUM_SIZE>::_log2;
 	
 	bool in1IsGreater = in1.getExp() > in2.getExp();
 
