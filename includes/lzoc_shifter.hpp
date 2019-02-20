@@ -17,12 +17,14 @@ template<int N, int S>
 inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 		ap_uint<1<<N> input, 
 		ap_uint<1> leading,
+		ap_uint<1> fill_bit = 0,
 		typename enable_if<LZOCStageInfo<S>::NeedsRecursion>::type* dummy = 0
 	)
 {
 	ap_uint<1<<S> zeros = 0;
 	ap_uint<1<<S> ones = -1;
-	ap_uint<1<<S> padding = 0;
+	ap_int<1<<S> padding_s = (ap_int<1>) fill_bit;
+	ap_uint<1<<S> padding = padding_s;
 
 	ap_uint<1 << S> high = input.range((1 << N) - 1, (1 << N) - (1 << S));
 	ap_uint<(1 << N) - (1 << S)> low = input.range((1 << N) - (1 << S) - 1, 0); 
@@ -42,12 +44,13 @@ template<int N, int S>
 inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 		ap_uint<1<<N> input,
 		ap_uint<1> leading,
+		ap_uint<1> fill_bit = 0,
 		typename enable_if<LZOCStageInfo<S>::IsFinalStage>::type* dummy = 0
 	)
 {
 	if (input[(1<<N) - 1] == leading) {
 		ap_uint<(1<<N) - 1> low = input.range((1<<N) - 2, 0);
-		ap_uint<(1<<N)> res = low.concat(ap_uint<1>(0));
+		ap_uint<(1<<N)> res = low.concat(fill_bit);
 		return ap_uint<1>(1).concat(res);
 	} else {
 		return ap_uint<1>(0).concat(input);
@@ -55,7 +58,10 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 }
 
 template<int N>
-ap_uint<N + (1<<N)> lzoc_shifter(ap_uint<1<<N> input, ap_uint<1> leading)
+ap_uint<N + (1<<N)> lzoc_shifter(
+		ap_uint<1<<N> input, 
+		ap_uint<1> leading,
+		ap_uint<1> fill_bit = 0)
 {
 	return lzoc_shifter_stage<N, N-1>(input, leading);
 }
