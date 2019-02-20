@@ -1,8 +1,10 @@
 #ifndef SHIFTER_HPP
 #define SHIFTER_HPP
 #include <iostream>
+#include <type_traits>
 
 #include "ap_int.h"
+
 
 template<int S>
 struct ShifterStageInfo
@@ -18,7 +20,7 @@ inline ap_uint<(1 << N)> shifter_stage(
 		ap_uint<1<<N> input, 
 		ap_uint<S> count,
 		ap_uint<1> fill_bit = 0,
-		typename enable_if<ShifterStageInfo<S>::NeedsRecursion>::type* dummy = 0
+		typename std::enable_if<ShifterStageInfo<S>::NeedsRecursion>::type* dummy = 0
 	)
 {
 	ap_int<1<<(S-1)> padding_s = (ap_int<1>) fill_bit;
@@ -42,7 +44,7 @@ inline ap_uint<(1 << N)> shifter_stage(
 		ap_uint<1<<N> input,
 		ap_uint<S> count,
 		ap_uint<1> fill_bit = 0,
-		typename enable_if<ShifterStageInfo<S>::IsFinalStage>::type* dummy = 0
+		typename std::enable_if<ShifterStageInfo<S>::IsFinalStage>::type* dummy = 0
 	)
 {
 	ap_uint<1<<N> result;

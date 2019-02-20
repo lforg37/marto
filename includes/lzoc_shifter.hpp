@@ -1,6 +1,7 @@
 #ifndef LZOC_SHIFTER_HPP
 #define LZOC_SHIFTER_HPP
 #include <iostream>
+#include <type_traits>
 
 #include "ap_int.h"
 
@@ -18,7 +19,7 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 		ap_uint<1<<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename enable_if<LZOCStageInfo<S>::NeedsRecursion>::type* dummy = 0
+		typename std::enable_if<LZOCStageInfo<S>::NeedsRecursion>::type* dummy = 0
 	)
 {
 	ap_uint<1<<S> zeros = 0;
@@ -45,7 +46,7 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 		ap_uint<1<<N> input,
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename enable_if<LZOCStageInfo<S>::IsFinalStage>::type* dummy = 0
+		typename std::enable_if<LZOCStageInfo<S>::IsFinalStage>::type* dummy = 0
 	)
 {
 	if (input[(1<<N) - 1] == leading) {
