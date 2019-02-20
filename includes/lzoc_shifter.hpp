@@ -32,7 +32,7 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 
 	if ((leading && (high == ones)) || (!leading && high == zeros) ) {
 		ap_uint<1<<N> next_stage_input = low.concat(padding);
-		auto lower_stage = lzoc_shifter_stage<N, S-1>(next_stage_input, leading);
+		auto lower_stage = lzoc_shifter_stage<N, S-1>(next_stage_input, leading, fill_bit);
 		return ap_uint<1>(1).concat(lower_stage);
 	} else {
 		auto lower_stage = lzoc_shifter_stage<N, S-1>(input, leading);
@@ -63,6 +63,6 @@ ap_uint<N + (1<<N)> lzoc_shifter(
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0)
 {
-	return lzoc_shifter_stage<N, N-1>(input, leading);
+	return lzoc_shifter_stage<N, N-1>(input, leading, fill_bit);
 }
 #endif

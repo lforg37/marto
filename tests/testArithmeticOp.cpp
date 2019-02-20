@@ -16,6 +16,7 @@
 #include "posit_encoder.hpp"
 #include "posit_mul.hpp"
 #include "quire_to_posit.hpp"
+#include "shifter.hpp"
 #include "value_prod_conversions.hpp"
 
 #include <omp.h>
@@ -236,4 +237,23 @@ BOOST_AUTO_TEST_CASE(TestAddSubQuire)
 		auto valueEncoding = PositEncoding<16> (value);
 		auto decoded = posit_decoder(valueEncoding);
 	}
+}
+
+BOOST_AUTO_TEST_CASE(TestShifter)
+{
+	constexpr int N = 5;	
+	ap_uint<1<<N> val{1};
+
+	auto test = shifter<5>(val, 7, 0);
+
+	BOOST_REQUIRE_MESSAGE(test == (1<<7), "Shifted value should be 1 << 7, (" <<
+			(1 << 7) << ") got " << test << " instead." 
+		);
+
+	test = shifter<5>(val, 7, 1);
+	BOOST_REQUIRE_MESSAGE(
+			test == ((1<<8) - 1), 
+			"Shifted value should be (1 << 8) - 1, (" <<
+				((1 << 8) - 1) << ") got " << test << " instead." 
+		);
 }
