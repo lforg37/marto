@@ -68,5 +68,5 @@ PositEncoding<N> posit_encoder(PositValue<N> positValue)
 	ap_uint<N-1> zero = 0;
 	ap_uint<1> isNaRBit = positValue.getIsNaR();
 	ap_uint<N> specialCasesValue = isNaRBit.concat(zero);
-	return ((not(positValue.getSignBit()) and not(positValue.getImplicitBit()) or isNaRBit) ? specialCasesValue : normalOutput);
+	return (((not positValue.getSignBit()) and (not positValue.getImplicitBit())) or isNaRBit) ? specialCasesValue : normalOutput;
 }
