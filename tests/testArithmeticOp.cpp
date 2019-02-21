@@ -17,6 +17,7 @@
 #include "posit_mul.hpp"
 #include "quire_to_posit.hpp"
 #include "shifter.hpp"
+#include "static_math.hpp"
 #include "value_prod_conversions.hpp"
 
 #include <omp.h>
@@ -144,9 +145,9 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositSum);
 			}
 		}
-		if(((value2%100) == 0) and (value2 != 0)){
+		if(((value2%20) == 0) and (value2 != 0)){
 			#pragma omp atomic
-			counter+=(100*(1<<16));
+			counter+=(20*(1<<16));
 			#pragma omp critical
 			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\%  (%lu\t/%lu)", ((double)counter/(double)TOTAL_TESTS)*100, counter,TOTAL_TESTS);
 		}
@@ -215,7 +216,7 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 				fprintf(stderr, "=== Computed result === \n");
 				printApUint(encoded);
 				sum.printContent();
-				fprintf(stderr, "Tests Passed: %d\n", counter);
+				fprintf(stderr, "Tests Passed: %lu\n", counter);
 
 				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositSum);
 			}
@@ -256,4 +257,10 @@ BOOST_AUTO_TEST_CASE(TestShifter)
 			"Shifted value should be (1 << 8) - 1, (" <<
 				((1 << 8) - 1) << ") got " << test << " instead." 
 		);
+}
+
+BOOST_AUTO_TEST_CASE(TestStaticDivide) 
+{
+	BOOST_REQUIRE_MESSAGE((Static_Ceil_Div<4,2>::val == 2), "Error with value 4/2.");
+	BOOST_REQUIRE_MESSAGE((Static_Ceil_Div<5,2>::val == 3), "Error with value 5/2.");
 }
