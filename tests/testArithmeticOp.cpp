@@ -232,14 +232,6 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\%  (%lu\t/%lu)\n", ((double)TOTAL_TESTS/(double)TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
 }
 
-BOOST_AUTO_TEST_CASE(TestAddSubQuire)
-{
-	for(uint32_t value = 0; value < (1<<16); value++) {
-		auto valueEncoding = PositEncoding<16> (value);
-		auto decoded = posit_decoder(valueEncoding);
-	}
-}
-
 BOOST_AUTO_TEST_CASE(TestShifter)
 {
 	constexpr int N = 5;	
