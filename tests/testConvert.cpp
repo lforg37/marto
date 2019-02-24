@@ -215,6 +215,39 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 	}
 }
 
+BOOST_AUTO_TEST_CASE(TestSegmentedQuireConvertBack)
+{
+	SegmentedQuire<16, 64> quire{0};
+
+	for(uint32_t value = 0; value < (1<<16); value++) {
+		PositEncoding<16> valueEncoding{value};
+		auto decoded = posit_decoder(valueEncoding);
+		auto prod = PositValue_to_PositProd(decoded);
+		SegmentedQuire<16, 64> segmentedQuireConvert = segmented_add_sub_quire(quire, prod, 0);
+		Quire<16>  quireConvert = propagateCarries(segmentedQuireConvert);
+		auto back_convert = quire_to_posit(quireConvert);
+		if (decoded.getIsNaR() == 0 and back_convert != decoded) {
+			cerr << "=== Original : ===" << endl;
+			decoded.printContent();
+			cerr << "=== Segmented Quire : ===" << endl;
+			segmentedQuireConvert.printContent();
+			cerr << "=== Quire : ===" << endl;
+			quireConvert.printContent();
+			cerr << "=== Decoded : ===" << endl;
+			back_convert.printContent();
+		}
+		if (decoded.getIsNaR() == 1) {
+			BOOST_REQUIRE_MESSAGE(back_convert.getIsNaR() == 1 ,
+				"Nar value decoding should be NaR"
+			);
+		} else {
+			BOOST_REQUIRE_MESSAGE(back_convert == decoded,
+					"Error for posit with encoding " << value
+				);
+		}
+	}
+}
+
 #ifdef SOFTPOSIT
 BOOST_AUTO_TEST_CASE(TestMinMax)
 {

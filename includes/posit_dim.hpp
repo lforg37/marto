@@ -5,14 +5,23 @@ using namespace std;
 
 #include "ap_int.h"
 #include "utils.hpp"
-
+#include "static_math.hpp"
 //N.B.: We are using int instead of size_t because of ap_uint is templatized
 //=====  with int
+#include <boost/integer/static_log2.hpp>
 
-constexpr int get2Power(int N)
-{
-	return (N<=1) ? 0 : 1 + get2Power(N >> 1); 
-}
+#define get2Power(N) boost::static_log2<N>::value
+// constexpr int get2Power(int N)
+// {
+// 	// unsigned int result = 0;
+// 	// while(N>1){
+// 	// 	result+=1;
+// 	// 	N=N>>1;
+// 	// }
+// 	// return result;
+// 	return ::boost::static_log2<N>::value;
+// 	// return (N<=1) ? 0 : 1 + get2Power(N >> 1); 
+// }
 
 constexpr int ceilLog2(int N, uint8_t remains = 0)
 {
@@ -58,7 +67,7 @@ static ap_uint<N> negativeMinPosit() {
 template<int N>
 class PositDim {
 	public:
-	static constexpr int WES = get2Power(N>>3); 
+	static constexpr int WES = get2Power((N>>3)); 
 	static constexpr int WE = get2Power(N) + WES + 1; 
 	static constexpr int WF = N - (WES+3);
 	//Quire dimension
@@ -132,33 +141,72 @@ class Quire : public QuireSizedAPUint<N>
 		static constexpr int PositCarryOffset = PositRangeOffset + PositExpRange;
 };
 
-// template<int N, int bankSize>
-// static int getNbStages(){
-// 	return std::ceil(PositDim<N>::ExtQuireSize / bankSize);
-// } 
+template<int N, int bankSize>
+static constexpr int getNbStages(){
+	return Static_Ceil_Div<PositDim<N>::ExtQuireSize-1,bankSize>::val;
+} 
 
-// template<int N, int bankSize>
-// static int getMantSpread(){
-// 	return std::ceil(PositDim<N>::ProdSignificandSize / bankSize);
-// } 
+template<int bankSize>
+static constexpr int getShiftSize(){
+	return get2Power(bankSize);
+} 
 
-// // Stored as normal quire then carry bits from most significant to less
-// template<int N, int bankSize>
-// class SegmentedQuire : public ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()>
-// {
-// 	//Storage :
-// 	// isNar Sign Carry 2sCompValue
-// 	public:
-// 		SegmentedQuire(ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()> val):ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()>(val){}
+template<int N, int bankSize>
+static constexpr int getExtShiftSize(){
+	return (Static_Ceil_Div<PositDim<N>::ProdSignificandSize+1+(1<<getShiftSize<bankSize>()),bankSize>::val)*bankSize ;
+} 
 
-		
+template<int N, int bankSize>
+static constexpr int getMantSpread(){
+	return Static_Ceil_Div<getExtShiftSize<N, bankSize>(),bankSize>::val;
+} 
 
-// 		void printContent(){
-// 			printApUint(this);
-// 		}
 
-// 		static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2); 
-// };
+
+
+
+// Stored as normal quire then carry bits from most significant to less
+template<int N, int bankSize>
+class SegmentedQuire : public ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()>
+{
+	//Storage :
+	// isNar Sign Carry 2sCompValue
+	public:
+		SegmentedQuire(ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()> val):ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()>(val){}
+
+		ap_uint<bankSize> getBank(int index){
+			// fprintf(stderr, "== quire bank (%d, %d) ==\n", getNbStages<N, bankSize>() + (index+1)*bankSize -1, getNbStages<N, bankSize>() + index*bankSize);
+			// fprintf(stderr, "From getNbStages<N, bankSize>()> (%d) + (index(%d)+1)*bankSize (%d) -1\n", getNbStages<N, bankSize>()  , index, bankSize);
+			// fprintf(stderr, "To getNbStages<N, bankSize>()> + index*bankSize\n");
+			// ap_uint<bankSize> tmp = (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize);
+			// printApUint(tmp);
+			return (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize);
+		}
+
+		ap_uint<1> getCarry(int index){
+			return (*this)[index];
+		}
+
+		ap_uint<1> getIsNaR(){
+			return (*this)[PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()-1];
+		}
+
+		ap_uint<PositDim<N>::ExtQuireSize> getAsQuireWoCarries(){
+			return (*this).range(PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
+		}
+
+		void printContent(){
+			fprintf(stderr, "Quire size: %d\n", PositDim<N>::ExtQuireSize);
+			fprintf(stderr, "Nb stages: %d\n", getNbStages<N, bankSize>());
+			ap_uint<PositDim<N>::ExtQuireSize> tmp = this->range(PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
+			printApUint(tmp);
+			ap_uint<getNbStages<N, bankSize>()> c = this->range(getNbStages<N, bankSize>()-1,0);
+			printApUint(c);
+
+		}
+
+		static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2); 
+};
 
 
 template<int N>
