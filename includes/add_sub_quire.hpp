@@ -27,6 +27,7 @@ Quire<N> add_sub_quire(
 	printApInt(complementedInputIfIsSub);
 */
 
+
 	ap_uint<PositDim<N>::ProdExpSize> shiftValue = input.getExp();
 
 	// fprintf(stderr, "=== shiftValue ===\n");
@@ -78,7 +79,7 @@ ap_uint<bankSize> getToAddRec(
 	
 	static constexpr int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N>::ProdSignificandSize,bankSize>::val;
 
-	if(stageIndex>=(stageSelect+getMantSpread<N, bankSize>()-BANKS_FOR_USELESS_BITS) && (inputSign ^ isSub)){
+	if((stageIndex>=(stageSelect+getMantSpread<N, bankSize>()-BANKS_FOR_USELESS_BITS) && (inputSign ^ isSub)) || ((stageIndex<stageSelect) && isSub )){
 		return -1;
 	}
 	else{
@@ -170,6 +171,7 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 	static constexpr int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N>::ProdSignificandSize,bankSize>::val;
 	static constexpr int ENCODING_BITS_FOR_USELESS_BANKS = get2Power(BANKS_FOR_USELESS_BITS);
 	static constexpr int padding = bankSize*BANKS_FOR_USELESS_BITS - PositDim<N>::ProdSignificandSize;
+	static constexpr int LOG2_SHIFT_SIZE = Static_Val<getExtShiftSize<N, bankSize>()>::_log2;
 
 	// fprintf(stderr, "padding: %d\n", padding);
 
@@ -187,9 +189,17 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 	// printApInt(complementedInputIfIsSub);
 
 	ap_uint<getShiftSize<bankSize>()> shiftValue = prodExp.range(getShiftSize<bankSize>()-1,0);
-	ap_int<getExtShiftSize<N, bankSize>()> shiftedSignificand = (ap_int<getExtShiftSize<N, bankSize>()>) complementedInputIfIsSub << shiftValue;
+
+	ap_int<1<<LOG2_SHIFT_SIZE> ext = complementedInputIfIsSub;
+	ap_int<(1<<LOG2_SHIFT_SIZE)> shiftedInput = shifter<LOG2_SHIFT_SIZE>(ext,shiftValue,isSub);
+	ap_int<getExtShiftSize<N, bankSize>()> shiftedInputShrinked = shiftedInput.range(getExtShiftSize<N, bankSize>()-1, 0);
+
+
+	// ap_int<getExtShiftSize<N, bankSize>()> shiftedSignificand = (ap_int<getExtShiftSize<N, bankSize>()>) complementedInputIfIsSub << shiftValue;
 	// fprintf(stderr, "=== shifted significand ===\n");
 	// printApInt(shiftedSignificand);
+	// fprintf(stderr, "=== shiftedInputShrinked ===\n");
+	// printApInt(shiftedInputShrinked);
 	// fprintf(stderr, "Significand size: %d\n", getExtShiftSize<N, bankSize>());
 
 	ap_uint<PositDim<N>::ProdExpSize - getShiftSize<bankSize>()> stageSelect = prodExp.range(PositDim<N>::ProdExpSize-1, getShiftSize<bankSize>());
@@ -207,7 +217,7 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 	// fprintf(stderr, "nbstages: %d \n", tmp);
 	#pragma HLS UNROLL
 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
-		ap_uint<bankSize+1> stageResult = add_sub_quire_stage<N,bankSize>(quire, i, stageSelect, sign, isSub, shiftedSignificand);
+		ap_uint<bankSize+1> stageResult = add_sub_quire_stage<N,bankSize>(quire, i, stageSelect, sign, isSub, shiftedInputShrinked);
 		fullQuire[i] = stageResult[bankSize];
 		// fprintf(stderr, "I : %d, result:\n", i);
 		// printApUint(stageResult);
