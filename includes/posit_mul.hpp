@@ -22,17 +22,14 @@ template <int N> PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 	ap_uint<1> needs_shift = (exbit xor sign) or neg_neg_2power;
 
 	ap_uint<PositDim<N>::ProdSignificandSize> fin_significand;
+	ap_uint<PositDim<N>::ProdSignificandSize - 1> last_bits = 
+		significand.range(PositDim<N>::ProdSignificandSize - 2, 0);
 	if (needs_shift) {
 		ap_uint<1> first_bit = (significand[PositDim<N>::ProdSignificandSize - 1]) 
 			or neg_neg_2power;
-
-		ap_uint<PositDim<N>::ProdSignificandSize - 1> last_bits = 
-			significand.range(PositDim<N>::ProdSignificandSize - 2, 0);
-
 		fin_significand = first_bit.concat(last_bits);
 	} else {
-		fin_significand = ((ap_uint<PositDim<N>::ProdSignificandSize - 1>) 
-				significand.range(PositDim<N>::ProdSignificandSize - 2, 0)).concat(ap_uint<1>{0}); 
+		fin_significand = last_bits.concat(ap_uint<1>{0}); 
 	}
 
     // Compute the exponent

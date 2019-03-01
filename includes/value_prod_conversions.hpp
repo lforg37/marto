@@ -48,7 +48,6 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 	
 	ap_uint<PositDim<N>::ProdExpSize> expt = val.getExp();
 	// printApUint(expt);	
-	ap_uint<10> bias = PositDim<N>::EXP_BIAS;
 	// printApUint(bias);	
 	// printApUint(isZero);	
 
