@@ -1,6 +1,8 @@
 #ifndef VALUE_PROD_CONVERSIONS_HPP
 #define VALUE_PROD_CONVERSIONS_HPP
 
+#include <cstdio> 
+
 #include "posit_dim.hpp"
 
 template<int N>

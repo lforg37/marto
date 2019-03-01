@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdio>
+
 #include "ap_int.h"
 #include "posit_dim.hpp"
 #include "lzoc_shifter.hpp"

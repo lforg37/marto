@@ -2,6 +2,7 @@
 #define BOOST_TEST_MODULE PositArithmeticOps
 
 #include <cmath>
+#include <cstdio>
 #include <iostream>
 #include <limits>
 

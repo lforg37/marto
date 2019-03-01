@@ -3,6 +3,7 @@
 
 using namespace std;
 #include <cstdint>
+#include <cstdio>
 
 #include "ap_int.h"
 #include "utils.hpp"
