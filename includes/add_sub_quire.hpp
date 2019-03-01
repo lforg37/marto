@@ -60,11 +60,8 @@ Quire<N> add_sub_quire(
 template<int bankSize> 
 constexpr int getIndex(int index, bool isUpper)
 {
-	#pragma HLS INLINE
 	return bankSize*index - isUpper;
 }
-
-
 
 template <int N, int bankSize, int spread>
 ap_uint<bankSize> getToAddRec(
