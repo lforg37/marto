@@ -150,25 +150,21 @@ class Quire : public QuireSizedAPUint<N>
 
 template<int N, int bankSize>
 static constexpr int getNbStages(){
-	#pragma HLS INLINE
 	return Static_Ceil_Div<PositDim<N>::ExtQuireSize-1,bankSize>::val;
 } 
 
 template<int bankSize>
 static constexpr int getShiftSize(){
-	#pragma HLS INLINE
 	return get2Power(bankSize);
 } 
 
 template<int N, int bankSize>
 static constexpr int getExtShiftSize(){
-	#pragma HLS INLINE
 	return (Static_Ceil_Div<PositDim<N>::ProdSignificandSize+1+(1<<getShiftSize<bankSize>()),bankSize>::val)*bankSize ;
 } 
 
 template<int N, int bankSize>
 static constexpr int getMantSpread(){
-	#pragma HLS INLINE
 	return Static_Ceil_Div<getExtShiftSize<N, bankSize>(),bankSize>::val;
 } 
 
