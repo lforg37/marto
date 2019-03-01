@@ -7,6 +7,7 @@ using namespace std;
 
 template <int N> PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 {
+	#pragma HLS INLINE
     ap_uint<1> isNar = in1.getIsNaR() | in2.getIsNaR();
     ap_int<1> isZero = in1.isZero() or in2.isZero();
 

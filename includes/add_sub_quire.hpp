@@ -10,6 +10,7 @@ Quire<N> add_sub_quire(
 		PositProd<N> input,
 		ap_uint<1> isSub
 ){
+	#pragma HLS INLINE
 	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<PositDim<N>::ExtQuireSize-1 +PositDim<N>::ProdSignificandSize>::_log2;
 
 	ap_int<PositDim<N>::ProdSignificandSize+1> inputSignificand = input.getSignedSignificand();
@@ -57,6 +58,7 @@ Quire<N> add_sub_quire(
 template<int bankSize> 
 constexpr int getIndex(int index, bool isUpper)
 {
+	#pragma HLS INLINE
 	return bankSize*index - isUpper;
 }
 
@@ -72,8 +74,7 @@ ap_uint<bankSize> getToAddRec(
     typename enable_if<(spread < 1)>::type* dummy = 0
 )
 {
-
-
+	#pragma HLS INLINE
 	// -1-1 when banksize is 16
 	// -1 when banksize is 32
 	
@@ -97,6 +98,8 @@ ap_uint<bankSize> getToAddRec(
     typename enable_if<(spread >= 1)>::type* dummy = 0
     )
 {	
+	#pragma HLS INLINE
+
 	// fprintf(stderr, "stageselect: ");
 	// printApUint(stageSelect);
 	// fprintf(stderr, "spread: %d\n", spread);
@@ -131,6 +134,7 @@ ap_uint<bankSize> getToAdd(
     ap_uint<1> isSub,
     ap_int<getExtShiftSize<N, bankSize>()> shiftedSignificand
 		){
+	#pragma HLS INLINE
 	return getToAddRec<N, bankSize, spread>(stageIndex, stageSelect, inputSign, isSub, shiftedSignificand);
 }
 
@@ -142,6 +146,7 @@ ap_uint<bankSize+1> add_sub_quire_stage(SegmentedQuire<N, bankSize> quire,
 										ap_uint<1> isSub,
 										ap_int<getExtShiftSize<N, bankSize>()> shiftedSignificand)
 {
+	#pragma HLS INLINE
 	// fprintf(stderr, "=== stage index ===\n");
 	// printApUint(stageIndex);
 
@@ -166,6 +171,7 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 													PositProd<N> input,
 													ap_uint<1> isSub)
 {	
+	#pragma HLS INLINE
 
 	static constexpr int SHIFTED_SIGNIFICAND_SIZE = PositDim<N>::ProdSignificandSize+1 + (1<<getShiftSize<bankSize>());
 	static constexpr int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N>::ProdSignificandSize,bankSize>::val;
@@ -233,6 +239,7 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 template<int N, int bankSize>
 Quire<N> propagateCarries(SegmentedQuire<N, bankSize> quire)
 {	
+	#pragma HLS INLINE
 	// fprintf(stderr, "=== input quire ===\n");
 	// quire.printContent();
 
