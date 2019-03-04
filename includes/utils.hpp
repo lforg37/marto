@@ -1,5 +1,6 @@
 #pragma once
 #include "ap_int.h"
+#include <stdio.h>
 
 template<int N>
 void printApUint(ap_uint<N> toPrint){

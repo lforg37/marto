@@ -8,9 +8,9 @@ using namespace std;
 #include "static_math.hpp"
 //N.B.: We are using int instead of size_t because of ap_uint is templatized
 //=====  with int
-#include <boost/integer/static_log2.hpp>
+// #include <boost/integer/static_log2.hpp>
 
-#define get2Power(N) boost::static_log2<N>::value
+// #define get2Power(N) boost::static_log2<N>::value
 // constexpr int get2Power(int N)
 // {
 // 	// unsigned int result = 0;
@@ -67,8 +67,9 @@ static ap_uint<N> negativeMinPosit() {
 template<int N>
 class PositDim {
 	public:
-	static constexpr int WES = get2Power((N>>3)); 
-	static constexpr int WE = get2Power(N) + WES + 1; 
+	static constexpr int WES = Static_Val<(N>>3)>::_log2;
+	// get2Power((N>>3)); 
+	static constexpr int WE = Static_Val<N>::_log2 + WES + 1; 
 	static constexpr int WF = N - (WES+3);
 	//Quire dimension
 	static constexpr int WQ = (N*N) >> 1;
@@ -148,7 +149,7 @@ static constexpr int getNbStages(){
 
 template<int bankSize>
 static constexpr int getShiftSize(){
-	return get2Power(bankSize);
+	return Static_Val<bankSize>::_log2;
 } 
 
 template<int N, int bankSize>

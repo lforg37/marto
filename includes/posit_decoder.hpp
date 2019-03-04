@@ -5,7 +5,7 @@
 
 template<int N> 
 ap_uint<PositDim<N>::WE> getExponent(
-		ap_uint<get2Power(N) + 1> range_count,
+		ap_uint<Static_Val<N>::_log2 + 1> range_count,
 		ap_uint<N-3> shifted_fraction,
 		ap_uint<1> sign,
 		typename enable_if<PositDim<N>::HAS_ES>::type* dummy = 0
@@ -22,7 +22,7 @@ ap_uint<PositDim<N>::WE> getExponent(
 
 template<int N> 
 ap_uint<PositDim<N>::WE> getExponent(
-		ap_uint<get2Power(N) + 1> range_count,
+		ap_uint<Static_Val<N>::_log2 + 1> range_count,
 		ap_uint<N-3> shifted_fraction,
 		ap_uint<1> sign,
 		typename enable_if<not PositDim<N>::HAS_ES>::type* dummy = 0
