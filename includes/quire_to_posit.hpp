@@ -119,9 +119,4 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 			fin_frac
 		);
 }
-
-extern template PositValue<8> quire_to_posit(Quire<8> quire);
-extern template PositValue<16> quire_to_posit(Quire<16> quire);
-extern template PositValue<32> quire_to_posit(Quire<32> quire);
-extern template PositValue<64> quire_to_posit(Quire<64> quire);
 #endif
