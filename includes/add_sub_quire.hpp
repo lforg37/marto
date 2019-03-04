@@ -19,8 +19,8 @@ Quire<N> add_sub_quire(
 	ap_int<PositDim<N>::ProdSignificandSize+1> complementedInputIfIsSub;
 	ap_uint<1> sign = inputSignificand[PositDim<N>::ProdSignificandSize];
 
-	#pragma HLS UNROLL
 	for (int i=0; i<PositDim<N>::ProdSignificandSize+1; i++){
+	#pragma HLS UNROLL
 		complementedInputIfIsSub[i] = input[i] ^ isSub;
 	}
 
@@ -143,8 +143,8 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 	ap_uint<1> sign = inputSignificand[PositDim<N>::ProdSignificandSize];
 	
 	ap_int<PositDim<N>::ProdSignificandSize+1> complementedInputIfIsSub;
-	#pragma HLS UNROLL
 	for (int i=0; i<PositDim<N>::ProdSignificandSize+1; i++){
+		#pragma HLS UNROLL
 		complementedInputIfIsSub[i] = input[i] ^ isSub;
 	}
 
@@ -158,8 +158,8 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 
 	SegmentedQuire<N, bankSize> fullQuire = SegmentedQuire<N, bankSize>(0);
 
-	#pragma HLS UNROLL
 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
+		#pragma HLS UNROLL
 		ap_uint<bankSize+1> stageResult = add_sub_quire_stage<N,bankSize>(quire, i, stageSelect, sign, isSub, shiftedInputShrinked);
 		fullQuire[i] = stageResult[bankSize];
 		fullQuire.range(getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
@@ -175,8 +175,8 @@ Quire<N> propagateCarries(SegmentedQuire<N, bankSize> quire)
 	#pragma HLS INLINE
 	SegmentedQuire<N, bankSize> fullQuire = quire;
 	for(int j=0; j<getNbStages<N, bankSize>(); j++){
-		#pragma HLS UNROLL
 		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
+			#pragma HLS UNROLL
 			ap_uint<bankSize+1> stageResult = add_sub_quire_stage<N,bankSize>(fullQuire, i, 0, 0, 0, 0);
 			fullQuire[i] = stageResult[bankSize];
 			fullQuire.range(getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
