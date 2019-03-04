@@ -85,3 +85,8 @@ PositValue<N> posit_decoder(PositEncoding<N> positN)
 			fraction
 		);
 }
+
+extern template PositValue<8> posit_decoder(PositEncoding<8> positN);
+extern template PositValue<16> posit_decoder(PositEncoding<16> positN);
+extern template PositValue<32> posit_decoder(PositEncoding<32> positN);
+extern template PositValue<64> posit_decoder(PositEncoding<64> positN);

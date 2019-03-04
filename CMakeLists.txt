@@ -3,8 +3,8 @@ project(PositQuire CXX)
 
 set(VIVADO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-add_library(libpositquire INTERFACE) 
-target_include_directories(libpositquire INTERFACE ${VIVADO_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+add_library(libpositquire STATIC src/posit_dim src/add_sub_quire src/posit_decoder src/posit_mul src/quire_to_posit src/posit_add src/posit_encoder.cpp src/value_prod_conversions) 
+target_include_directories(libpositquire PUBLIC ${VIVADO_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests") 
 if(BUILD_UNIT_TEST)

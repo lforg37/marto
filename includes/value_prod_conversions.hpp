@@ -29,6 +29,11 @@ PositProd<N> PositValue_to_PositProd(PositValue<N> val)
 	return PositProd<N>(val.getIsNaR(), exponent, val.getSignBit(), significand);
 }
 
+extern template PositProd<8> PositValue_to_PositProd(PositValue<8> val); 
+extern template PositProd<16> PositValue_to_PositProd(PositValue<16> val); 
+extern template PositProd<32> PositValue_to_PositProd(PositValue<32> val); 
+extern template PositProd<64> PositValue_to_PositProd(PositValue<64> val); 
+
 template<int N>
 PositValue<N> PositProd_to_PositValue(PositProd<N> val) 
 {
@@ -102,4 +107,9 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 				);
 	}
 }
+
+extern template PositValue<8> PositProd_to_PositValue(PositProd<8> val);
+extern template PositValue<16> PositProd_to_PositValue(PositProd<16> val);
+extern template PositValue<32> PositProd_to_PositValue(PositProd<32> val);
+extern template PositValue<64> PositProd_to_PositValue(PositProd<64> val);
 #endif

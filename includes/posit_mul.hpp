@@ -47,4 +47,8 @@ template <int N> PositProd<N> posit_mul(PositValue<N> in1, PositValue<N> in2)
 		fin_significand
 	);
 }
+extern template PositProd<8> posit_mul(PositValue<8> in1, PositValue<8> in2);
+extern template PositProd<16> posit_mul(PositValue<16> in1, PositValue<16> in2);
+extern template PositProd<32> posit_mul(PositValue<32> in1, PositValue<32> in2);
+extern template PositProd<64> posit_mul(PositValue<64> in1, PositValue<64> in2);
 #endif
