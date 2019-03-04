@@ -23,6 +23,7 @@ inline ap_uint<(1 << N)> shifter_stage(
 		typename std::enable_if<ShifterStageInfo<S>::NeedsRecursion>::type* dummy = 0
 	)
 {
+	#pragma HLS INLINE
 	ap_int<1<<(S-1)> padding_s = (ap_int<1>) fill_bit;
 	ap_uint<1<<(S-1)> padding = padding_s;
 	ap_uint<1> stageNeedsShift = count[S-1];
@@ -47,6 +48,7 @@ inline ap_uint<(1 << N)> shifter_stage(
 		typename std::enable_if<ShifterStageInfo<S>::IsFinalStage>::type* dummy = 0
 	)
 {
+	#pragma HLS INLINE
 	ap_uint<1<<N> result;
 	if (count[0] == 1) {
 		ap_uint<(1<<N) - 1> low = input.range((1<<N) - 2, 0);
@@ -63,6 +65,7 @@ ap_uint<(1<<N)> shifter(
 		ap_uint<N-1> count,
 		ap_uint<1> fill_bit = 0)
 {
+	#pragma HLS INLINE
 	return shifter_stage<N, N-1>(input, count, fill_bit);
 }
 #endif

@@ -1,11 +1,14 @@
 #ifndef VALUE_PROD_CONVERSIONS_HPP
 #define VALUE_PROD_CONVERSIONS_HPP
 
+#include <cstdio> 
+
 #include "posit_dim.hpp"
 
 template<int N>
 PositProd<N> PositValue_to_PositProd(PositValue<N> val) 
 {
+	#pragma HLS INLINE
 	ap_uint<PositDim<N>::WF + 1> signed_val_frac = val.getSignificand();
 
 	ap_uint<PositDim<N>::ProdSignificandSize> significand = signed_val_frac.concat(
@@ -29,6 +32,7 @@ PositProd<N> PositValue_to_PositProd(PositValue<N> val)
 template<int N>
 PositValue<N> PositProd_to_PositValue(PositProd<N> val) 
 {
+	#pragma HLS INLINE
 	ap_uint<1> isMinPos, isMaxPos;
 	ap_uint<1> isNaR = val.getIsNaR();
 	ap_uint<PositDim<N>::ProdSignificandSize> fraction = val.getSignificand();
@@ -44,7 +48,6 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 	
 	ap_uint<PositDim<N>::ProdExpSize> expt = val.getExp();
 	// printApUint(expt);	
-	ap_uint<10> bias = PositDim<N>::EXP_BIAS;
 	// printApUint(bias);	
 	// printApUint(isZero);	
 
@@ -99,6 +102,4 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 				);
 	}
 }
-
-
 #endif

@@ -11,6 +11,7 @@ ap_uint<PositDim<N>::WE> getExponent(
 		typename enable_if<PositDim<N>::HAS_ES>::type* dummy = 0
 	) 
 {
+	#pragma HLS INLINE
 	ap_uint<PositDim<N>::WES> es = shifted_fraction.range(N-4, N - 3 - PositDim<N>::WES); 
 	ap_int<PositDim<N>::WES> signed_ext_sign = (ap_int<1>) sign;
 	ap_int<PositDim<N>::WES> ext_sign = signed_ext_sign;
@@ -28,12 +29,14 @@ ap_uint<PositDim<N>::WE> getExponent(
 		typename enable_if<not PositDim<N>::HAS_ES>::type* dummy = 0
 	) 
 {
+	#pragma HLS INLINE
 	return range_count;
 }
 
 template<int N>
 PositValue<N> posit_decoder(PositEncoding<N> positN)
 {
+	#pragma HLS INLINE
 	//Sign bit
 	ap_uint<1> s = positN[N-1];
 	//First regime bit

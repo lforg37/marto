@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdio>
+
 #include "ap_int.h"
 #include "shifter.hpp"
 #include "posit_dim.hpp"
@@ -10,6 +12,7 @@ Quire<N> add_sub_quire(
 		PositProd<N> input,
 		ap_uint<1> isSub
 ){
+	#pragma HLS INLINE
 	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<PositDim<N>::ExtQuireSize-1 +PositDim<N>::ProdSignificandSize>::_log2;
 
 	ap_int<PositDim<N>::ProdSignificandSize+1> inputSignificand = input.getSignedSignificand();
@@ -43,8 +46,6 @@ constexpr int getIndex(int index, bool isUpper)
 	return bankSize*index - isUpper;
 }
 
-
-
 template <int N, int bankSize, int spread>
 ap_uint<bankSize> getToAddRec(
     ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> stageIndex, 
@@ -55,6 +56,7 @@ ap_uint<bankSize> getToAddRec(
     typename enable_if<(spread < 1)>::type* dummy = 0
 )
 {
+	#pragma HLS INLINE
 	
 	static constexpr int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N>::ProdSignificandSize,bankSize>::val;
 
@@ -76,6 +78,7 @@ ap_uint<bankSize> getToAddRec(
     typename enable_if<(spread >= 1)>::type* dummy = 0
     )
 {	
+	#pragma HLS INLINE
 	static constexpr int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N>::ProdSignificandSize,bankSize>::val;
 
     if (stageIndex == (stageSelect+spread-1-BANKS_FOR_USELESS_BITS)) {
@@ -94,6 +97,7 @@ ap_uint<bankSize> getToAdd(
     ap_uint<1> isSub,
     ap_int<getExtShiftSize<N, bankSize>()> shiftedSignificand
 		){
+	#pragma HLS INLINE
 	return getToAddRec<N, bankSize, spread>(stageIndex, stageSelect, inputSign, isSub, shiftedSignificand);
 }
 
@@ -105,7 +109,7 @@ ap_uint<bankSize+1> add_sub_quire_stage(SegmentedQuire<N, bankSize> quire,
 										ap_uint<1> isSub,
 										ap_int<getExtShiftSize<N, bankSize>()> shiftedSignificand)
 {
-
+	#pragma HLS INLINE
 	ap_uint<bankSize+1> quireBank = quire.getBank(stageIndex);
 	
 	ap_uint<1> quireCarry = (stageIndex==0) ? isSub : quire.getCarry(stageIndex-1);
@@ -122,6 +126,7 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 													PositProd<N> input,
 													ap_uint<1> isSub)
 {	
+	#pragma HLS INLINE
 
 	static constexpr int SHIFTED_SIGNIFICAND_SIZE = PositDim<N>::ProdSignificandSize+1 + (1<<getShiftSize<bankSize>());
 	static constexpr int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N>::ProdSignificandSize,bankSize>::val;
@@ -163,6 +168,7 @@ SegmentedQuire<N, bankSize> segmented_add_sub_quire(SegmentedQuire<N, bankSize> 
 template<int N, int bankSize>
 Quire<N> propagateCarries(SegmentedQuire<N, bankSize> quire)
 {	
+	#pragma HLS INLINE
 	SegmentedQuire<N, bankSize> fullQuire = quire;
 	for(int j=0; j<getNbStages<N, bankSize>(); j++){
 		#pragma HLS UNROLL

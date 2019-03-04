@@ -7,6 +7,7 @@
 template<int N>
 PositValue<N> quire_to_posit(Quire<N> quire)
 {
+	#pragma HLS INLINE
 	constexpr int logSize = Static_Val<Quire<N>::PositExpRange>::_log2;
 	constexpr int allsize = Static_Val<Quire<N>::PositExpRange>::_2pow;
 	constexpr int padd_width = allsize - Quire<N>::PositExpRange;

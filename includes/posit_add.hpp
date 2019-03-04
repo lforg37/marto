@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdio>
+
 #include "ap_int.h"
 #include "posit_dim.hpp"
 #include "lzoc_shifter.hpp"
@@ -15,6 +17,7 @@ PositValue<N> posit_add(
 		PositValue<N> in1, 
 		PositValue<N> in2
 ){
+	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
 	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<EXT_SUM_SIZE>::_log2;
 	

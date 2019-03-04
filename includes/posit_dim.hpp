@@ -2,6 +2,8 @@
 #define POSIT_DIM_TPP
 
 using namespace std;
+#include <cstdint>
+#include <cstdio>
 
 #include "ap_int.h"
 #include "utils.hpp"
@@ -107,27 +109,32 @@ class Quire : public QuireSizedAPUint<N>
 
 		ap_uint<PositDim<N>::WQ-N> getQuireValue()
 		{
+			#pragma HLS INLINE
 			return QuireSizedAPUint<N>::range(PositDim<N>::WQ-N -1, 0);
 		}
 
 		ap_uint<N-1> getCarry()
 		{
+			#pragma HLS INLINE
 			return QuireSizedAPUint<N>::range(PositDim<N>::WQ-1 -1, 
 					PositDim<N>::WQ-N);
 		}
 
 		ap_uint<PositDim<N>::ExtQuireSize-1> getQuireWithoutNaR()
 		{
+			#pragma HLS INLINE
 			return QuireSizedAPUint<N>::range(PositDim<N>::ExtQuireSize-1 -1, 0);
 		}
 
 		ap_uint<1> getSignBit()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::ExtQuireSize-1 -1];
 		}
 
 		ap_uint<1> getIsNaR()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::ExtQuireSize -1];
 		}
 
@@ -185,14 +192,17 @@ class SegmentedQuire : public ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, b
 		}
 
 		ap_uint<1> getCarry(int index){
+			#pragma HLS INLINE
 			return (*this)[index];
 		}
 
 		ap_uint<1> getIsNaR(){
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()-1];
 		}
 
 		ap_uint<PositDim<N>::ExtQuireSize> getAsQuireWoCarries(){
+			#pragma HLS INLINE
 			return (*this).range(PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
 		}
 
@@ -236,21 +246,25 @@ class PositProd : public PositProdSizedAPUint<N>
 
 		ap_uint<PositDim<N>::ProdSignificandSize> getSignificand()
 		{
+			#pragma HLS INLINE
 			return PositProdSizedAPUint<N>::range(PositDim<N>::ProdSignificandSize - 1, 0);
 		}
 		
 		ap_int<PositDim<N>::ProdSignificandSize + 1> getSignedSignificand()
 		{
+			#pragma HLS INLINE
 			return PositProdSizedAPUint<N>::range(PositDim<N>::ProdSignificandSize, 0);
 		}
 
 		ap_uint<1> getSignBit()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::ProdSignificandSize];
 		}
 
 		ap_uint<PositDim<N>::ProdExpSize> getExp()
 		{
+			#pragma HLS INLINE
 			return PositProdSizedAPUint<N>::range(
 					PositDim<N>::ProdSignificandSize + 1 + PositDim<N>::ProdExpSize-1, 
 					PositDim<N>::ProdSignificandSize + 1
@@ -259,6 +273,7 @@ class PositProd : public PositProdSizedAPUint<N>
 
 		ap_uint<1> getIsNaR()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::ProdSize - 1];
 		}
 
@@ -276,8 +291,6 @@ class PositProd : public PositProdSizedAPUint<N>
 			printApUint(this->getSignificand());
 
 		}
-
-	private:
 };
 
 template<int N>
@@ -326,58 +339,69 @@ class PositValue : public PositValSizedAPUint<N>
 
 		ap_uint<1> getGuardBit()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::ValSize-1];
 		}
 
 		ap_uint<1> getStickyBit()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::ValSize-1 -1];
 		}
 
 
 		ap_uint<PositDim<N>::WF+1> getSignificand()
 		{
+			#pragma HLS INLINE
 			return PositValSizedAPUint<N>::range(PositDim<N>::WF, 0);
 		}
 
 		ap_uint<1> getImplicitBit()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::WF];
 		}
 
 		ap_uint<PositDim<N>::WF> getSignificandWoImp()
 		{
+			#pragma HLS INLINE
 			return PositValSizedAPUint<N>::range(PositDim<N>::WF-1, 0);
 		}
 
 		ap_uint<1> getSignBit()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::WF + 1];
 		}
 
 		ap_uint<PositDim<N>::WE> getExp()
 		{
+			#pragma HLS INLINE
 			return PositValSizedAPUint<N>::range(PositDim<N>::WF + 1 + PositDim<N>::WE, PositDim<N>::WF+2);
 		}
 
 		ap_uint<1> getIsNaR()
 		{
+			#pragma HLS INLINE
 			return (*this)[PositDim<N>::WF+2+PositDim<N>::WE];
 		}
 
 		ap_int<PositDim<N>::WF+2> getSignedSignificand()
 		{
+			#pragma HLS INLINE
 			ap_uint<1> sign = getSignBit();
 			return (ap_int<PositDim<N>::WF+2>) sign.concat(getSignificand());
 		}
 
 		ap_uint<1> getBit(unsigned int i)
 		{
+			#pragma HLS INLINE
 			return (*this)[i];
 		}
 
 		ap_uint<1> isZero()
 		{
+			#pragma HLS INLINE
 			ap_uint<1> isExponentNull = not(getExp().or_reduce());
 			return isExponentNull and (not getSignBit());
 		}
