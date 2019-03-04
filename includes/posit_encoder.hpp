@@ -70,8 +70,3 @@ PositEncoding<N> posit_encoder(PositValue<N> positValue)
 	ap_uint<N> specialCasesValue = isNaRBit.concat(zero);
 	return (((not positValue.getSignBit()) and (not positValue.getImplicitBit())) or isNaRBit) ? specialCasesValue : normalOutput;
 }
-
-extern template PositEncoding<8> posit_encoder(PositValue<8> positValue);
-extern template PositEncoding<16> posit_encoder(PositValue<16> positValue);
-extern template PositEncoding<32> posit_encoder(PositValue<32> positValue);
-extern template PositEncoding<64> posit_encoder(PositValue<64> positValue);
