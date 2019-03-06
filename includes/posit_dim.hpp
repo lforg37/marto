@@ -183,6 +183,7 @@ class SegmentedQuire : public ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, b
 		SegmentedQuire(ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()> val):ap_uint<PositDim<N>::ExtQuireSize+getNbStages<N, bankSize>()>(val){}
 
 		ap_uint<bankSize> getBank(int index){
+			#pragma HLS INLINE
 			// fprintf(stderr, "== quire bank (%d, %d) ==\n", getNbStages<N, bankSize>() + (index+1)*bankSize -1, getNbStages<N, bankSize>() + index*bankSize);
 			// fprintf(stderr, "From getNbStages<N, bankSize>()> (%d) + (index(%d)+1)*bankSize (%d) -1\n", getNbStages<N, bankSize>()  , index, bankSize);
 			// fprintf(stderr, "To getNbStages<N, bankSize>()> + index*bankSize\n");

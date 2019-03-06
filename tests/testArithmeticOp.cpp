@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
 			auto value1Encoding = PositEncoding<16> (value1);
 			auto decoded1 = posit_decoder(value1Encoding);
-			auto sum = posit_add(decoded1, decoded2);
+			auto sum = posit_add(decoded1, decoded2, 0);
 			auto encoded = posit_encoder(sum);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
@@ -220,6 +220,82 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
 
 				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositSum);
+			}
+		}
+		if(((value2%100) == 0) and (value2 != 0)){
+			#pragma omp atomic
+			counter+=(100*(1<<16));
+			#pragma omp critical
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\%  (%lu\t/%lu)", ((double)counter/(double)TOTAL_TESTS)*100, counter,TOTAL_TESTS);
+		}
+		error_counter = 0;
+	}
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\%  (%lu\t/%lu)\n", ((double)TOTAL_TESTS/(double)TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
+}
+
+BOOST_AUTO_TEST_CASE(TestAllSubPosit16, *utf::disabled() * utf::label("long")) 
+{
+
+	// ap_uint<16> value10 = 0b1000000000000010;
+	// ap_uint<16> value20 = 0b1000000000000010;
+	// PositValue<16> a = posit_decoder(value10);
+	// PositValue<16> b = posit_decoder(value20);
+	// // PositValue<16> b = posit_decoder((ap_uint<16>)0b0110111100000111);
+
+	// PositValue<16> res = posit_add(a,b,1);  
+	
+	// printf("===== a =====\n");
+	// a.printContent();
+	// printf("===== b =====\n");
+	// b.printContent();
+	// printf("===== res =====\n");
+	// res.printContent();
+
+	// ap_uint<16> encoded = posit_encoder(res);
+	// printApUint(encoded);
+
+	// posit16_t positValue1 = castP16(value10);
+	// posit16_t positValue2 = castP16(value20);
+	// posit16_t positSum = p16_sub(positValue1, positValue2);
+	// ap_uint<16> softpositSum = (ap_uint<16>) castUI(positSum);
+	// printApUint(softpositSum);
+
+	// printf("===== encoding of soft result =====\n");
+	// ap_uint<16> value30 = softpositSum;
+	// PositValue<16> t = posit_decoder(value30);
+	// t.printContent();
+	// exit(0);
+
+	uint64_t counter = 0;
+	uint64_t TOTAL_TESTS = (((uint64_t)1)<<32);
+	unsigned int error_counter = 0;
+	#pragma omp parallel for 
+	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
+		auto value2Encoding = PositEncoding<16> (value2);
+		auto decoded2 = posit_decoder(value2Encoding);
+
+		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
+			auto value1Encoding = PositEncoding<16> (value1);
+			auto decoded1 = posit_decoder(value1Encoding);
+			auto sub = posit_add(decoded1, decoded2, 1);
+			auto encoded = posit_encoder(sub);
+			posit16_t positValue1 = castP16(value1);
+			posit16_t positValue2 = castP16(value2);
+			posit16_t positSub = p16_sub(positValue1, positValue2);
+			ap_uint<16> softpositSum = (ap_uint<16>) castUI(positSub);
+			if(!(encoded == softpositSum)){
+				fprintf(stderr, "\n\n\n\n");
+				fprintf(stderr, "=== Inputs === \n");
+				printApUint(value1Encoding);
+				printApUint(value2Encoding);
+				fprintf(stderr, "=== Expected result === \n");
+				printApUint(softpositSum);
+				fprintf(stderr, "=== Computed result === \n");
+				printApUint(encoded);
+				sub.printContent();
+				fprintf(stderr, "Tests Passed: %lu\n", counter);
+
+				BOOST_REQUIRE_MESSAGE(false, "Sub of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositSum);
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){

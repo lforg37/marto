@@ -15,7 +15,8 @@
 template<int N>
 PositValue<N> posit_add(
 		PositValue<N> in1, 
-		PositValue<N> in2
+		PositValue<N> in2, 
+		ap_uint<1> isSub
 ){
 	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
@@ -27,30 +28,44 @@ PositValue<N> posit_add(
 	ap_uint<S_WE+1> shiftValue;
 	ap_int<S_WF+2> mostSignificantSignificand, lessSignificantSignificand;
 
+	ap_int<S_WF+2> input2Significand = in2.getSignedSignificand();
+	ap_int<S_WF+2> complementedInputIfIsSub;
+
+	for (int i=0; i<S_WF+2; i++){
+	#pragma HLS UNROLL
+		complementedInputIfIsSub[i] = input2Significand[i] ^ isSub;
+	}
 
 	if(in1IsGreater){
 		subExpOp1 = in1.getExp();
 		subExpOp2 = in2.getExp();
 		mostSignificantSignificand = in1.getSignedSignificand();
-		lessSignificantSignificand = in2.getSignedSignificand();
+		lessSignificantSignificand = complementedInputIfIsSub;
 	}
 	else{
 		subExpOp1 = in2.getExp();
 		subExpOp2 = in1.getExp();
-		mostSignificantSignificand = in2.getSignedSignificand();
-		lessSignificantSignificand = in1.getSignedSignificand();		
+		mostSignificantSignificand = complementedInputIfIsSub;
+		lessSignificantSignificand = in1.getSignedSignificand();	
 	}
+
+	ap_uint<S_WF> WFZeros=0;
+	ap_uint<S_WF> WFOnes=-1;
+	ap_uint<S_WF> toConcatMost = (isSub and not(in1IsGreater))? WFOnes: WFZeros;
+	ap_uint<S_WF> toConcatLess = (isSub and in1IsGreater)? WFOnes: WFZeros;
 
 	shiftValue = subExpOp1 - subExpOp2;
 	
-	ap_uint<S_WF> WFZeros;
-	ap_int<S_WF+2 + S_WF> shiftedSignificand = ((ap_int<S_WF+2 + S_WF>)lessSignificantSignificand.concat(WFZeros)) >> shiftValue;
-	ap_int<S_WF+2 + S_WF> unShiftedSignificand = mostSignificantSignificand.concat(WFZeros);
+	ap_int<S_WF+2 + S_WF> shiftedSignificand = ((ap_int<S_WF+2 + S_WF>)lessSignificantSignificand.concat(toConcatLess)) >> shiftValue;
+	ap_int<S_WF+2 + S_WF> unShiftedSignificand = mostSignificantSignificand.concat(toConcatMost);
 
 
 
-	ap_int<S_WF+2 + S_WF +1 +1> sum = shiftedSignificand + unShiftedSignificand;
+	ap_int<S_WF+2 + S_WF +1 +1> sum = shiftedSignificand + unShiftedSignificand + isSub;
 
+	// printApInt(shiftedSignificand);
+	// printApInt(unShiftedSignificand);
+	// printApInt(sum);
 
 
 	ap_uint<(1<<LOG2_EXT_SUM_SIZE)> extSum = ((ap_uint<(1<<LOG2_EXT_SUM_SIZE)>) sum) << ((1<<LOG2_EXT_SUM_SIZE) - (S_WF+2 + S_WF +1)-1);
@@ -79,7 +94,7 @@ PositValue<N> posit_add(
 	ap_uint<1> guardBit = resultRest[EXT_SUM_SIZE -(S_WF+1)-1];
 	ap_uint<1> stickyBit = !(resultRest.range(EXT_SUM_SIZE -(S_WF+1) -1-1, 0) == 0);
 
-	ap_uint<1> resultIsNaR = in1.getIsNaR() || in1.getIsNaR();
+	ap_uint<1> resultIsNaR = in1.getIsNaR() || in2.getIsNaR();
 	ap_uint<1> isZero = ((resultSignificand == 0) && ((guardBit == 0) || ((guardBit == 1) && (stickyBit == 0)))) && !(extsumSign);
 	ap_uint<1> resultS =  (isZero) ? 0 : (!resultSignificand[S_WF+1 -1]); 
 
