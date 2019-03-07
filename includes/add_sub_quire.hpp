@@ -173,7 +173,7 @@ Quire<N> propagateCarries(SegmentedQuire<N, bankSize> quire)
 	for(int j=0; j<getNbStages<N, bankSize>(); j++){
 		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 			#pragma HLS UNROLL
-			ap_uint<bankSize+1> stageResult = add_sub_quire_stage<N,bankSize>(fullQuire, i, 0, 0, 0, 0);
+			ap_uint<bankSize+1> stageResult = add_sub_quire_stage<N, bankSize>(fullQuire, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<PositDim<N>::ProdExpSize - getShiftSize<bankSize>()>) 0, (ap_uint<1>) 0, (ap_uint<1>) 0, (ap_int<getExtShiftSize<N, bankSize>()>) 0);
 			fullQuire[i] = stageResult[bankSize];
 			fullQuire.range(getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
 		}	
