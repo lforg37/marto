@@ -82,87 +82,100 @@ ap_uint<N> acc_to_fp(
 ){
 	#pragma HLS INLINE
 
-	static constexpr int ceil_log2_acc_size = Static_Val<FPDim<N>::ACC_SIZE>::_log2; 
-	static constexpr int added_bits = (1<<ceil_log2_acc_size) - FPDim<N>::ACC_SIZE;
+
+	static constexpr int overflow_bits = FPDim<N>::PROD_FP_SPREAD - FPDim<N>::FP_SPREAD;
+	static constexpr int underflow_bits = FPDim<N>::ACC_MID - FPDim<N>::FP_SPREAD -FPDim<N>::WF;
+	static constexpr int reduced_acc_size = 2*FPDim<N>::FP_SPREAD + FPDim<N>::WF;
+	
+	static constexpr int ceil_log2_acc_size = Static_Val<reduced_acc_size>::_log2; 
+	static constexpr int pow2_ceil_log2_acc_size = (1<<ceil_log2_acc_size); 
+	static constexpr int ceil_log2_acc_size_minus_1 = Static_Val<reduced_acc_size>::_log2-1; 
+	static constexpr int pow2_ceil_log2_acc_size_minus_1 = (1<<ceil_log2_acc_size_minus_1); 
+	static constexpr int remaining_bits = reduced_acc_size - (1 << (Static_Val<reduced_acc_size>::_log2)-1); 
+	static constexpr int ceil_log2_remaining_bits = Static_Val<remaining_bits>::_log2; 
+	static constexpr int pow2_ceil_log2_remaining_bits = (1<<ceil_log2_remaining_bits); 
+	static constexpr int extra_bits = pow2_ceil_log2_acc_size - reduced_acc_size;
 	ap_uint<1> r_s;
 	ap_uint<FPDim<N>::WE> r_e;
 	ap_uint<FPDim<N>::WF> r_m;
 
 
-	ap_int<(1<<ceil_log2_acc_size)> ext_acc = (ap_int<FPDim<N>::ACC_SIZE>)acc;
-	// fprintf(stderr, "ext acc %d\n", (int)ext_acc);
-	// printApInt(ext_acc);
+	ap_uint<overflow_bits> high_acc = acc.range(FPDim<N>::ACC_SIZE -1, FPDim<N>::ACC_MID + FPDim<N>::FP_SPREAD);
+	ap_uint<reduced_acc_size> mid_acc = acc.range(FPDim<N>::ACC_MID + FPDim<N>::FP_SPREAD -1 , FPDim<N>::ACC_MID - FPDim<N>::FP_SPREAD -FPDim<N>::WF);
+	ap_uint<underflow_bits> low_acc = acc.range(FPDim<N>::ACC_MID - FPDim<N>::FP_SPREAD -FPDim<N>::WF -1 , 0);
+
+
 	r_s = acc[FPDim<N>::ACC_SIZE-1];
 
-	ap_uint<ceil_log2_acc_size + (1<<ceil_log2_acc_size)> lzoc_shift = lzoc_shifter<ceil_log2_acc_size>(ext_acc, r_s);
+	ap_uint<1> overflow_when_neg = high_acc xor r_s;
+	ap_uint<1> sticky_low = low_acc.or_reduce();
 
-	ap_uint<ceil_log2_acc_size> lzoc = lzoc_shift.range(ceil_log2_acc_size + (1<<ceil_log2_acc_size)-1, (1<<ceil_log2_acc_size));
-	ap_uint<(1<<ceil_log2_acc_size)> shifted = lzoc_shift.range((1<<ceil_log2_acc_size)-1, 0);
-	
-	// fprintf(stderr, "lzoc %d\n", (int)lzoc);
-	// printApUint(lzoc);
-	// fprintf(stderr, "shifted \n");
-	// printApUint(shifted);
+	// ap_int<remaining_bits> ext_acc_high = mid_acc.range(pow2_ceil_log2_acc_size_minus_1+remaining_bits-1,pow2_ceil_log2_acc_size_minus_1);
+	// ap_int<pow2_ceil_log2_acc_size_minus_1> ext_acc_low = mid_acc.range(pow2_ceil_log2_acc_size_minus_1-1, 0);
 
-	// fprintf(stderr, "Limit : %d\n", FPDim<N>::SUBNORMAL_LIMIT+added_bits);
-	// fprintf(stderr, "SUBNORMAL_LIMIT : %d\n", FPDim<N>::SUBNORMAL_LIMIT);
-	// fprintf(stderr, "added_bits : %d\n", added_bits);
+	// ap_uint<ceil_log2_acc_size_minus_1 + pow2_ceil_log2_acc_size_minus_1> lzoc_shift_low = lzoc_shifter<ceil_log2_acc_size_minus_1>(ext_acc_low, r_s);
+	// ap_uint<ceil_log2_remaining_bits + pow2_ceil_log2_remaining_bits> lzoc_shift_high = lzoc_shifter<ceil_log2_remaining_bits>(ext_acc_high, r_s);
+
+	// ap_uint<ceil_log2_acc_size_minus_1> lzoc_low = lzoc_shift_low.range(ceil_log2_acc_size_minus_1 + pow2_ceil_log2_acc_size_minus_1-1, pow2_ceil_log2_acc_size_minus_1);
+
+	ap_uint<ceil_log2_acc_size + (1<<ceil_log2_acc_size) > lzoc_shift = lzoc_shifter<ceil_log2_acc_size>(  (ap_int<(1<<ceil_log2_acc_size)>) ((ap_int<reduced_acc_size>)mid_acc), r_s) ;
+	ap_uint<ceil_log2_acc_size> lzoc = lzoc_shift.range(ceil_log2_acc_size + pow2_ceil_log2_acc_size-1, pow2_ceil_log2_acc_size);
+	ap_uint<pow2_ceil_log2_acc_size> shifted = lzoc_shift.range(pow2_ceil_log2_acc_size-1, 0);
+	// ap_uint<pow2_ceil_log2_acc_size_minus_1 + remaining_bits> shifted;
+	// ap_uint<remaining_bits> zero_remaining_bits = 0;
+	// if( ((r_s == 0) and (ext_acc_high==0)) or  ((r_s == 1) and (ext_acc_high==-1)) ){
+	// 	lzoc = remaining_bits + lzoc_low;
+	// 	shifted = ((ap_uint<pow2_ceil_log2_acc_size_minus_1 + remaining_bits>)shifted_low).concat(zero_remaining_bits);
+	// }
+	// else{
+	// 	lzoc = lzoc_high;
+	// 	shifted = mid_acc << lzoc_high;
+	// }
+
 	ap_uint<FPDim<N>::WF> r_m_signed;
-
-	ap_uint<(FPDim<N>::ACC_SIZE - FPDim<N>::WF)> sticky_bits = shifted.range((1<<ceil_log2_acc_size)-1-FPDim<N>::WF +1-1-1,
-								(1<<ceil_log2_acc_size)-1-FPDim<N>::WF +1-1-1 - (FPDim<N>::ACC_SIZE - FPDim<N>::WF) +1
+	ap_uint<(FPDim<N>::ACC_SIZE - FPDim<N>::WF)> sticky_bits = shifted.range(pow2_ceil_log2_acc_size -1-FPDim<N>::WF +1-1,
+								pow2_ceil_log2_acc_size -1-FPDim<N>::WF +1-1 - (reduced_acc_size - FPDim<N>::WF) +1
 		                        );
 
-	ap_uint<1> sticky_tmp = not(sticky_bits== 0);
+	ap_uint<1> sticky_tmp = not(sticky_bits== 0) or sticky_low;
 
-    ap_uint<1> guard1 = shifted[(1<<ceil_log2_acc_size)-1 -FPDim<N>::WF +1-1-1];
-    ap_uint<1> guard2 = shifted[(1<<ceil_log2_acc_size)-1 -FPDim<N>::WF +1-1];
+    ap_uint<1> guard1 = shifted[pow2_ceil_log2_acc_size -1 -FPDim<N>::WF +1-1-1];
+    ap_uint<1> guard2 = shifted[pow2_ceil_log2_acc_size -1 -FPDim<N>::WF +1-1];
 
     ap_uint<1> guard, sticky;
 
-	if(lzoc>(FPDim<N>::SUBNORMAL_LIMIT+added_bits+1))	{
+	if(lzoc>(FPDim<N>::SUBNORMAL_LIMIT+1))	{
 		r_e = 0;
-		r_m_signed = shifted.range((1<<ceil_log2_acc_size)-1, (1<<ceil_log2_acc_size)-1 -FPDim<N>::WF +1) >> (lzoc-(FPDim<N>::SUBNORMAL_LIMIT+added_bits)-1-1);
+		r_m_signed = shifted.range(pow2_ceil_log2_acc_size -1, pow2_ceil_log2_acc_size -1 -FPDim<N>::WF +1) >> (lzoc-(FPDim<N>::SUBNORMAL_LIMIT)-1-1);
 		guard=guard2;
 		sticky=guard1 or sticky_tmp;
 	}
 	else{
-		r_m_signed = shifted.range((1<<ceil_log2_acc_size)-1-1, (1<<ceil_log2_acc_size)-1 -FPDim<N>::WF +1-1);
-		r_e = FPDim<N>::BIAS-(lzoc-added_bits)+2;
+
+		r_m_signed = shifted.range(pow2_ceil_log2_acc_size -1, pow2_ceil_log2_acc_size -1 -FPDim<N>::WF +1-1);
+		r_e = FPDim<N>::BIAS-(lzoc-extra_bits)+2 + overflow_bits;
 		guard = guard1;
 		sticky = sticky_tmp;
 	}
-	// printApUint(r_m_signed);
-	// printApUint(sticky_bits);
-	// printApUint(shifted);
 
-	// fprintf(stderr, "guard %d, sticky %d\n",  (int)guard, (int)sticky);
-	// fprintf(stderr, "guard1 %d, guard2 %d, sticky_tmp %d\n",  (int)guard1, (int)guard2, (int)sticky_tmp);
 	ap_uint<FPDim<N>::WF+1> r_m_rounded;
 	if((guard and not(sticky) and not(r_m_signed[0])) or (guard and sticky)){
-		// fprintf(stderr, "rounded\n");
 		r_m_rounded = r_m_signed+1;
-			// fprintf(stderr, "round\n");
-			// if(r_m_rounded[FPDim<N>::WF]==1){
-			// 	fprintf(stderr, "round overflowed\n");
-			// }
 	}
 	else{
-		// fprintf(stderr, "not round\n");
 		r_m_rounded = r_m_signed;
-		// fprintf(stderr, "not rounded\n");		
 	}
 
 	ap_uint<FPDim<N>::WF+1> r_m_rounded_cut = r_m_rounded.range(FPDim<N>::WF, 0);
-	ap_uint<1> overflow = (r_m_rounded==0) and r_s;
+	ap_uint<1> overflowed = (r_m_rounded==0) and r_s;
 	if(r_s){
 		r_m = ~r_m_rounded_cut+1;
 	}
 	else{
 		r_m = r_m_rounded_cut;
 	}
-	// fprintf(stderr, "r_s %d\n", (int)r_s);
-	r_e+=(r_m_rounded[FPDim<N>::WF] and not(r_s)) or overflow;
+
+	r_e+=(r_m_rounded[FPDim<N>::WF] and not(r_s)) or overflowed;
 	ap_uint<1+FPDim<N>::WE> signed_exp = r_s.concat(r_e);
 
 
@@ -309,8 +322,6 @@ SegmentedKulischAcc<N, bankSize> segmented_kulisch_accumulator(
 	// fprintf(stderr, "inputSignificandWithSign : ");
 	// printApInt(inputSignificandWithSign);
 
-	Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val *bankSize ;
-
 
 	ap_uint<Static_Val<bankSize>::_log2> shiftValue = prodExp.range(Static_Val<bankSize>::_log2-1,0);
 	// fprintf(stderr, "shiftValue : ");
@@ -335,7 +346,7 @@ SegmentedKulischAcc<N, bankSize> segmented_kulisch_accumulator(
 
 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 		#pragma HLS UNROLL
-		ap_uint<bankSize+1> stageResult = add_sub_acc_stage<N,bankSize>(acc, i, stageSelect, shiftedInput, prod.getSignBit());
+		ap_uint<bankSize+1> stageResult = add_sub_acc_stage<N,bankSize>(acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>) i, stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, prod.getSignBit());
 		fullAcc[i] = stageResult[bankSize];
 		// fprintf(stderr, "high : %d, low : %d\n", getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(),  getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>());
 		fullAcc.range(getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);

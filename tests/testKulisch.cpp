@@ -23,7 +23,7 @@ typedef union {
 
 BOOST_AUTO_TEST_CASE(TestRandKulischAcc32, *utf::disabled() * utf::label("long")) 
 {
-	int SIZE = 1000000000;
+	int SIZE = 10000000;
 	float *tab1, *tab2, sign1, sign2;
 	ap_uint<N> *tab1_ap, *tab2_ap;
 
