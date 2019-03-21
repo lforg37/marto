@@ -40,8 +40,6 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 	ap_uint<1> middle_void_flag = underflow_base.and_reduce();
 	ap_uint<1> middle_is_null = not(middle_bits.or_reduce());
 
-	ap_uint<1> uperincludedbound = middle_bits[Quire<N>::PositExpRange - 1];
-
 	constexpr int remainingsize = 
 		PositDim<N>::ExtQuireSize - 2 - Quire<N>::PositCarryOffset;
 
@@ -64,13 +62,8 @@ PositValue<N> quire_to_posit(Quire<N> quire)
 	ap_uint<1> underflow = not(overflow) and middle_void_flag;
 
 	ap_uint<allsize> padded_mid_bits = middle_bits.concat(
-			( (ap_uint<padd_width>)
-			quire.range(
-					Quire<N>::PositRangeOffset - 1, 
-					Quire<N>::PositRangeOffset - padd_width
-				)
-			)
-			);
+			upper_low_bits
+		);
 
 	auto lzocshifted = lzoc_shifter<logSize>(padded_mid_bits, sign);
 	ap_uint<logSize> exp = lzocshifted.range(logSize + allsize - 1, allsize);
