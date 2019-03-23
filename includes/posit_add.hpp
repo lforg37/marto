@@ -16,7 +16,7 @@ template<int N>
 PositValue<N> posit_add(
 		PositValue<N> in1, 
 		PositValue<N> in2, 
-		ap_uint<1> isSub
+		ap_uint<1> isSub =0
 ){
 	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
