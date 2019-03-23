@@ -61,14 +61,13 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 
 	if(exp<0 and not(isNaR)){
 		isMinPos = 1;
-		isMaxPos = 0;
-	}
-	else if(exp >= (2*PositDim<N>::EXP_BIAS) and not(isNaR)){
+	} else {
 		isMinPos = 0;
+	}
+	if(exp >= (2*PositDim<N>::EXP_BIAS) and not(isNaR)){
 		isMaxPos = 1;
 	}
 	else{
-		isMinPos = 0;
 		isMaxPos = 0;
 	}
 
@@ -90,7 +89,7 @@ PositValue<N> PositProd_to_PositValue(PositProd<N> val)
 	else if(isMaxPos and not(val.getSignBit())){
 		return PositValue<N>::getMaxPos();
 	}
-	else{
+	else {
 		return PositValue<N>(
 				resultGuardBit,
 				resultStickyBit,

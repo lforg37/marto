@@ -320,7 +320,6 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 }
 #endif
 
-
 BOOST_AUTO_TEST_CASE(PositEncoder)
 {
 	// Should be tested on 32 bits as well when possible
