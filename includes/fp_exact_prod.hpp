@@ -1,9 +1,5 @@
 #include "kulisch_dim.hpp"
 #include "lzoc_shifter.hpp"
-// #include "utils.hpp"
-// #include "shifter.hpp"
-// #include <cstdio>
-// using namespace std;
 
 template<int N>
 FPProd<N> exact_prod(ap_uint<N> in1,
