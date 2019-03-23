@@ -4,7 +4,10 @@
 #include <boost/test/unit_test.hpp>
 
 
-#include "../includes/kulisch_acc.hpp"
+#include "../includes/K1.hpp"
+#include "../includes/K3.hpp"
+#include "../includes/fp_exact_prod.hpp"
+#include "../includes/acc_rounding.hpp"
 #include "../includes/kulisch_dim.hpp"
 #include "../includes/utils.hpp"
 #include <stdlib.h>
@@ -23,7 +26,7 @@ typedef union {
 
 BOOST_AUTO_TEST_CASE(TestRandKulischAcc32, *utf::disabled() * utf::label("long")) 
 {
-	int SIZE = 1000000000;
+	int SIZE = 10000000;
 	float *tab1, *tab2, sign1, sign2;
 	ap_uint<N> *tab1_ap, *tab2_ap;
 
@@ -73,18 +76,17 @@ BOOST_AUTO_TEST_CASE(TestRandKulischAcc32, *utf::disabled() * utf::label("long")
 	KulischAcc<N> acc(0);
 	ap_uint<32> res;
 	float mpfr_sum;
-	fprintf(stderr, "%d\n", SIZE);
 	for(int i=0; i<SIZE; i++){
 		// fprintf(stderr, "tab1 : %f, tab2: %f\n", tab1[i], tab2[i]);
 		auto prod = exact_prod<N>(tab1_ap[i], tab2_ap[i]);
-		acc = kulisch_accumulator<N>(acc, prod);
+		acc = acc_2CK1<N>(acc, prod);
 		
 		mpfr_set_flt(current_mpfr_value1, tab1[i], GMP_RNDZ);
 		mpfr_set_flt(current_mpfr_value2, tab2[i], GMP_RNDZ);
 		mpfr_mul(current_mpfr_value1, current_mpfr_value1, current_mpfr_value2, GMP_RNDZ);
 		mpfr_add(mpfr_acc, mpfr_acc, current_mpfr_value1, GMP_RNDZ);
 		
-		res = acc_to_fp<N>(acc);
+		res = acc_IEEE_rounding<N>(acc);
 		float_to_fix conv_r;
 		conv_r.i = res;
 		float res_f = conv_r.f;
@@ -115,7 +117,7 @@ BOOST_AUTO_TEST_CASE(TestRandKulischAcc32, *utf::disabled() * utf::label("long")
 
 BOOST_AUTO_TEST_CASE(TestRandSegmentedKulischAcc32, *utf::disabled() * utf::label("long")) 
 {
-	int SIZE = 1000000000;
+	int SIZE = 10000000;
 	float *tab1, *tab2, sign1, sign2;
 	ap_uint<N> *tab1_ap, *tab2_ap;
 
@@ -166,14 +168,13 @@ BOOST_AUTO_TEST_CASE(TestRandSegmentedKulischAcc32, *utf::disabled() * utf::labe
 	KulischAcc<N> acc2(0); 
 	ap_uint<32> res;
 	float mpfr_sum;
-	fprintf(stderr, "%d\n", SIZE);
 	for(int i=0; i<SIZE; i++){
 		// fprintf(stderr, "tab1 : %f, tab2: %f\n", tab1[i], tab2[i]);
 		auto prod = exact_prod<N>(tab1_ap[i], tab2_ap[i]);
-		acc = segmented_kulisch_accumulator<N, SEGMENT>(acc, prod);
-		acc2 = kulisch_accumulator<N>(acc2, prod);
+		acc = acc_2CK3<N, SEGMENT>(acc, prod);
+		acc2 = acc_2CK1<N>(acc2, prod);
 		// acc.printContent();
-		KulischAcc<N> accprop = Kulisch_propagate_carries(acc);
+		KulischAcc<N> accprop = acc_2CK3_propagate_carries(acc);
 		
 		// printApUint(accprop);
 		// printApUint(acc2);
@@ -183,7 +184,7 @@ BOOST_AUTO_TEST_CASE(TestRandSegmentedKulischAcc32, *utf::disabled() * utf::labe
 		mpfr_mul(current_mpfr_value1, current_mpfr_value1, current_mpfr_value2, GMP_RNDZ);
 		mpfr_add(mpfr_acc, mpfr_acc, current_mpfr_value1, GMP_RNDZ);
 		
-		res = acc_to_fp<N>(accprop);
+		res = acc_IEEE_rounding<N>(accprop);
 		float_to_fix conv_r;
 		conv_r.i = res;
 		float res_f = conv_r.f;

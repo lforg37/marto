@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 			#pragma omp atomic
 			counter+=(100*(1<<16));
 			#pragma omp critical
-			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\% (%lu\t/%lu)", ((double)counter/(double)TOTAL_TESTS)*100, counter,TOTAL_TESTS);
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f\% (%lu\t/%lu)", (((double)counter)/((double)TOTAL_TESTS))*100, counter,TOTAL_TESTS);
 		}
 		error_counter = 0;
 	}
