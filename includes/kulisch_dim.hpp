@@ -101,6 +101,10 @@ class FPProd : public FPProdSize<N>
 template<int N>
 using KulischAcc = ap_uint<FPDim<N>::ACC_SIZE>;
 
+template<int N>
+using SignedKulischAcc = ap_uint<FPDim<N>::ACC_SIZE+1>;
+
+
 template<int N, int bankSize>
 static constexpr int getNbStages(){
 	return Static_Ceil_Div<FPDim<N>::ACC_SIZE, bankSize>::val;
