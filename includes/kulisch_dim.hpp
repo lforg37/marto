@@ -1,9 +1,10 @@
 #ifndef FP_DIM_TPP
 #define FP_DIM_TPP
-#define AP_INT_MAX_W 16000
+#define AP_INT_MAX_W 2000
 
 #include "ap_int.h"
 #include "static_math.hpp"
+#include <cstdint>
 
 
 #include "../includes/utils.hpp"
@@ -33,6 +34,9 @@ class FPDim {
 	static constexpr int WF = (N==32) ? 23 : 52;
 	static constexpr int BIAS = (1<<(WE-1))-1;
 	static constexpr int ACC_SIZE = (1<<(WE+1)) -1 + 2*WF+2;
+	static constexpr int ACC_MID = (1<<(WE)) -1 + 2*WF+2;
+	static constexpr int FP_SPREAD = (1<<(WE-1));
+	static constexpr int PROD_FP_SPREAD = (1<<(WE));
 	static constexpr int SUBNORMAL_LIMIT = (1<<(WE))+BIAS;
 };
 

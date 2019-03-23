@@ -146,6 +146,7 @@ class Quire : public QuireSizedAPUint<N>
 
 		static constexpr int PositRangeOffset = PositDim<N>::EXP_BIAS - 1;
 		static constexpr int PositExpRange = 2*PositRangeOffset + 1;
+		//TODO bad name, is index of first bit > maxPos
 		static constexpr int PositCarryOffset = PositRangeOffset + PositExpRange;
 };
 
