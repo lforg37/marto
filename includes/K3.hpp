@@ -280,10 +280,6 @@ acc_SMK3<N, bankSize> add_SMK3(
 
 	ap_uint<2*FPDim<N>::WF+2> inputSignificand = prod.getSignificand();
 
-
-	Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val *bankSize ;
-
-
 	ap_uint<Static_Val<bankSize>::_log2> shiftValue = prodExp.range(Static_Val<bankSize>::_log2-1,0);
 	
 	ap_uint<(1<<bits_for_shift)> ext = inputSignificand;
@@ -296,7 +292,7 @@ acc_SMK3<N, bankSize> add_SMK3(
 
 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 		#pragma HLS UNROLL
-		ap_uint<bankSize+1+1> stageResult = add_SMK3_acc_stage<N,bankSize>(acc, i, stageSelect, shiftedInput, prod.getSignBit());
+		ap_uint<bankSize+1+1> stageResult = add_SMK3_acc_stage<N,bankSize>((acc_SMK3<N, bankSize>)acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>)i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
 		fullAcc[i] = stageResult[bankSize];
 		fullAcc[i+getNbStages<N, bankSize>()] = stageResult[bankSize+1];
 		fullAcc.range(add_SMK3_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>()+getNbStages<N, bankSize>(), add_SMK3_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
