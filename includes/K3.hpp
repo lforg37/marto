@@ -111,7 +111,6 @@ acc_2CK3<N, bankSize> add_2CK3(
 
 	ap_int<2*FPDim<N>::WF+2+2> inputSignificandWithSign = prod.getSignBit().concat(inputSignificandComplemented);
 
-	Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val *bankSize ;
 
 
 	ap_uint<Static_Val<bankSize>::_log2> shiftValue = prodExp.range(Static_Val<bankSize>::_log2-1,0);
@@ -125,7 +124,7 @@ acc_2CK3<N, bankSize> add_2CK3(
 
 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 		#pragma HLS UNROLL
-		ap_uint<bankSize+1> stageResult = add_2CK3_acc_stage<N,bankSize>(acc, i, stageSelect, shiftedInput, prod.getSignBit());
+		ap_uint<bankSize+1> stageResult = add_2CK3_acc_stage<N,bankSize>((acc_2CK3<N, bankSize>)acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
 		fullAcc[i] = stageResult[bankSize];
 		fullAcc.range(add_2CK3_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), add_2CK3_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
 	}
