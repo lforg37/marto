@@ -78,3 +78,71 @@ SignedKulischAcc<N> add_SMK1(
 
 	return res;
 }
+
+
+
+
+
+
+
+
+template<int bankSize> 
+constexpr int add_segmented_2CK1_getIndex(int index, bool isUpper)
+{
+	return bankSize*index - isUpper;
+}
+
+template<int N, int bankSize>
+acc_segmented_2CK1<N, bankSize> add_segmented_2CK1(
+													acc_segmented_2CK1<N, bankSize> acc, 
+													FPProd<N> prod
+													)
+{	
+	#pragma HLS INLINE
+
+	ap_int<2*FPDim<N>::WF+3> ext_significand = prod.getSignificand();
+
+	if(prod.getSignBit() == 1){
+		ext_significand = ~((ap_int<2*FPDim<N>::WF+3>)prod.getSignificand()) + 1;
+	}
+	else{
+		ext_significand = prod.getSignificand();
+	}
+
+	ap_uint< getSegmentedAccSize<N, bankSize>() > shifted = ((ap_uint< getSegmentedAccSize<N, bankSize>() >) ext_significand) << (prod.getExp());
+
+
+
+	acc_segmented_2CK1<N, bankSize> fullAcc = acc_segmented_2CK1<N, bankSize>(0, 0);
+
+	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
+		#pragma HLS UNROLL
+		ap_uint<1> carry = (i==0) ? (ap_uint<1> )0 : acc.getCarry(i-1);
+		ap_uint<bankSize+1> stageResult = acc.getBank(i)
+										+ shifted.range((i+1)*bankSize-1,i*bankSize)
+										+ carry;
+		fullAcc[i] = stageResult[bankSize];
+		fullAcc.range(add_segmented_2CK1_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), add_segmented_2CK1_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+	}
+	return fullAcc;
+}
+
+template<int N, int bankSize>
+KulischAcc<N> propagate_carries_segmented_2CK1(acc_segmented_2CK1<N, bankSize> acc)
+{	
+	#pragma HLS INLINE
+	acc_segmented_2CK1<N, bankSize> fullAcc = acc;
+	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
+		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
+			#pragma HLS UNROLL
+			ap_uint<1> carry = (i==0) ? (ap_uint<1> )0 : fullAcc.getCarry(i-1);
+			ap_uint<bankSize+1> stageResult = fullAcc.getBank(i)
+											+ carry;
+			fullAcc[i] = stageResult[bankSize];
+			fullAcc.range(add_segmented_2CK1_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), add_segmented_2CK1_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+		}	
+	}
+	// fullacc.printContent();
+	return fullAcc.range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
+}
+

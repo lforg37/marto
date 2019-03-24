@@ -167,6 +167,10 @@ class acc_2CK3 : public acc_2CK3Size<N, bankSize>
 };
 
 
+template<int N, int bankSize>
+using acc_segmented_2CK1 = acc_2CK3<N, bankSize>;
+
+
 
 
 
