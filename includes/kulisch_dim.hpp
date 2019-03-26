@@ -6,7 +6,6 @@
 #include "static_math.hpp"
 #include <cstdint>
 
-
 #include "../includes/utils.hpp"
 
 constexpr int ceilLog2(int N, uint8_t remains = 0)
