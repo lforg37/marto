@@ -23,8 +23,8 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 	)
 {
 	#pragma HLS INLINE
-	ap_uint<1<<S> zeros = 0;
-	ap_uint<1<<S> ones = -1;
+	// ap_uint<1<<S> zeros = 0;
+	// ap_uint<1<<S> ones = -1;
 	ap_int<1<<S> padding_s = (ap_int<1>) fill_bit;
 	ap_uint<1<<S> padding = padding_s;
 
@@ -34,7 +34,13 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 	ap_uint<1> leader;
 	ap_uint<1<<N> next_stage_input;
 
-	if ((leading && (high == ones)) || (!leading && high == zeros) ) {
+	ap_uint<1> cmp = 1;
+	for(int i = (1 << S)-1; i>=0; i--){
+		#pragma HLS UNROLL
+		cmp &= (high[i]==leading);
+	}
+
+	if (cmp) {
 		next_stage_input = low.concat(padding);
 		leader = 1;
 	} else {

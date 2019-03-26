@@ -1,6 +1,6 @@
 #ifndef FP_DIM_TPP
 #define FP_DIM_TPP
-#define AP_INT_MAX_W 2000
+#define AP_INT_MAX_W 8205
 
 #include "ap_int.h"
 #include "static_math.hpp"
