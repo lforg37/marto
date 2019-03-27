@@ -85,12 +85,12 @@ ap_uint<N + (1<<N)> lzoc_shifter(
 template<int N>
 struct GenericLZOCStageInfo
 {
-	static constexpr bool is_a_power_of_2 = (Static_Val<N>::_2pow>>1 == N);
+	static constexpr bool is_a_power_of_2 = ((Static_Val<N>::_2pow) == N);
 	static constexpr bool is_one = (N==1);
 };
 
 template<int N, int S>
-ap_uint<Static_Val<S>::_log2 + N> generic_lzoc_shifter_stage(
+ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
@@ -107,33 +107,36 @@ ap_uint<Static_Val<S>::_log2 + N> generic_lzoc_shifter_stage(
 }	
 
 template<int N, int S>
-ap_uint<Static_Val<S>::_log2 + N> generic_lzoc_shifter_stage(
+ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
 		typename std::enable_if<not(GenericLZOCStageInfo<S>::is_a_power_of_2)>::type* dummy = 0)
 {
 	#pragma HLS INLINE
-	static constexpr int log2S = Static_Val<S>::_log2-1;
-	static constexpr int power_of_2_in_S = Static_Val<S>::_2pow>>1;
+	static constexpr int log2S = Static_Val<S>::_rlog2-1;
+	static constexpr int power_of_2_in_S = 1<<log2S;
 	static constexpr int rest_of_S = S-power_of_2_in_S;
 
-	ap_uint<Static_Val<S>::_log2 + N> lzoc_shift = generic_lzoc_shifter_stage<N, power_of_2_in_S>( input, leading, fill_bit);
+// fprintf(stderr, "N: %d, S: %d, log2s: %d, powerlo2s: %d, rest: %d \n", N, S, log2S, power_of_2_in_S, rest_of_S);
 
-	ap_uint<Static_Val<S>::_log2> lzoc = lzoc_shift.range(Static_Val<S>::_log2 + N-1, N);
+
+	ap_uint<Static_Val<S>::_rlog2 + N> lzoc_shift = generic_lzoc_shifter_stage<N, power_of_2_in_S>( input, leading, fill_bit);
+
+	ap_uint<Static_Val<S>::_rlog2> lzoc = lzoc_shift.range(Static_Val<S>::_rlog2 + N-1, N);
 	ap_uint<N> shift = lzoc_shift.range(N-1, 0);
 
-	ap_uint<Static_Val<rest_of_S>::_log2 + N> lzoc_shift_rest = generic_lzoc_shifter_stage<N, rest_of_S>( shift, leading, fill_bit);
+	ap_uint<Static_Val<rest_of_S>::_rlog2 + N> lzoc_shift_rest = generic_lzoc_shifter_stage<N, rest_of_S>( shift, leading, fill_bit);
 
 
-	ap_uint<Static_Val<rest_of_S>::_log2> lzoc_rest = lzoc_shift_rest.range(Static_Val<rest_of_S>::_log2 + N-1, N);
+	ap_uint<Static_Val<rest_of_S>::_rlog2> lzoc_rest = lzoc_shift_rest.range(Static_Val<rest_of_S>::_rlog2 + N-1, N);
 	ap_uint<N> shift_rest = lzoc_shift_rest.range(N-1, 0);
 
 
 	ap_uint<N> final_shift = (lzoc==-1) ? shift_rest : shift;
-	ap_uint<Static_Val<S>::_log2> lzoc_if_rest = S+lzoc_rest;
+	ap_uint<Static_Val<S>::_rlog2> lzoc_if_rest = S+lzoc_rest;
 
-	ap_uint<Static_Val<S>::_log2> final_lzoc = (lzoc==-1) ? lzoc_if_rest : lzoc;
+	ap_uint<Static_Val<S>::_rlog2> final_lzoc = (lzoc==-1) ? lzoc_if_rest : lzoc;
 
 	return final_lzoc.concat(final_shift);
 
@@ -164,7 +167,7 @@ ap_uint<Static_Val<S>::_log2 + N> generic_lzoc_shifter_stage(
 }	
 
 template<int N, int S>
-ap_uint<Static_Val<S>::_log2 + N> generic_lzoc_shifter_stage(
+ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
@@ -200,7 +203,7 @@ ap_uint<Static_Val<S>::_log2 + N> generic_lzoc_shifter_stage(
 
 
 template<int N>
-ap_uint<Static_Val<N>::_log2 + N> generic_lzoc_shifter(
+ap_uint<Static_Val<N>::_rlog2 + N> generic_lzoc_shifter(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0
@@ -208,7 +211,7 @@ ap_uint<Static_Val<N>::_log2 + N> generic_lzoc_shifter(
 {
 	#pragma HLS INLINE
 
-	ap_uint<(Static_Val<N>::_log2 + N)> lzoc_shift =  generic_lzoc_shifter_stage<N, N>(input, leading, fill_bit);
+	ap_uint<(Static_Val<N>::_rlog2 + N)> lzoc_shift =  generic_lzoc_shifter_stage<N, N>(input, leading, fill_bit);
 	return lzoc_shift;
 }	
 
