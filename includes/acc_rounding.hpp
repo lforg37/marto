@@ -7,57 +7,26 @@ ap_uint<N> acc_IEEE_rounding(
 ){
 	#pragma HLS INLINE
 
-	static constexpr int ceil_log2_acc_size = Static_Val<FPDim<N>::ACC_SIZE>::_log2; 
-	static constexpr int pow2_ceil_log2_acc_size = (1<<ceil_log2_acc_size); 
-	// static constexpr int added_bits = pow2_ceil_log2_acc_size - FPDim<N>::ACC_SIZE;
 	ap_uint<1> r_s;
 	ap_uint<FPDim<N>::WE> r_e;
 	ap_uint<FPDim<N>::WF> r_m;
 
-
-	//ap_int<pow2_ceil_log2_acc_size> ext_acc = (ap_int<FPDim<N>::ACC_SIZE>)acc;
-
 	r_s = acc[FPDim<N>::ACC_SIZE-1];
 
-	// ap_uint<ceil_log2_acc_size + pow2_ceil_log2_acc_size> lzoc_shift = lzoc_shifter<ceil_log2_acc_size>(ext_acc, r_s);
-	// printApUint(acc);
-
 	ap_uint<(Static_Val<FPDim<N>::ACC_SIZE>::_log2 +  FPDim<N>::ACC_SIZE)> generic_lzoc = generic_lzoc_shifter<FPDim<N>::ACC_SIZE>(acc, r_s);
-
-
-	// ap_uint<ceil_log2_acc_size + pow2_ceil_log2_acc_size> lzoc_shift_old = lzoc_shifter<ceil_log2_acc_size>(ext_acc, r_s);
-
-	// ap_uint<ceil_log2_acc_size> lzoc_old = lzoc_shift_old.range(ceil_log2_acc_size + pow2_ceil_log2_acc_size-1, pow2_ceil_log2_acc_size);
-	// ap_uint<pow2_ceil_log2_acc_size> shifted_old = lzoc_shift_old.range(pow2_ceil_log2_acc_size-1, 0);
-	// lzoc_old -=added_bits;
-
-
-
 
 
 	ap_uint<Static_Val<FPDim<N>::ACC_SIZE>::_log2> lzoc = generic_lzoc.range((Static_Val<FPDim<N>::ACC_SIZE>::_log2 +  FPDim<N>::ACC_SIZE)-1, FPDim<N>::ACC_SIZE);
 	ap_uint<FPDim<N>::ACC_SIZE> shifted = generic_lzoc.range(FPDim<N>::ACC_SIZE-1, 0);
 	
-	// if(lzoc!=lzoc_old){
-	// 	printApUint(acc);
-
-	// 	fprintf(stderr, "new lzoc: \n");
-	// 	printApUint(lzoc);
-	// 	fprintf(stderr, "old lzoc: \n");
-	// 	printApUint(lzoc_old);
-	// 	exit(1);
-	// }
 
 	ap_uint<FPDim<N>::WF> r_m_signed;
-// fprintf(stderr, "ICI1\n");
+
 	ap_uint<(FPDim<N>::ACC_SIZE - FPDim<N>::WF)> sticky_bits = shifted.range(FPDim<N>::ACC_SIZE-1-FPDim<N>::WF +1-1-1+1,
 								FPDim<N>::ACC_SIZE-1-FPDim<N>::WF +1-1-1 - (FPDim<N>::ACC_SIZE - FPDim<N>::WF) +1+1
 		                        );
 
-	// ap_uint<(FPDim<N>::ACC_SIZE - FPDim<N>::WF)> sticky_bits = shifted.range(pow2_ceil_log2_acc_size-1-FPDim<N>::WF +1-1-1,
-	// 							pow2_ceil_log2_acc_size-1-FPDim<N>::WF +1-1-1 - (FPDim<N>::ACC_SIZE - FPDim<N>::WF) +1+1
-	// 	                        );
-// fprintf(stderr, "ICI2\n");
+
 	ap_uint<1> sticky_tmp = sticky_bits.or_reduce();
 
     ap_uint<1> guard1 = shifted[FPDim<N>::ACC_SIZE-1 -FPDim<N>::WF +1-1-1];
@@ -70,7 +39,6 @@ ap_uint<N> acc_IEEE_rounding(
 		r_m_signed = shifted.range(FPDim<N>::ACC_SIZE-1, FPDim<N>::ACC_SIZE-1 -FPDim<N>::WF +1) >> (lzoc-(FPDim<N>::SUBNORMAL_LIMIT)-1-1);
 		guard=guard2;
 		sticky=guard1 or sticky_tmp;
-		// fprintf(stderr, "SUBNORMAL\n");
 
 	}
 	else{
@@ -78,16 +46,13 @@ ap_uint<N> acc_IEEE_rounding(
 		r_e = FPDim<N>::BIAS-(lzoc)+2;
 		guard = guard1;
 		sticky = sticky_tmp;
-		// fprintf(stderr, "NOTSUBNORMAL\n");		
 	}
 
 	ap_uint<FPDim<N>::WF+1> r_m_rounded;
 	if((guard and not(sticky) and not(r_m_signed[0])) or (guard and sticky)){
-		// fprintf(stderr, "ROUNDING\n");
 		r_m_rounded = r_m_signed+1;
 	}
 	else{
-		// fprintf(stderr, "NOTROUNDING\n");
 		r_m_rounded = r_m_signed;	
 	}
 
