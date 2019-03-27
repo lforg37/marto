@@ -77,6 +77,7 @@ BOOST_AUTO_TEST_CASE(TestRand2CK1_32, *utf::disabled() * utf::label("long"))
 	ap_uint<32> res;
 	float mpfr_sum;
 	for(int i=0; i<SIZE; i++){
+	// for(int i=0; i<1; i++){
 		// fprintf(stderr, "tab1 : %f, tab2: %f\n", tab1[i], tab2[i]);
 		auto prod = exact_prod<N>(tab1_ap[i], tab2_ap[i]);
 		acc = add_2CK1<N>(acc, prod);

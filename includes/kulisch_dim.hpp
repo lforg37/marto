@@ -1,6 +1,6 @@
 #ifndef FP_DIM_TPP
 #define FP_DIM_TPP
-#define AP_INT_MAX_W 8205
+#define AP_INT_MAX_W 4500
 
 #include "ap_int.h"
 #include "static_math.hpp"
@@ -10,7 +10,7 @@
 
 constexpr int ceilLog2(int N, uint8_t remains = 0)
 {
-	return (N <= 1) ? remains : 1 + ceilLog2(N>>1, remains | (N%2));
+	return  (N==1) ? 1 : ((N <= 1) ? remains : 1 + ceilLog2(N>>1, remains | (N%2)));
 }
 
 constexpr int ceil2Power(int N)
