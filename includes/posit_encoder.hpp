@@ -1,20 +1,20 @@
 #pragma once
 #include "posit_dim.hpp"
 
-#define S_WF PositDim<N>::WF
-#define S_WE PositDim<N>::WE
-#define S_WES PositDim<N>::WES
+#define S_WF PositValue<N, WES>::FractionSize
+#define S_WE PositValue<N, WES>::ExpSize
+#define S_WES WES
 #define K_SIZE (S_WE-S_WES)
 
-template<int N>
-PositEncoding<N> posit_encoder(PositValue<N> positValue)
+template<int N, int WES>
+PositEncoding<N, WES> posit_encoder(PositValue<N, WES> positValue)
 {
-	ap_uint<S_WE> expWoBias = positValue.getExp() - PositDim<N>::EXP_BIAS;
+    ap_uint<S_WE> expWoBias = positValue.getExp() - PositDim<N, WES>::EXP_BIAS;
 
 	ap_uint<1> sign = positValue.getSignBit();
 	ap_uint<S_WES> es = expWoBias.range(S_WES-1,0) ^ sign;
 	ap_int<K_SIZE> k = expWoBias.range(S_WE-1,S_WES);
-	ap_uint<S_WF> exactSignificand = positValue.getSignificandWoImp();
+	ap_uint<S_WF> exactSignificand = positValue.getFraction();
 	ap_uint<N-1-2-S_WES> significand = exactSignificand.range(S_WF-1, S_WF-1-(N-1-2-S_WES)+1);
 
 	ap_uint<S_WES+N-1-2-S_WES> esAndSignificand = es.concat(significand);

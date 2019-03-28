@@ -7,18 +7,16 @@
 #include "utils.hpp"
 
 
-#define S_WF PositDim<N>::WF
-#define S_WE PositDim<N>::WE
-#define S_WES PositDim<N>::WES
+#define S_WF PositValue<N, WES>::FractionSize
+#define S_WE PositValue<N, WES>::ExpSize
+#define S_WES WES
 #define K_SIZE (S_WE-S_WES)
 
-// #define DEBUG_ADDER
-
-template<int N>
-PositValue<N> posit_add(
-		PositValue<N> in1, 
-		PositValue<N> in2, 
-		ap_uint<1> isSub =0
+template<int N, int WES>
+PositValue<N, WES> posit_add(
+        PositValue<N, WES> in1,
+        PositValue<N, WES> in2,
+		ap_uint<1> isSub
 ){
 	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
@@ -58,7 +56,7 @@ PositValue<N> posit_add(
 
 	shiftValue = subExpOp1 - subExpOp2;
 	
-	ap_int<S_WF+2 + S_WF> shiftedSignificand = ((ap_int<S_WF+2 + S_WF>)lessSignificantSignificand.concat(toConcatLess)) >> shiftValue;
+    ap_int<S_WF+2 + S_WF> shiftedSignificand = static_cast<ap_int<S_WF+2 + S_WF> >(lessSignificantSignificand.concat(toConcatLess)) >> shiftValue;
 	ap_int<S_WF+2 + S_WF> unShiftedSignificand = mostSignificantSignificand.concat(toConcatMost);
 
 #ifdef DEBUG_ADDER
@@ -80,7 +78,7 @@ PositValue<N> posit_add(
 	printApInt(sum);
 #endif
 
-	ap_uint<(1<<LOG2_EXT_SUM_SIZE)> extSum = ((ap_uint<(1<<LOG2_EXT_SUM_SIZE)>) sum) << ((1<<LOG2_EXT_SUM_SIZE) - (S_WF+2 + S_WF +1)-1);
+    ap_uint<(1<<LOG2_EXT_SUM_SIZE)> extSum = static_cast<ap_uint<(1<<LOG2_EXT_SUM_SIZE)> >(sum) << ((1<<LOG2_EXT_SUM_SIZE) - (S_WF+2 + S_WF +1)-1);
 
 
 
@@ -119,7 +117,7 @@ PositValue<N> posit_add(
 
 	ap_uint<S_WE> resultExp = (isZero) ? 0 : computedExp.range(S_WE-1,0);
 
-	PositValue<N> result = PositValue<N>(
+    PositValue<N, WES> result = PositValue<N, WES>(
 				guardBit,
 				stickyBit,
 				resultIsNaR,
@@ -134,15 +132,13 @@ PositValue<N> posit_add(
 
 
 	return result;
-
-
 }
 
 
-template<int N>
-PositValue<N> posit_add_optimized(
-		PositValue<N> in1, 
-		PositValue<N> in2, 
+template<int N, int WES>
+PositValue<N, WES> posit_add_optimized(
+		PositValue<N, WES> in1, 
+		PositValue<N, WES> in2, 
 		ap_uint<1> isSub =0
 ){
 	#pragma HLS INLINE
@@ -298,17 +294,14 @@ PositValue<N> posit_add_optimized(
 
 	ap_uint<S_WE> resultExp = (isZero) ? 0 : computedExp.range(S_WE-1,0);
 
-	PositValue<N> result = PositValue<N>(
+    PositValue<N, WES> result{
 				guardBit,
 				stickyBit,
 				resultIsNaR,
 				resultExp,
 				resultS,
 				resultSignificand[S_WF+1 -1],
-				resultSignificand.range(S_WF+1 -1 -1, 0));
-
-
+				resultSignificand.range(S_WF+1 -1 -1, 0)
+            };
 	return result;
-
-
 }
