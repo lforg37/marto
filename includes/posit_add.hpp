@@ -105,7 +105,10 @@ PositValue<N> posit_add(
 	ap_uint<S_WF+1> resultSignificand = shiftedSum.range(EXT_SUM_SIZE-1,EXT_SUM_SIZE-1 -(S_WF+1)+1);
 	ap_uint<EXT_SUM_SIZE -(S_WF+1)> resultRest = shiftedSum.range(EXT_SUM_SIZE-1 -(S_WF+1),0);
 
-
+#ifdef DEBUG_ADDER
+	fprintf(stderr, "ADD resultSignificand\n");
+	printApUint(resultSignificand);
+#endif
 
 	ap_uint<1> guardBit = resultRest[EXT_SUM_SIZE -(S_WF+1)-1];
 	ap_uint<1> stickyBit = !(resultRest.range(EXT_SUM_SIZE -(S_WF+1) -1-1, 0) == 0);
@@ -124,6 +127,10 @@ PositValue<N> posit_add(
 				resultS,
 				resultSignificand[S_WF+1 -1],
 				resultSignificand.range(S_WF+1 -1 -1, 0));
+#ifdef DEBUG_ADDER
+	fprintf(stderr, "ADD result\n");
+	result.printContent();
+#endif
 
 
 	return result;
@@ -190,7 +197,7 @@ PositValue<N> posit_add_optimized(
 	printApUint(shiftValue);
 #endif
 
-	ap_uint<S_WF+1> toConcatLess = ap_uint<S_WF+1>(0);
+	ap_uint<S_WF+1> toConcatLess = (in1IsGreater and isSub) ? ap_uint<S_WF+1>(-1) : ap_uint<S_WF+1>(0);
 	ap_int<S_WF+2 + S_WF+1> shiftedSignificand = ((ap_int<S_WF+2 + S_WF+1>)lessSignificantSignificand.concat(toConcatLess)) >> shiftValue;
 
 #ifdef DEBUG_ADDER
@@ -209,34 +216,45 @@ PositValue<N> posit_add_optimized(
 
 	ap_uint<1> shifted_guard = sticky_bits[S_WF-1];
 	ap_uint<S_WF-1> rest_sticky_shift = sticky_bits.range(S_WF-2,0);
-	ap_uint<1> sticky = rest_sticky_shift.or_reduce();
 
-	ap_uint<2> guard_sticky_shifted = shifted_guard.concat(ap_uint<1>(sticky and not(isSub)));
+	ap_uint<1> sticky = rest_sticky_shift.or_reduce();
+	ap_uint<1> sticky_full = rest_sticky_shift.and_reduce();
+#ifdef DEBUG_ADDER
+	fprintf(stderr, "sticky_full\n");
+	printApUint(sticky_full);
+#endif
+
+	ap_uint<2> guard_sticky_shifted = shifted_guard.concat(ap_uint<1>(sticky));
+	ap_uint<2> guard_sticky_full_shifted = shifted_guard.concat(ap_uint<1>(sticky_full));
 
 #ifdef DEBUG_ADDER
 	fprintf(stderr, "guard_sticky_shifted\n");
 	printApUint(guard_sticky_shifted);
 #endif
 
-	ap_int<S_WF+4> sum_op_1 = (ap_int<S_WF+3>)mostSignificantSignificand.concat(ap_uint<1>(0));
+	ap_int<S_WF+4> sum_op_1 = (ap_int<S_WF+3>)mostSignificantSignificand.concat(ap_uint<1>(isSub and not(in1IsGreater)));
 	ap_int<S_WF+4> sum_op_2 = (ap_int<S_WF+3>)shifted_top;
+	ap_uint<1> carry_bit = (isSub and ( (shifted_guard and sticky_full and in1IsGreater) or not(in1IsGreater) ) );
 
 #ifdef DEBUG_ADDER
-	fprintf(stderr, "Sum op1, op2\n");
+	fprintf(stderr, "Sum op1, op2, lastbit\n");
 	printApInt(sum_op_1);
 	printApInt(sum_op_2);
+	printApUint(carry_bit);
 #endif
 
 
-	ap_uint<S_WF+4> sum = sum_op_1 + sum_op_2 + (isSub and not(sticky));
+	ap_uint<S_WF+4> sum = sum_op_1 + sum_op_2 + carry_bit;
 	ap_uint<1> sum_sign = sum[S_WF+4-1];
 
 #ifdef DEBUG_ADDER
 	fprintf(stderr, "Sum\n");
 	printApUint(sum);
-#endif
+#endif	
 
-	ap_uint<S_WF+6> sum_ext = (sum.concat(ap_uint<2>(guard_sticky_shifted)));
+	ap_uint<2> to_append = (isSub and in1IsGreater) ?  ap_uint<2>(guard_sticky_full_shifted +1) : guard_sticky_shifted;
+
+	ap_uint<S_WF+6> sum_ext = sum.concat(to_append);
 	ap_uint<Static_Val<S_WF+6>::_rlog2 + S_WF+6> lzocShifter = generic_lzoc_shifter<S_WF+6>(sum_ext, sum_sign);
 
 	ap_uint<Static_Val<S_WF+6>::_rlog2> lzoc = lzocShifter.range(Static_Val<S_WF+6>::_rlog2 + S_WF+6-1,S_WF+6);
