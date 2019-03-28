@@ -201,12 +201,12 @@ ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 
 
 
-
 template<int N>
 ap_uint<Static_Val<N>::_rlog2 + N> generic_lzoc_shifter(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
-		ap_uint<1> fill_bit = 0
+		ap_uint<1> fill_bit = 0,
+		typename std::enable_if<not(GenericLZOCStageInfo<N>::is_a_power_of_2)>::type* dummy = 0
 		)
 {
 	#pragma HLS INLINE
@@ -214,5 +214,21 @@ ap_uint<Static_Val<N>::_rlog2 + N> generic_lzoc_shifter(
 	ap_uint<(Static_Val<N>::_rlog2 + N)> lzoc_shift =  generic_lzoc_shifter_stage<N, N>(input, leading, fill_bit);
 	return lzoc_shift;
 }	
+
+template<int N>
+ap_uint<Static_Val<N>::_rlog2 + N> generic_lzoc_shifter(
+		ap_uint<N> input, 
+		ap_uint<1> leading,
+		ap_uint<1> fill_bit = 0,
+		typename std::enable_if<GenericLZOCStageInfo<N>::is_a_power_of_2>::type* dummy = 0
+		)
+{
+	#pragma HLS INLINE
+	static constexpr int log2N = Static_Val<N>::_log2;
+
+	ap_uint<(log2N + (1<<log2N))> lzoc_shift =  lzoc_shifter<log2N>(input, leading, fill_bit);
+	return lzoc_shift;
+}	
+
 
 #endif
