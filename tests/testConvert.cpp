@@ -102,10 +102,10 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
     StandardPositValue<16> one(0, StandardPositDim<16>::EXP_BIAS, 0, 1, 0);
 	do {
         PositEncoding<16, 1> posit_encoding{value};
-        auto posit_val = posit_decoder/*<16,1>*/(posit_encoding);
+        auto posit_val = static_cast<PositValue<16, 1> >(posit_encoding);
 
-		auto posit_prod_direct = PositValue_to_PositProd(posit_val);
-		auto posit_prod_by_one = posit_mul<16>(posit_val, one);
+        auto posit_prod_direct = static_cast<PositProd<16, 1> >(posit_val);
+        auto posit_prod_by_one = posit_mul(posit_val, one);
 
 		if (posit_val.getIsNaR() == 1) {
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getIsNaR() == 1, "Prod by one should be NAR");
@@ -128,10 +128,10 @@ BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
 	uint16_t value = 0;
 	do {
         StandardPositEncoding<16> current{value};
-		auto decoded = posit_decoder(current);
-		auto prod = PositValue_to_PositProd(decoded);
+        auto decoded = static_cast<StandardPositValue<16> >(current);
+        auto prod = static_cast<StandardPositProd<16> >(current);
 		auto casted_val = PositProd_to_PositValue(prod);
-		auto reencoding = posit_encoder(casted_val);
+        auto reencoding = static_cast<StandardPositEncoding<16> >(casted_val);
 
 		if(reencoding != current){
 			fprintf(stderr, "=== decoded ===\n");
@@ -192,8 +192,8 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 
 	for(uint32_t value = 0; value < (1<<16); value++) {
         StandardPositEncoding<16> valueEncoding{value};
-		auto decoded = posit_decoder(valueEncoding);
-		auto prod = PositValue_to_PositProd(decoded);
+        StandardPositValue<16> decoded{valueEncoding};
+        StandardPositProd<16> prod{decoded};
         StandardQuire<16> quireConvert = add_sub_quire(quire, prod, 0);
 		auto back_convert = quire_to_posit(quireConvert);
 		if (decoded.getIsNaR() == 0 and back_convert != decoded) {
@@ -222,8 +222,8 @@ BOOST_AUTO_TEST_CASE(TestSegmentedQuireConvertBack)
 
 	for(uint32_t value = 0; value < (1<<16); value++) {
         StandardPositEncoding<16> valueEncoding{value};
-		auto decoded = posit_decoder(valueEncoding);
-		auto prod = PositValue_to_PositProd(decoded);
+        StandardPositValue<16> decoded{valueEncoding};
+        StandardPositProd<16> prod{valueEncoding};
         StandardSegmentedQuire<16, 64> segmentedQuireConvert = segmented_add_sub_quire(quire, prod, 0);
         StandardQuire<16>  quireConvert = propagateCarries(segmentedQuireConvert);
 		auto back_convert = quire_to_posit(quireConvert);

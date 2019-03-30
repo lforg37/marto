@@ -110,6 +110,11 @@ using StandardPositDim = PositDim<N, Static_Val<(N>>3)>::_log2>;
 template<int N, int WES, int NB_CARRY>
 using QuireSizedAPUint = ap_uint<PositDim<N, WES>::EMax * 4 + 3 + NB_CARRY>; // + 3 : Sign, isNar, 0 exp
 
+template <int N, int WES>
+class PositValue;
+template <int N, int WES>
+class PositProd;
+
 template<int N, int WES, int NB_CARRY = 1>
 class Quire : public QuireSizedAPUint<N, WES, NB_CARRY>
 {
@@ -120,40 +125,42 @@ class Quire : public QuireSizedAPUint<N, WES, NB_CARRY>
         static constexpr int Size =  ProductRangeSize + 2 + NB_CARRY; //isNaR bit + sign bit
         Quire(ap_uint<Size> val):QuireSizedAPUint<N, WES, NB_CARRY>(val){}
 
-        ap_uint<ProductRangeSize> getQuireValue()
+        ap_uint<ProductRangeSize> getQuireValue() const
 		{
 			#pragma HLS INLINE
             return QuireSizedAPUint<N, WES, NB_CARRY>::range(ProductRangeSize - 1, 0);
 		}
 
-        ap_uint<NB_CARRY> getCarry()
+        ap_uint<NB_CARRY> getCarry() const
 		{
 			#pragma HLS INLINE
             return QuireSizedAPUint<N, WES, NB_CARRY>::range(ProductRangeSize + NB_CARRY - 1,
                     ProductRangeSize);
 		}
 
-        ap_uint<Size-1> getQuireWithoutNaR()
+        ap_uint<Size-1> getQuireWithoutNaR() const
 		{
 			#pragma HLS INLINE
             return QuireSizedAPUint<N, WES, NB_CARRY>::range(Size-2, 0);
 		}
 
-		ap_uint<1> getSignBit()
+        ap_uint<1> getSignBit() const
 		{
 			#pragma HLS INLINE
             return (*this)[Size - 2];
 		}
 
-		ap_uint<1> getIsNaR()
+        ap_uint<1> getIsNaR() const
 		{
 			#pragma HLS INLINE
             return (*this)[Size - 1];
 		}
 
-		void printContent(){
+        void printContent() const{
             printApUint(*this);
 		}
+
+        operator PositValue<N, WES>() const;
 
         /*
          * Quire organisation
@@ -165,6 +172,8 @@ class Quire : public QuireSizedAPUint<N, WES, NB_CARRY>
          * Underflow : weights < minPos
          */
 
+
+
         // Width of underflow region
         static constexpr int PositRangeOffset = PositDim<N, WES>::EMax;
         // Width of valid posit region
@@ -173,6 +182,17 @@ class Quire : public QuireSizedAPUint<N, WES, NB_CARRY>
         static constexpr int PositOverflowOffset = PositRangeOffset + PositExpRange;
 
 };
+
+template <int N, int WES, int NB_CARRY>
+Quire<N, WES, NB_CARRY> operator+(
+        Quire<N, WES, NB_CARRY> const & lhs,
+        PositProd<N, WES> const & rhs
+    );
+template <int N, int WES, int NB_CARRY>
+Quire<N, WES, NB_CARRY> operator-(
+        Quire<N, WES, NB_CARRY> const & lhs,
+        PositProd<N, WES> const & rhs
+    );
 
 template <int N>
 using StandardQuire = Quire<N, Static_Val<(N>>3)>::_log2, N-2>;
@@ -206,10 +226,11 @@ class SegmentedQuire : public ap_uint<Quire<N, WES, NB_CARRY>::Size+getNbStages<
 	public:
         static constexpr int Nb_stages = getNbStages<N, WES, NB_CARRY, bankSize>();
         static constexpr int Size = Quire<N, WES, NB_CARRY>::Size + Nb_stages;
+        static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2);
 
         SegmentedQuire(ap_uint<Size> val):ap_uint<Size>(val){}
 
-		ap_uint<bankSize> getBank(int index){
+        ap_uint<bankSize> getBank(int index) const{
 			#pragma HLS INLINE
 			// fprintf(stderr, "== quire bank (%d, %d) ==\n", getNbStages<N, bankSize>() + (index+1)*bankSize -1, getNbStages<N, bankSize>() + index*bankSize);
 			// fprintf(stderr, "From getNbStages<N, bankSize>()> (%d) + (index(%d)+1)*bankSize (%d) -1\n", getNbStages<N, bankSize>()  , index, bankSize);
@@ -219,38 +240,53 @@ class SegmentedQuire : public ap_uint<Quire<N, WES, NB_CARRY>::Size+getNbStages<
             return (*this).range(Nb_stages + (index+1)*bankSize -1, Nb_stages + index*bankSize);
 		}
 
-		ap_uint<1> getCarry(int index){
+        ap_uint<1> getCarry(int index) const{
 			#pragma HLS INLINE
 			return (*this)[index];
 		}
 
-		ap_uint<1> getIsNaR(){
+        ap_uint<1> getIsNaR() const{
 			#pragma HLS INLINE
             return (*this)[Size-1];
 		}
 
-        ap_uint<Quire<N, WES, NB_CARRY>::Size> getAsQuireWoCarries(){
+        ap_uint<Quire<N, WES, NB_CARRY>::Size> getAsQuireWoCarries() const {
 			#pragma HLS INLINE
             return (*this).range(Size-1, Nb_stages);
 		}
 
-        ap_uint<Nb_stages> getAllCarries()
+        ap_uint<Nb_stages> getAllCarries() const
         {
             return this->range(Nb_stages-1,0);
         }
 
-		void printContent(){
+        void printContent()  const {
             fprintf(stderr, "Quire size: %d\n", Quire<N, WES, NB_CARRY>::Size);
             fprintf(stderr, "Nb stages: %d\n", Nb_stages);
             printApUint(getAsQuireWoCarries());
             printApUint(getAllCarries());
 		}
 
-		static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2); 
+        operator PositValue<N, WES>() const;
+
 };
+
+template<int N, int WES, int NB_CARRY, int bankSize>
+SegmentedQuire<N, WES, NB_CARRY, bankSize> operator+(
+        SegmentedQuire<N, WES, NB_CARRY, bankSize> const & lhs,
+        PositProd<N, WES> const & rhs
+    );
+template<int N, int WES, int NB_CARRY, int bankSize>
+SegmentedQuire<N, WES, NB_CARRY, bankSize> operator-(
+        SegmentedQuire<N, WES, NB_CARRY, bankSize> const & lhs,
+        PositProd<N, WES> const & rhs
+    );
 
 template<int N, int banksize>
 using StandardSegmentedQuire = SegmentedQuire<N, Static_Val<(N>>3)>::_log2, N-2, banksize>;
+
+template <int N, int WES>
+class PositEncoding;
 
 template<int N, int WES>
 using PositProdSizedAPUint = ap_uint<PositDim<N, WES>::ProdSize>;
@@ -278,25 +314,25 @@ class PositProd : public PositProdSizedAPUint<N, WES>
 
         PositProd(ap_uint<Size> val):PositProdSizedAPUint<N, WES>(val){}
 
-        ap_uint<SignificandSize> getSignificand()
+        ap_uint<SignificandSize> getSignificand() const
 		{
 			#pragma HLS INLINE
             return this->range(SignificandSize - 1, 0);
 		}
 		
-        ap_int<SignificandSize + 1> getSignedSignificand()
+        ap_int<SignificandSize + 1> getSignedSignificand() const
 		{
 			#pragma HLS INLINE
             return this->range(SignificandSize, 0);
 		}
 
-		ap_uint<1> getSignBit()
+        ap_uint<1> getSignBit() const
 		{
 			#pragma HLS INLINE
             return (*this)[SignificandSize];
 		}
 
-        ap_uint<ExpSize> getExp()
+        ap_uint<ExpSize> getExp() const
 		{
 			#pragma HLS INLINE
             return this->range(
@@ -305,13 +341,16 @@ class PositProd : public PositProdSizedAPUint<N, WES>
 				);
 		}
 
-		ap_uint<1> getIsNaR()
+        ap_uint<1> getIsNaR() const
 		{
 			#pragma HLS INLINE
             return (*this)[Size - 1];
 		}
 
-		void printContent(){
+        operator PositValue<N, WES>() const;
+        operator PositEncoding<N, WES>() const;
+
+        void printContent() const {
             fprintf(stderr, "isNaR: %d\n", this->getIsNaR());
 			
 			fprintf(stderr, "biased exp: ");
@@ -324,16 +363,8 @@ class PositProd : public PositProdSizedAPUint<N, WES>
             printApUint(getSignificand());
 		}
 };
-
-template<int N, int WES>
-class PositEncoding : public ap_uint<N>
-{
-public:
-    PositEncoding(ap_uint<N> val):ap_uint<N>{val}{}
-};
-
-template <int N>
-using StandardPositEncoding = PositEncoding<N, Static_Val<(N>>3)>::_log2>;
+template<int N>
+using StandardPositProd = PositProd<N, Static_Val<(N>>3)>::_log2>;
 
 template<int N, int WES>
 using PositValSizedAPUint = ap_uint<PositDim<N, WES>::ValSize>;
@@ -379,70 +410,70 @@ class PositValue : public PositValSizedAPUint<N, WES>
 				
         PositValue(ap_uint<Size> val):PositValSizedAPUint<N, WES>(val){}
 
-		ap_uint<1> getGuardBit()
+        ap_uint<1> getGuardBit() const
 		{
 			#pragma HLS INLINE
             return (*this)[Size-1];
 		}
 
-		ap_uint<1> getStickyBit()
+        ap_uint<1> getStickyBit() const
 		{
 			#pragma HLS INLINE
             return (*this)[Size-2];
 		}
 
 
-        ap_uint<FractionSize + 1> getSignificand() //Implicit bit + fractional part
+        ap_uint<FractionSize + 1> getSignificand() const //Implicit bit + fractional part
 		{
 			#pragma HLS INLINE
             return this->range(FractionSize, 0);
 		}
 
-		ap_uint<1> getImplicitBit()
+        ap_uint<1> getImplicitBit() const
 		{
 			#pragma HLS INLINE
             return (*this)[FractionSize];
 		}
 
-        ap_uint<FractionSize> getFraction()
+        ap_uint<FractionSize> getFraction() const
 		{
 			#pragma HLS INLINE
             return this->range(FractionSize-1, 0);
 		}
 
-		ap_uint<1> getSignBit()
+        ap_uint<1> getSignBit() const
 		{
 			#pragma HLS INLINE
             return (*this)[FractionSize + 1];
 		}
 
-        ap_uint<ExpSize> getExp()
+        ap_uint<ExpSize> getExp() const
 		{
 			#pragma HLS INLINE
             return this->range(FractionSize + 1 + ExpSize, FractionSize+2);
 		}
 
-		ap_uint<1> getIsNaR()
+        ap_uint<1> getIsNaR() const
 		{
 			#pragma HLS INLINE
             return (*this)[FractionSize+2+ExpSize];
 		}
 
-        ap_int<FractionSize+2> getSignedSignificand()
+        ap_int<FractionSize+2> getSignedSignificand() const
 		{
 			#pragma HLS INLINE
 			ap_uint<1> sign = getSignBit();
             return static_cast<ap_int<FractionSize+2> >(sign.concat(getSignificand()));
 		}
 
-		ap_uint<1> isZero()
+        ap_uint<1> isZero() const
 		{
 			#pragma HLS INLINE
 			ap_uint<1> isExponentNull = not(getExp().or_reduce());
 			return isExponentNull and (not getSignBit());
 		}
 
-		void printContent(){
+        void printContent() const {
             fprintf(stderr, "guard: %d\n", this->getGuardBit());
             fprintf(stderr, "sticky: %d\n", this->getStickyBit());
 
@@ -460,6 +491,9 @@ class PositValue : public PositValSizedAPUint<N, WES>
             double exp = pow(2, getExp().to_int() - FractionSize - PositDim<N, WES>::EXP_BIAS);
 			fprintf(stderr, "Value : %1.20f\n", temp*exp);
 		}
+
+        operator PositProd<N, WES>() const;
+        operator PositEncoding<N, WES>() const;
 
 		static PositValue getMaxPos() 
 		{ //isNar Exp Sign Implicit Frac
@@ -508,5 +542,43 @@ class PositValue : public PositValSizedAPUint<N, WES>
 
 template <int N>
 using StandardPositValue = PositValue<N, Static_Val<(N>>3)>::_log2>;
+
+
+template<int N, int WES>
+class PositEncoding : public ap_uint<N>
+{
+public:
+    PositEncoding(ap_uint<N> val):ap_uint<N>{val}{}
+
+    operator PositValue<N, WES>() const;
+    operator PositProd<N, WES>() const;
+//    template<int NB_CARRY>
+//    operator Quire<N, WES, NB_CARRY>() const;
+//    template<int NB_CARRY, int banksize>
+//    operator SegmentedQuire<N, WES, NB_CARRY, banksize>() const;
+};
+
+template<int N, int WES>
+PositEncoding<N, WES> operator+(
+        PositEncoding<N, WES> const & lhs,
+        PositEncoding<N, WES> const & rhs
+   );
+
+template<int N, int WES>
+PositEncoding<N, WES> operator-(
+        PositEncoding<N, WES> const & lhs,
+        PositEncoding<N, WES> const & rhs
+    );
+
+template<int N, int WES>
+PositProd<N, WES> operator*(
+        PositEncoding<N, WES> const & lhs,
+        PositEncoding<N, WES> const & rhs
+    );
+
+template <int N>
+using StandardPositEncoding = PositEncoding<N, Static_Val<(N>>3)>::_log2>;
+
+#include "conversions.inc"
 
 #endif

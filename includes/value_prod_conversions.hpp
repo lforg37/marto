@@ -98,7 +98,7 @@ PositValue<N, WES> PositProd_to_PositValue(PositProd<N, WES> val)
 				val.getSignBit(),
 				implicitBit,
 				resultFraction
-				);
+            );
 	}
 }
 #endif

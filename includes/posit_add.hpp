@@ -143,8 +143,7 @@ PositValue<N, WES> posit_add_optimized(
 ){
 	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
-	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<EXT_SUM_SIZE>::_log2;
-	
+
 	bool in1IsGreater = in1.getExp() > in2.getExp();
 
 	ap_uint<S_WE> subExpOp1, subExpOp2;
