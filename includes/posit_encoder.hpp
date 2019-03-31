@@ -18,8 +18,8 @@ PositEncoding<N, WES> posit_encoder(PositValue<N, WES> positValue)
 	ap_uint<N-1-2-S_WES> significand = exactSignificand.range(S_WF-1, S_WF-1-(N-1-2-S_WES)+1);
 
 	ap_uint<S_WES+N-1-2-S_WES> esAndSignificand = es.concat(significand);
-	ap_uint<2> zero_one = 0b01;
-	ap_uint<2> one_zero = 0b10;
+    ap_uint<2> zero_one{1};
+    ap_uint<2> one_zero{2};
 
 	ap_int<2+S_WES+N-1-2-S_WES> reverseBitAndEsAndSignificand;
 	if((k[K_SIZE-1] == 1)^sign){

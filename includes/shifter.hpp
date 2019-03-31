@@ -59,13 +59,24 @@ inline ap_uint<(1 << N)> shifter_stage(
 	return result;
 }
 
-template<int N>
+template<int N, bool isRightShift=false>
 ap_uint<(1<<N)> shifter(
 		ap_uint<1<<N> input, 
 		ap_uint<N-1> count,
 		ap_uint<1> fill_bit = 0)
 {
 	#pragma HLS INLINE
-	return shifter_stage<N, N-1>(input, count, fill_bit);
+    ap_uint<1<<N> finInput;
+    if(isRightShift) {
+        finInput = input.reverse();
+    } else {
+        finInput = input;
+    }
+    ap_uint<(1<<N)> ret =  shifter_stage<N, N-1>(input, count, fill_bit);
+    if(isRightShift) {
+        return ret.reverse();
+    } else {
+        return ret;
+    }
 }
 #endif

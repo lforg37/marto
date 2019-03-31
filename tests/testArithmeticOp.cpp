@@ -343,6 +343,10 @@ BOOST_AUTO_TEST_CASE(TestShifter)
 			"Shifted value should be (1 << 8) - 1, (" <<
 				((1 << 8) - 1) << ") got " << test << " instead." 
 		);
+    ap_uint<1<<N> val2{1<<6};
+    test = shifter<5, true>(val2, 4, 0);
+    BOOST_REQUIRE_MESSAGE(test==(1<<2), "Shifted value should be 1 << 2, (" <<
+                          (1 << 2) << ") got " << test << " instead.");
 }
 
 BOOST_AUTO_TEST_CASE(TestStaticDivide) 
