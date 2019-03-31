@@ -1,5 +1,7 @@
 #pragma once
 #include "posit_dim.hpp"
+#include "shifter_sticky.hpp"
+#include <iostream>
 
 #define S_WF PositValue<N, WES>::FractionSize
 #define S_WE PositValue<N, WES>::ExpSize
@@ -38,23 +40,23 @@ PositEncoding<N, WES> posit_encoder(PositValue<N, WES> positValue)
 		absK = k;
 	}
 
-	ap_uint<2> guardBitAndSticky = positValue.getGuardBit().concat(positValue.getStickyBit());
-	ap_int<2+S_WES+N-1-2-S_WES+2> reverseBitAndEsAndSignificandAndGuardBitAndSticky = reverseBitAndEsAndSignificand.concat(guardBitAndSticky);
-	ap_uint<(1<<(K_SIZE-1))> zeros = 0;
-	ap_int<2+S_WES+N-1-2-S_WES+2 + (1<<(K_SIZE-1))> readyToShift = reverseBitAndEsAndSignificandAndGuardBitAndSticky.concat(zeros);
-
+    ap_int<N> reverseBitAndEsAndSignificandAndGuardBit = reverseBitAndEsAndSignificand.concat(positValue.getGuardBit());
 	// printApInt(readyToShift);
 
-	ap_uint<2+S_WES+N-1-2-S_WES+2+ (1<<(K_SIZE-1))> shifted = readyToShift >> absK;
+    ap_uint<N+1> shifted = shifter_sticky<N, K_SIZE-1, true>(
+                reverseBitAndEsAndSignificandAndGuardBit,
+                absK,
+                reverseBitAndEsAndSignificandAndGuardBit[N-1]
+        ); //TODO rajouter le fillbit
 
 	// printApUint(shifted);
 
-	ap_uint<2+S_WES+N-1-2-S_WES> unroundedResult =  shifted.range(2+S_WES+N-1-2-S_WES+2+ (1<<(K_SIZE-1))-1,2+ (1<<(K_SIZE-1)));
+    ap_uint<N-1> unroundedResult =  shifted.range(N, 2);
 
 	// printApUint(unroundedResult);
 
-	ap_uint<1> guard = shifted[2+ (1<<(K_SIZE-1))-1];
-	ap_uint<1> sticky = not (shifted.range(2+(1<<(K_SIZE-1))-1-1,0) == 0);
+    ap_uint<1> guard = shifted[1];
+    ap_uint<1> sticky = shifted[0] or positValue.getStickyBit();
 
 	// printApUint(guard);
 	// printApUint(sticky);
@@ -62,7 +64,7 @@ PositEncoding<N, WES> posit_encoder(PositValue<N, WES> positValue)
 
 	ap_uint<1> roundingBit = (guard and not(sticky) and unroundedResult[0]) or (guard and sticky);
 
-	ap_uint<2+S_WES+N-1-2-S_WES> roundedResult = unroundedResult + roundingBit;
+    ap_uint<N-1> roundedResult = unroundedResult + roundingBit;
 
 	ap_uint<N> normalOutput = sign.concat(roundedResult);
 	ap_uint<N-1> zero = 0;

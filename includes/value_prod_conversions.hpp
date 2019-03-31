@@ -1,5 +1,4 @@
-#ifndef VALUE_PROD_CONVERSIONS_HPP
-#define VALUE_PROD_CONVERSIONS_HPP
+#pragma once
 
 #include <cstdio> 
 
@@ -101,4 +100,3 @@ PositValue<N, WES> PositProd_to_PositValue(PositProd<N, WES> val)
             );
 	}
 }
-#endif

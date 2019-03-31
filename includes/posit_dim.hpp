@@ -1,5 +1,4 @@
-#ifndef POSIT_DIM_TPP
-#define POSIT_DIM_TPP
+#pragma once
 
 #include <cstdint>
 #include <cstdio>
@@ -351,7 +350,7 @@ class PositProd : public PositProdSizedAPUint<N, WES>
         operator PositEncoding<N, WES>() const;
 
         void printContent() const {
-            fprintf(stderr, "isNaR: %d\n", this->getIsNaR());
+            fprintf(stderr, "isNaR: %d\n", static_cast<int>(this->getIsNaR()));
 			
 			fprintf(stderr, "biased exp: ");
             printApUint(getExp());
@@ -474,17 +473,17 @@ class PositValue : public PositValSizedAPUint<N, WES>
 		}
 
         void printContent() const {
-            fprintf(stderr, "guard: %d\n", this->getGuardBit());
-            fprintf(stderr, "sticky: %d\n", this->getStickyBit());
+            fprintf(stderr, "guard: %d\n", static_cast<int>(this->getGuardBit()));
+            fprintf(stderr, "sticky: %d\n", static_cast<int>(this->getStickyBit()));
 
-            fprintf(stderr, "isNaR: %d\n", this->getIsNaR());
+            fprintf(stderr, "isNaR: %d\n", static_cast<int>(this->getIsNaR()));
 			
 			fprintf(stderr, "biased exp: ");
 			printApUint(this->getExp());
 
-            fprintf(stderr, "sign: %d\n", this->getSignBit());
+            fprintf(stderr, "sign: %d\n", static_cast<int>(this->getSignBit()));
 
-            fprintf(stderr, "significand: %d.", this->getImplicitBit());
+            fprintf(stderr, "significand: %d.", static_cast<int>(this->getImplicitBit()));
             printApUint(this->getFraction());
 
 			double temp = getSignedSignificand().to_int();
@@ -580,5 +579,3 @@ template <int N>
 using StandardPositEncoding = PositEncoding<N, Static_Val<(N>>3)>::_log2>;
 
 #include "conversions.inc"
-
-#endif

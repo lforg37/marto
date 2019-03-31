@@ -1,5 +1,4 @@
-#ifndef SHIFTER_HPP
-#define SHIFTER_HPP
+#pragma once
 #include <iostream>
 #include <type_traits>
 
@@ -79,4 +78,4 @@ ap_uint<(1<<N)> shifter(
         return ret;
     }
 }
-#endif
+

@@ -1,5 +1,4 @@
-#ifndef LZOC_SHIFTER_HPP
-#define LZOC_SHIFTER_HPP
+#pragma once
 #include <iostream>
 #include <type_traits>
 
@@ -229,6 +228,3 @@ ap_uint<Static_Val<N>::_rlog2 + N> generic_lzoc_shifter(
 	ap_uint<(log2N + (1<<log2N))> lzoc_shift =  lzoc_shifter<log2N>(input, leading, fill_bit);
 	return lzoc_shift;
 }	
-
-
-#endif

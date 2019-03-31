@@ -140,6 +140,10 @@ BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
 			prod.printContent();
 			fprintf(stderr, "=== casted_val ===\n");
 			casted_val.printContent();
+            printApUint(reencoding);
+            fprintf(stderr, "\n");
+            printApUint(current);
+           fprintf(stderr, "%d\n", value);
 		}
 
 		BOOST_REQUIRE_MESSAGE(reencoding == current, "Error for conversion with value " << value);		

@@ -1,5 +1,4 @@
-#ifndef QUIRE_TO_POSIT_HPP
-#define QUIRE_TO_POSIT_HPP
+#pragma once
 
 #include "lzoc_shifter.hpp"
 #include "posit_dim.hpp"
@@ -112,4 +111,4 @@ PositValue<N, WES> quire_to_posit(Quire<N, WES, NB_CARRY> quire)
 			fin_frac
 		);
 }
-#endif
+

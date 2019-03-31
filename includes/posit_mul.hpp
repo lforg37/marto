@@ -1,5 +1,4 @@
-#ifndef POSIT_MUL_HPP
-#define POSIT_MUL_HPP
+#pragma once
 
 #include "posit_dim.hpp"
 
@@ -47,4 +46,3 @@ template <int N, int WES> PositProd<N, WES> posit_mul(PositValue<N, WES> in1, Po
 		fin_significand
 	);
 }
-#endif

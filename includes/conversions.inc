@@ -172,5 +172,3 @@ SegmentedQuire<N, WES, NB_CARRY, bankSize> operator-(
 
 
 
-
-
