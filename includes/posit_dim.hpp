@@ -573,7 +573,7 @@ PositEncoding<N, WES> operator-(
         PositEncoding<N, WES> const & val
     )
 {
-	return  PositEncoding<N, WES> ( ~(static_cast< ap_int<N> >(val))+1 );
+	return  PositEncoding<N, WES> ( ~(static_cast< ap_uint<N> >(val))+1 );
 };
 
 template<int N, int WES>
