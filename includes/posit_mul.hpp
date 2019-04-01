@@ -4,7 +4,7 @@
 
 using namespace std;
 
-template <int N, int WES> PositProd<N, WES> posit_mul(PositValue<N, WES> in1, PositValue<N, WES> in2)
+template <int N, int WES> PositProd<N, WES> posit_mul(PositIntermediateFormat<N, WES> in1, PositIntermediateFormat<N, WES> in2)
 {
 	#pragma HLS INLINE
     ap_uint<1> isNar = in1.getIsNaR() | in2.getIsNaR();

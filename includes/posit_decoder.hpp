@@ -34,7 +34,7 @@ ap_uint<PositDim<N, WES>::WE> getExponent(
 }
 
 template<int N, int WES>
-PositValue<N, WES> posit_decoder(PositEncoding<N, WES> positN)
+PositIntermediateFormat<N, WES> posit_decoder(PositEncoding<N, WES> positN)
 {
 	#pragma HLS INLINE
 	//Sign bit
@@ -65,19 +65,19 @@ PositValue<N, WES> posit_decoder(PositEncoding<N, WES> positN)
 	ap_uint<logN + 1> extended_neg_count = signed_extended_neg_count;
 	ap_uint<logN + 1> comp2_range_count = RangeCount^extended_neg_count;
 
-    ap_uint<PositValue<N, WES>::ExpSize> exponent = getExponent<N, WES>(
+    ap_uint<PositIntermediateFormat<N, WES>::ExpSize> exponent = getExponent<N, WES>(
 			comp2_range_count,
 		   	usefulBits,
 		   	s
 		);
-   ap_uint<PositValue<N, WES>::ExpSize> biased_exp = exponent + ap_uint<PositValue<N, WES>::ExpSize>(PositDim<N, WES>::EXP_BIAS);
+   ap_uint<PositIntermediateFormat<N, WES>::ExpSize> biased_exp = exponent + ap_uint<PositIntermediateFormat<N, WES>::ExpSize>(PositDim<N, WES>::EXP_BIAS);
 
    ap_int<1> is_not_zero = not is_zero;
-   ap_int<PositValue<N, WES>::ExpSize> extended_is_not_zero = is_not_zero;
-   ap_uint<PositValue<N, WES>::ExpSize> unsigned_ext_is_not_zero = extended_is_not_zero;
-   ap_uint<PositValue<N, WES>::ExpSize> final_biased_exp = biased_exp & unsigned_ext_is_not_zero;
+   ap_int<PositIntermediateFormat<N, WES>::ExpSize> extended_is_not_zero = is_not_zero;
+   ap_uint<PositIntermediateFormat<N, WES>::ExpSize> unsigned_ext_is_not_zero = extended_is_not_zero;
+   ap_uint<PositIntermediateFormat<N, WES>::ExpSize> final_biased_exp = biased_exp & unsigned_ext_is_not_zero;
 
-    return PositValue<N, WES>(
+    return PositIntermediateFormat<N, WES>(
 			is_NAR, 
 			final_biased_exp,
 			s,
