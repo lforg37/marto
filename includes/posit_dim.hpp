@@ -568,6 +568,13 @@ PositEncoding<N, WES> operator-(
         PositEncoding<N, WES> const & lhs,
         PositEncoding<N, WES> const & rhs
     );
+template<int N, int WES>
+PositEncoding<N, WES> operator-(
+        PositEncoding<N, WES> const & val
+    )
+{
+	return  PositEncoding<N, WES> ( ~(static_cast< ap_int<N> >(val))+1 );
+};
 
 template<int N, int WES>
 PositProd<N, WES> operator*(
