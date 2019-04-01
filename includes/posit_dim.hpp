@@ -110,7 +110,7 @@ template<int N, int WES, int NB_CARRY>
 using QuireSizedAPUint = ap_uint<PositDim<N, WES>::EMax * 4 + 3 + NB_CARRY>; // + 3 : Sign, isNar, 0 exp
 
 template <int N, int WES>
-class PositValue;
+class PositIntermediateFormat;
 template <int N, int WES>
 class PositProd;
 
@@ -159,7 +159,7 @@ class Quire : public QuireSizedAPUint<N, WES, NB_CARRY>
             printApUint(*this);
 		}
 
-        operator PositValue<N, WES>() const;
+        operator PositIntermediateFormat<N, WES>() const;
 
         /*
          * Quire organisation
@@ -266,7 +266,7 @@ class SegmentedQuire : public ap_uint<Quire<N, WES, NB_CARRY>::Size+getNbStages<
             printApUint(getAllCarries());
 		}
 
-        operator PositValue<N, WES>() const;
+        operator PositIntermediateFormat<N, WES>() const;
 
 };
 
@@ -346,7 +346,7 @@ class PositProd : public PositProdSizedAPUint<N, WES>
             return (*this)[Size - 1];
 		}
 
-        operator PositValue<N, WES>() const;
+        operator PositIntermediateFormat<N, WES>() const;
         operator PositEncoding<N, WES>() const;
 
         void printContent() const {
@@ -369,7 +369,7 @@ template<int N, int WES>
 using PositValSizedAPUint = ap_uint<PositDim<N, WES>::ValSize>;
 
 template<int N, int WES>
-class PositValue : public PositValSizedAPUint<N, WES>
+class PositIntermediateFormat : public PositValSizedAPUint<N, WES>
 {
 	//Storage :
 	// Guard Sticky isNar Exp Sign ImplicitBit Fraction
@@ -377,7 +377,7 @@ class PositValue : public PositValSizedAPUint<N, WES>
         static constexpr int Size = PositDim<N, WES>::ValSize;
         static constexpr int ExpSize = PositDim<N, WES>::WE;
         static constexpr int FractionSize = PositDim<N, WES>::WF;
-		PositValue(
+        PositIntermediateFormat(
 				ap_uint<1> isNar,
                 ap_uint<ExpSize> exp, //Warning : biased exp
 				ap_uint<1> sign,
@@ -390,7 +390,7 @@ class PositValue : public PositValSizedAPUint<N, WES>
             PositValSizedAPUint<N, WES>::operator=(tmp.concat(full_frac));
 		}
 
-		PositValue(
+        PositIntermediateFormat(
 				ap_uint<1> guard,
 				ap_uint<1> sticky,
 				ap_uint<1> isNar,
@@ -407,7 +407,7 @@ class PositValue : public PositValSizedAPUint<N, WES>
             PositValSizedAPUint<N, WES>::operator=(guardAndSticky.concat(allWoGuardAndSticky));
 		}
 				
-        PositValue(ap_uint<Size> val):PositValSizedAPUint<N, WES>(val){}
+        PositIntermediateFormat(ap_uint<Size> val):PositValSizedAPUint<N, WES>(val){}
 
         ap_uint<1> getGuardBit() const
 		{
@@ -494,9 +494,9 @@ class PositValue : public PositValSizedAPUint<N, WES>
         operator PositProd<N, WES>() const;
         operator PositEncoding<N, WES>() const;
 
-		static PositValue getMaxPos() 
+        static PositIntermediateFormat getMaxPos()
 		{ //isNar Exp Sign Implicit Frac
-			return PositValue(
+            return PositIntermediateFormat(
 					0, //isNar
                     2*PositDim<N, WES>::EXP_BIAS - 1, //Biased Exp
 					0, //sign
@@ -505,9 +505,9 @@ class PositValue : public PositValSizedAPUint<N, WES>
 				);
 		}	
 
-		static PositValue getMinPos()
+        static PositIntermediateFormat getMinPos()
 		{
-			return PositValue(
+            return PositIntermediateFormat(
 					0, //isNar
 					1, // Biased exp
 					0, // sign
@@ -516,9 +516,9 @@ class PositValue : public PositValSizedAPUint<N, WES>
 				);
 		}
 
-		static PositValue getMaxNeg()
+        static PositIntermediateFormat getMaxNeg()
 		{
-			return PositValue(
+            return PositIntermediateFormat(
 					0,
                     2*PositDim<N, WES>::EXP_BIAS - 2, // Biased Exp
 					1, //sign
@@ -527,9 +527,9 @@ class PositValue : public PositValSizedAPUint<N, WES>
 				);
 		}
 
-		static PositValue getMinNeg()
+        static PositIntermediateFormat getMinNeg()
 		{
-			return PositValue(
+            return PositIntermediateFormat(
 				0, //isNar
 				0, // Biased Exp
 				1, // sign
@@ -540,7 +540,7 @@ class PositValue : public PositValSizedAPUint<N, WES>
 };
 
 template <int N>
-using StandardPositValue = PositValue<N, Static_Val<(N>>3)>::_log2>;
+using StandardPIF = PositIntermediateFormat<N, Static_Val<(N>>3)>::_log2>;
 
 
 template<int N, int WES>
@@ -549,7 +549,7 @@ class PositEncoding : public ap_uint<N>
 public:
     PositEncoding(ap_uint<N> val):ap_uint<N>{val}{}
 
-    operator PositValue<N, WES>() const;
+    operator PositIntermediateFormat<N, WES>() const;
     operator PositProd<N, WES>() const;
 //    template<int NB_CARRY>
 //    operator Quire<N, WES, NB_CARRY>() const;

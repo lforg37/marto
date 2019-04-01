@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 {
 	//Positive underflow
     StandardQuire<16> quire{0};
-    auto minpos = StandardPositValue<16>::getMinPos();
+    auto minpos = StandardPIF<16>::getMinPos();
 	auto prod = posit_mul(minpos, minpos);
 	auto quire_conv = add_sub_quire(quire, prod, 0);
 	auto decoded = quire_to_posit(quire_conv);
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 		);
 
 	//Positive sticky
-	prod = PositValue_to_PositProd(minpos);
+	prod = PositIF_to_PositProd(minpos);
 	quire_conv = add_sub_quire(quire_conv, prod, 0);
 	decoded = quire_to_posit(quire_conv);
     BOOST_REQUIRE_MESSAGE(decoded xor minpos == (1 << 19),
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 		);
 
 	//Positive overflow
-    auto maxpos = StandardPositValue<16>::getMaxPos();
+    auto maxpos = StandardPIF<16>::getMaxPos();
 	prod = posit_mul(maxpos, maxpos);
 	quire_conv = add_sub_quire(quire, prod, 0);
 	decoded = quire_to_posit(quire_conv);
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 			);
 
 	//Negative underflow
-    auto minneg = StandardPositValue<16>::getMinPos();
+    auto minneg = StandardPIF<16>::getMinPos();
 	prod = posit_mul(minpos, minneg);
 	quire_conv = add_sub_quire(quire, prod, 0);
 	decoded = quire_to_posit(quire_conv);
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 			);
 
 	//Negative overflow
-    auto maxneg = StandardPositValue<16>::getMaxPos();
+    auto maxneg = StandardPIF<16>::getMaxPos();
 	prod = posit_mul(maxpos, maxneg);
 	quire_conv = add_sub_quire(quire, prod, 0);
 	decoded = quire_to_posit(quire_conv);
@@ -99,10 +99,10 @@ BOOST_AUTO_TEST_CASE(LZOCShiftTest)
 BOOST_AUTO_TEST_CASE(PositValueToProd)
 {
 	uint16_t value = 0;
-    StandardPositValue<16> one(0, StandardPositDim<16>::EXP_BIAS, 0, 1, 0);
+    StandardPIF<16> one(0, StandardPositDim<16>::EXP_BIAS, 0, 1, 0);
 	do {
         PositEncoding<16, 1> posit_encoding{value};
-        auto posit_val = static_cast<PositValue<16, 1> >(posit_encoding);
+        auto posit_val = static_cast<PositIntermediateFormat<16, 1> >(posit_encoding);
 
         auto posit_prod_direct = static_cast<PositProd<16, 1> >(posit_val);
         auto posit_prod_by_one = posit_mul(posit_val, one);
@@ -128,9 +128,9 @@ BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
 	uint16_t value = 0;
 	do {
         StandardPositEncoding<16> current{value};
-        auto decoded = static_cast<StandardPositValue<16> >(current);
+        auto decoded = static_cast<StandardPIF<16> >(current);
         auto prod = static_cast<StandardPositProd<16> >(current);
-		auto casted_val = PositProd_to_PositValue(prod);
+		auto casted_val = PositProd_to_PositIF(prod);
         auto reencoding = static_cast<StandardPositEncoding<16> >(casted_val);
 
 		if(reencoding != current){
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(PositValueToProdToValue)
 
 BOOST_AUTO_TEST_CASE(TestOppositeProd)
 {
-    StandardPositValue<16> minus_one(
+    StandardPIF<16> minus_one(
 			0,
 			28,
 			1,
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(TestOppositeProd)
 		auto value = posit_decoder(enc);
 		auto neg_prod = posit_mul(value, minus_one);
 		auto op_value = posit_decoder(opposite);
-		auto convert_op = PositValue_to_PositProd(op_value);
+		auto convert_op = PositIF_to_PositProd(op_value);
 		if (convert_op != neg_prod) {
 			cerr << "=== convert_op ===" << endl;
 			convert_op.printContent();
@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 
 	for(uint32_t value = 0; value < (1<<16); value++) {
         StandardPositEncoding<16> valueEncoding{value};
-        StandardPositValue<16> decoded{valueEncoding};
+        StandardPIF<16> decoded{valueEncoding};
         StandardPositProd<16> prod{decoded};
         StandardQuire<16> quireConvert = add_sub_quire(quire, prod, 0);
 		auto back_convert = quire_to_posit(quireConvert);
@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(TestSegmentedQuireConvertBack)
 
 	for(uint32_t value = 0; value < (1<<16); value++) {
         StandardPositEncoding<16> valueEncoding{value};
-        StandardPositValue<16> decoded{valueEncoding};
+        StandardPIF<16> decoded{valueEncoding};
         StandardPositProd<16> prod{valueEncoding};
         StandardSegmentedQuire<16, 64> segmentedQuireConvert = segmented_add_sub_quire(quire, prod, 0);
         StandardQuire<16>  quireConvert = propagateCarries(segmentedQuireConvert);
@@ -263,11 +263,11 @@ BOOST_AUTO_TEST_CASE(TestMinMax)
 		(1<<15) + 1 //MaxNeg
 	};
 
-    array<StandardPositValue<16>, 4> values = {
-        StandardPositValue<16>::getMinPos(),
-        StandardPositValue<16>::getMaxPos(),
-        StandardPositValue<16>::getMinNeg(),
-        StandardPositValue<16>::getMaxNeg()
+    array<StandardPIF<16>, 4> values = {
+        StandardPIF<16>::getMinPos(),
+        StandardPIF<16>::getMaxPos(),
+        StandardPIF<16>::getMinNeg(),
+        StandardPIF<16>::getMaxNeg()
 	};
 
 	array<string, 4> names = {
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(TestMinMax)
 
 	for (size_t i = 0 ; i < 4 ; ++i) {
 		uint16_t enc = encodings[i];
-        StandardPositValue<16> & valStat = values[i];
+        StandardPIF<16> & valStat = values[i];
 		string& name = names[i];
         auto decoded = posit_decoder(StandardPositEncoding<16>{enc});
 		BOOST_REQUIRE_MESSAGE(decoded == valStat, 

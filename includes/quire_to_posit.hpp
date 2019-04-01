@@ -4,7 +4,7 @@
 #include "posit_dim.hpp"
 
 template<int N, int WES, int NB_CARRY>
-PositValue<N, WES> quire_to_posit(Quire<N, WES, NB_CARRY> quire)
+PositIntermediateFormat<N, WES> quire_to_posit(Quire<N, WES, NB_CARRY> quire)
 {
 	#pragma HLS INLINE
     constexpr int logSize = Static_Val<quire.PositExpRange>::_log2;
@@ -68,10 +68,10 @@ PositValue<N, WES> quire_to_posit(Quire<N, WES, NB_CARRY> quire)
 	ap_uint<logSize> exp = lzocshifted.range(logSize + allsize - 1, allsize);
 
     ap_uint<logSize> biased_exp = ap_uint<logSize>{quire.PositExpRange} - exp ;
-    ap_uint<PositValue<N, WES>::FractionSize> frac = lzocshifted.range(allsize - 2, allsize - (PositValue<N, WES>::FractionSize + 1));
-    ap_uint<1> guard = lzocshifted[allsize - PositValue<N, WES>::FractionSize - 2];
-    ap_uint<allsize -( PositValue<N, WES>::FractionSize + 2)> stickycomp = lzocshifted.range(
-            allsize - PositValue<N, WES>::FractionSize - 3,
+    ap_uint<PositIntermediateFormat<N, WES>::FractionSize> frac = lzocshifted.range(allsize - 2, allsize - (PositIntermediateFormat<N, WES>::FractionSize + 1));
+    ap_uint<1> guard = lzocshifted[allsize - PositIntermediateFormat<N, WES>::FractionSize - 2];
+    ap_uint<allsize -( PositIntermediateFormat<N, WES>::FractionSize + 2)> stickycomp = lzocshifted.range(
+            allsize - PositIntermediateFormat<N, WES>::FractionSize - 3,
 			0
 		);
     ap_uint<1> sticky = static_cast<ap_uint<1> >(stickycomp.or_reduce()) or lower_sticky;
@@ -94,14 +94,14 @@ PositValue<N, WES> quire_to_posit(Quire<N, WES, NB_CARRY> quire)
 	}
 
 	ap_uint<1> implicit_bit = (not sign) and (not isZero); 
-    ap_uint<PositValue<N, WES>::FractionSize> fin_frac;
+    ap_uint<PositIntermediateFormat<N, WES>::FractionSize> fin_frac;
 	if (isSpecial) {
 		fin_frac = 0;
 	} else {
 		fin_frac = frac;
 	}
 	
-    return PositValue<N, WES>(
+    return PositIntermediateFormat<N, WES>(
 			fin_guard,
 			fin_sticky,
 			quire.getIsNaR(), 

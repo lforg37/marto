@@ -7,8 +7,8 @@
 #include "utils.hpp"
 
 
-#define S_WF PositValue<N, WES>::FractionSize
-#define S_WE PositValue<N, WES>::ExpSize
+#define S_WF PositIntermediateFormat<N, WES>::FractionSize
+#define S_WE PositIntermediateFormat<N, WES>::ExpSize
 #define S_WES WES
 #define K_SIZE (S_WE-S_WES)
 
@@ -19,9 +19,9 @@
 */
 
 template<int N, int WES>
-PositValue<N, WES> posit_add(
-		PositValue<N, WES> in1, 
-		PositValue<N, WES> in2
+PositIntermediateFormat<N, WES> posit_add(
+        PositIntermediateFormat<N, WES> in1,
+        PositIntermediateFormat<N, WES> in2
 ){
 	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
@@ -164,17 +164,15 @@ PositValue<N, WES> posit_add(
 
 	ap_uint<S_WE> resultExp = (isZero) ? 0 : computedExp.range(S_WE-1,0);
 
-	PositValue<N, WES> result = PositValue<N, WES>(
+    PositIntermediateFormat<N, WES> result {
 				guardBit,
 				stickyBit,
 				resultIsNaR,
 				resultExp,
 				resultS,
 				resultSignificand[S_WF+1 -1],
-				resultSignificand.range(S_WF+1 -1 -1, 0));
+                resultSignificand.range(S_WF+1 -1 -1, 0)};
 
 
 	return result;
-
-
 }

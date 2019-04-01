@@ -3,13 +3,13 @@
 #include "shifter_sticky.hpp"
 #include <iostream>
 
-#define S_WF PositValue<N, WES>::FractionSize
-#define S_WE PositValue<N, WES>::ExpSize
+#define S_WF PositIntermediateFormat<N, WES>::FractionSize
+#define S_WE PositIntermediateFormat<N, WES>::ExpSize
 #define S_WES WES
 #define K_SIZE (S_WE-S_WES)
 
 template<int N, int WES>
-PositEncoding<N, WES> posit_encoder(PositValue<N, WES> positValue)
+PositEncoding<N, WES> posit_encoder(PositIntermediateFormat<N, WES> positValue)
 {
     ap_uint<S_WE> expWoBias = positValue.getExp() - PositDim<N, WES>::EXP_BIAS;
 

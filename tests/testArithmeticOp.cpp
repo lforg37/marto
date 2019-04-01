@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 	#pragma omp parallel for 
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
         auto value2Encoding = StandardPositEncoding<16> (value2);
-        auto decoded2 = StandardPositValue<16>{value2Encoding};
+        auto decoded2 = StandardPIF<16>{value2Encoding};
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
             auto value1Encoding = StandardPositEncoding<16> (value1);
@@ -110,13 +110,13 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
         auto value2Encoding = StandardPositEncoding<16> (value2);
 		auto decoded2 = posit_decoder(value2Encoding);
-		auto prod2 = PositValue_to_PositProd(decoded2);
+        auto prod2 = PositIF_to_PositProd(decoded2);
         auto base_quire = add_sub_quire(StandardQuire<16>{0}, prod2, 0);
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
             auto value1Encoding = StandardPositEncoding<16> (value1);
 			auto decoded1 = posit_decoder(value1Encoding);
-			auto prod1 = PositValue_to_PositProd(decoded1);
+            auto prod1 = PositIF_to_PositProd(decoded1);
 			auto sub = add_sub_quire(base_quire, prod1, 1);
 			auto subval = quire_to_posit(sub);
 			auto encoded = posit_encoder(subval);
@@ -285,14 +285,14 @@ BOOST_AUTO_TEST_CASE(TestAllSegmentedSubQuirePosit16, *utf::disabled() * utf::la
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
         auto value2Encoding = StandardPositEncoding<16> (value2);
 		auto decoded2 = posit_decoder(value2Encoding);
-		auto prod2 = PositValue_to_PositProd(decoded2);
+        auto prod2 = PositIF_to_PositProd(decoded2);
         auto base_quire = segmented_add_sub_quire(StandardSegmentedQuire<16, 16>{0}, prod2, 0);
         auto quire = add_sub_quire(StandardQuire<16>{0}, prod2, 0);
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
             auto value1Encoding = StandardPositEncoding<16> (value1);
 			auto decoded1 = posit_decoder(value1Encoding);
-			auto prod1 = PositValue_to_PositProd(decoded1);
+            auto prod1 = PositIF_to_PositProd(decoded1);
 			auto sub = segmented_add_sub_quire(base_quire, prod1, 1);
 			auto sub_quire = add_sub_quire(quire, prod1, 1);
 			auto propagation = propagateCarries(sub);

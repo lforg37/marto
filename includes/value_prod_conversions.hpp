@@ -5,13 +5,13 @@
 #include "posit_dim.hpp"
 
 template<int N, int WES>
-PositProd<N, WES> PositValue_to_PositProd(PositValue<N, WES> val)
+PositProd<N, WES> PositIF_to_PositProd(PositIntermediateFormat<N, WES> val)
 {
 	#pragma HLS INLINE
-    ap_uint<PositValue<N, WES>::FractionSize + 1> signed_val_frac = val.getSignificand();
+    ap_uint<PositIntermediateFormat<N, WES>::FractionSize + 1> signed_val_frac = val.getSignificand();
 
     ap_uint<PositProd<N, WES>::SignificandSize> significand = signed_val_frac.concat(
-            ap_uint<PositValue<N, WES>::FractionSize+1>(0)
+            ap_uint<PositIntermediateFormat<N, WES>::FractionSize+1>(0)
 		);
 
 
@@ -29,16 +29,16 @@ PositProd<N, WES> PositValue_to_PositProd(PositValue<N, WES> val)
 }
 
 template<int N, int WES>
-PositValue<N, WES> PositProd_to_PositValue(PositProd<N, WES> val)
+PositIntermediateFormat<N, WES> PositProd_to_PositIF(PositProd<N, WES> val)
 {
 	#pragma HLS INLINE
 	ap_uint<1> isMinPos, isMaxPos;
 	ap_uint<1> isNaR = val.getIsNaR();
     ap_uint<PositProd<N, WES>::SignificandSize> fraction = val.getSignificand();
     ap_uint<1> implicitBit = fraction[PositProd<N, WES>::SignificandSize-1];
-    ap_uint<PositValue<N, WES>::FractionSize> resultFraction = fraction.range(PositProd<N, WES>::SignificandSize-1-1, PositProd<N, WES>::SignificandSize-1-1 -(PositValue<N, WES>::FractionSize)+1);
-    ap_uint<1> resultGuardBit = fraction[PositProd<N, WES>::SignificandSize-1-1 -(PositValue<N, WES>::FractionSize)+1-1];
-    ap_uint<1> resultStickyBit = not(fraction.range(PositProd<N, WES>::SignificandSize-1-1 -(PositValue<N, WES>::FractionSize)+1-1-1,0) == 0);
+    ap_uint<PositIntermediateFormat<N, WES>::FractionSize> resultFraction = fraction.range(PositProd<N, WES>::SignificandSize-1-1, PositProd<N, WES>::SignificandSize-1-1 -(PositIntermediateFormat<N, WES>::FractionSize)+1);
+    ap_uint<1> resultGuardBit = fraction[PositProd<N, WES>::SignificandSize-1-1 -(PositIntermediateFormat<N, WES>::FractionSize)+1-1];
+    ap_uint<1> resultStickyBit = not(fraction.range(PositProd<N, WES>::SignificandSize-1-1 -(PositIntermediateFormat<N, WES>::FractionSize)+1-1-1,0) == 0);
 
 	// ap_uint<1> isZero = not(((ap_uint<4>) val.getSignificand().range(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
 	ap_uint<1> isZero = not(val.getSignBit()) and not(implicitBit) and val.getExp()==0;
@@ -77,23 +77,23 @@ PositValue<N, WES> PositProd_to_PositValue(PositProd<N, WES> val)
 
 
 	if(isMinPos and val.getSignBit() ){
-        return PositValue<N, WES>::getMinNeg();
+        return PositIntermediateFormat<N, WES>::getMinNeg();
 	}
 	else if(isMinPos and not(val.getSignBit())){
-        return PositValue<N, WES>::getMinPos();
+        return PositIntermediateFormat<N, WES>::getMinPos();
 	}
 	else if(isMaxPos and val.getSignBit()){
-        return PositValue<N, WES>::getMaxNeg();
+        return PositIntermediateFormat<N, WES>::getMaxNeg();
 	}
 	else if(isMaxPos and not(val.getSignBit())){
-        return PositValue<N, WES>::getMaxPos();
+        return PositIntermediateFormat<N, WES>::getMaxPos();
 	}
 	else {
-        return PositValue<N, WES>(
+        return PositIntermediateFormat<N, WES>(
 				resultGuardBit,
 				resultStickyBit,
 				isNaR,
-                exp.range(PositValue<N, WES>::ExpSize-1,0), //Warning : biased exp
+                exp.range(PositIntermediateFormat<N, WES>::ExpSize-1,0), //Warning : biased exp
 				val.getSignBit(),
 				implicitBit,
 				resultFraction
