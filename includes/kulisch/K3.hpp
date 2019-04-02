@@ -1,7 +1,7 @@
 
 #include "kulisch_dim.hpp"
 using namespace std;
-#include "shifter.hpp"
+#include "bitvector.hpp"
 
 // template<int N, int bankSize>
 // static constexpr int ext_shift_size(){

@@ -9,17 +9,8 @@
 #include <boost/test/unit_test.hpp>
 #include "softposit.h"
 
-#include "add_sub_quire.hpp"
-#include "lzoc_shifter.hpp"
-#include "posit_add.hpp"
-#include "posit_decoder.hpp"
-#include "posit_dim.hpp"
-#include "posit_encoder.hpp"
-#include "posit_mul.hpp"
-#include "quire_to_posit.hpp"
-#include "shifter.hpp"
-#include "static_math.hpp"
-#include "value_prod_conversions.hpp"
+#include "posit.hpp"
+#include "kulisch.hpp"
 
 #include <omp.h>
 

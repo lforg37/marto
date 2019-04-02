@@ -1,7 +1,8 @@
 #pragma once
-#include "posit_dim.hpp"
-#include "shifter_sticky.hpp"
 #include <iostream>
+
+#include "posit_dim.hpp"
+#include "bitvector.hpp"
 
 #define S_WF PositIntermediateFormat<N, WES>::FractionSize
 #define S_WE PositIntermediateFormat<N, WES>::ExpSize

@@ -2,9 +2,8 @@
 #include <cstdio>
 
 #include "ap_int.h"
-#include "shifter.hpp"
 #include "posit_dim.hpp"
-
+#include "bitvector.hpp"
 
 template<int N, int WES, int NB_CARRY>
 Quire<N, WES, NB_CARRY> add_sub_quire(

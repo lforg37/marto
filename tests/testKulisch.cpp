@@ -4,12 +4,7 @@
 #include <boost/test/unit_test.hpp>
 
 
-#include "../includes/K1.hpp"
-#include "../includes/K3.hpp"
-#include "../includes/fp_exact_prod.hpp"
-#include "../includes/acc_rounding.hpp"
-#include "../includes/kulisch_dim.hpp"
-#include "../includes/utils.hpp"
+#include "marto.hpp"
 #include <stdlib.h>
 #include <mpfr.h>
 

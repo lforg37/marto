@@ -4,8 +4,91 @@ project(PositQuire CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(libpositquire INTERFACE) 
-target_include_directories(libpositquire INTERFACE ${AP_INT_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+set(LIBNAME marto)
+set(GENERATED_HEADER_LIBNAME generated_header)
+set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+set(GENERATED_INCLUDE_ROOT ${CMAKE_CURRENT_BINARY_DIR}/includes)
+set(GENERATED_HEADER)
+set(GENERATED_LIST ${CMAKE_CURRENT_BINARY_DIR}/list.txt)
+
+if(NOT DEFINED AP_INT_INCLUDE_DIR)
+	MESSAGE(FATAL_ERROR "Please provide the path to ap_int include directory in AP_INT_INCLUDE_DIR")
+endif()
+
+set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
+
+macro(generate_header dirname)
+	message(STATUS "Call generate_header for dirname "  ${dirname})
+	file(WRITE ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp "#pragma once\n\n")
+	file(STRINGS ${INCLUDE_ROOT}/${dirname}/list.txt cur_dir_files)
+	foreach(SUBFILE in LISTS ${cur_dir_files})
+		get_filename_component(FILENAME ${SUBFILE} NAME)
+		file(APPEND ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp "#include \"" ${dirname} "/" ${FILENAME} "\"\n")
+	endforeach()
+endmacro(generate_header)
+
+macro(add_subdir dirname)
+	message(STATUS "Call add_subdir for dirname " ${dirname})
+	file(APPEND ${GENERATED_LIST} "${dirname}.hpp\n")
+	set(dependency ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp)
+	if(
+		NOT EXISTS ${dependency} 
+		OR 
+			${INCLUDE_ROOT}/${dirname}/list.txt 
+			IS_NEWER_THAN 
+			${dependency}
+	)
+		execute_process(COMMAND
+			${CMAKE_COMMAND} 
+			-DPREFIX=${dirname}/ 
+			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${dirname}.hpp 
+			-DMERGE_LIST=${INCLUDE_ROOT}/${dirname}/list.txt
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/merge_headers.cmake
+		)
+	endif()
+	#List the includes in per-directory basis
+	add_custom_command(
+		OUTPUT ${dependency}
+		COMMAND ${CMAKE_COMMAND} 
+			-DPREFIX=${dirname}/ 
+			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${dirname}.hpp 
+			-DMERGE_LIST=${INCLUDE_ROOT}/${dirname}/list.txt
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/merge_headers.cmake
+		MAIN_DEPENDENCY ${INCLUDE_ROOT}/${dirname}/list.txt
+	)
+	set(GENERATED_HEADER ${GENERATED_HEADER} ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp)
+	target_sources(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp)
+endmacro(add_subdir)
+
+add_library(VIVADO_AP_INT INTERFACE IMPORTED)
+target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
+
+add_library(${GENERATED_HEADER_LIBNAME} STATIC)
+add_library(${LIBNAME} INTERFACE) 
+set_target_properties(${GENERATED_HEADER_LIBNAME}
+    PROPERTIES LINKER_LANGUAGE CXX
+   )
+target_link_libraries(${LIBNAME} INTERFACE VIVADO_AP_INT ${GENERATED_HEADER_LIBNAME})
+
+file(REMOVE ${GENERATED_LIST})
+file(REMOVE ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp)
+
+add_subdir(bitvector) 
+add_subdir(kulisch)
+add_subdir(posit)  
+add_subdir(tools)
+
+execute_process(COMMAND
+			${CMAKE_COMMAND} 
+			-DPREFIX= 
+			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp 
+			-DMERGE_LIST=${GENERATED_LIST}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/merge_headers.cmake
+		)
+target_sources(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp)
+
+target_include_directories(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT})
+target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
 
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests") 
 if(BUILD_UNIT_TEST)
@@ -15,7 +98,8 @@ if(BUILD_UNIT_TEST)
 	add_executable(testConvert_exe tests/testConvert.cpp)
 	find_library(SOFTPOSIT_LIB softposit)
 	find_path(SOFTPOSIT_H softposit.h)
-	target_link_libraries(testConvert_exe libpositquire ${Boost_LIBRARIES}) 
+	target_link_libraries(testConvert_exe ${LIBNAME} ${Boost_LIBRARIES}) 
+	add_dependencies(testConvert_exe ${LIBNAME})
 	if(SOFTPOSIT_LIB AND SOFTPOSIT_H)
 		MESSAGE(STATUS "softposit found : ${SOFTPOSIT_LIB}, ${SOFTPOSIT_H}")
 		target_compile_definitions(testConvert_exe PRIVATE SOFTPOSIT)
@@ -26,7 +110,7 @@ if(BUILD_UNIT_TEST)
 		add_executable(testAritOps_exe tests/testArithmeticOp.cpp)
 		target_include_directories(testAritOps_exe PRIVATE ${SOFTPOSIT_H})
 		target_compile_options(testAritOps_exe PRIVATE -O3 -fopenmp)
-		target_link_libraries(testAritOps_exe libpositquire ${Boost_LIBRARIES} ${SOFTPOSIT_LIB}  -fopenmp) 
+		target_link_libraries(testAritOps_exe ${LIBNAME} ${Boost_LIBRARIES} ${SOFTPOSIT_LIB}  -fopenmp) 
 		add_test(testAritOps testAritOps_exe)
 	else()
 		Message(WARNING "Tests on posit value cannot be run")
@@ -38,9 +122,8 @@ if(BUILD_UNIT_TEST)
 		MESSAGE(STATUS "MPFR found : ${MPFR}")
 		add_executable(testKulisch_exe tests/testKulisch.cpp)
 		target_compile_definitions(testKulisch_exe PRIVATE MPFR)
-		target_include_directories(testKulisch_exe PRIVATE ${AP_INT_INCLUDE_DIR})
 		target_compile_options(testKulisch_exe PRIVATE -O3 -lmpfr)
-		target_link_libraries(testKulisch_exe PRIVATE ${Boost_LIBRARIES} -lmpfr)
+		target_link_libraries(testKulisch_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} -lmpfr)
 		add_test(testKulisch testKulisch_exe)
 	else()
 		Message(WARNING "Tests on Kulisch value cannot be run")

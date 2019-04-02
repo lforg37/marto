@@ -4,8 +4,7 @@
 #include <cstdio>
 
 #include "ap_int.h"
-#include "utils.hpp"
-#include "static_math.hpp"
+#include "tools.hpp"
 //N.B.: We are using int instead of size_t because of ap_uint is templatized
 //=====  with int
 // #include <boost/integer/static_log2.hpp>
@@ -25,37 +24,6 @@
 
 using namespace std;
 
-constexpr int ceilLog2(int N, uint8_t remains = 0)
-{
-	return (N <= 1) ? remains : 1 + ceilLog2(N>>1, remains | (N%2));
-}
-
-constexpr int ceil2Power(int N)
-{
-	return 1 << ceilLog2(N);
-}
-
-constexpr int log2(int N)
-{
-	 return ((N<2) ? 1 : 1+log2(N>>1));
-}
-
-constexpr int r2pow(int N)
-{
-	 return 1 << log2(N);
-}
-
-
-
-template<int N>
-class Static_Val
-{
-	public:
-		static constexpr int _rlog2 = log2(N);
-		static constexpr int _r2pow = r2pow(N);
-		static constexpr int _log2 = ceilLog2(N);
-		static constexpr int _2pow = ceil2Power(N);
-};
 
 template<int N>
 static ap_uint<N> positiveMaxPosit() {

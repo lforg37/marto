@@ -1,3 +1,5 @@
+#pragma once
+
 #include "posit_decoder.hpp"
 
 /***

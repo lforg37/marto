@@ -1,5 +1,5 @@
 #include "kulisch_dim.hpp"
-#include "lzoc_shifter.hpp"
+#include "bitvector.hpp"
 
 template<int N>
 FPProd<N> exact_prod(ap_uint<N> in1,
