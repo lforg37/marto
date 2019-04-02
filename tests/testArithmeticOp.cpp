@@ -9,8 +9,8 @@
 #include <boost/test/unit_test.hpp>
 #include "softposit.h"
 
-#include "posit.hpp"
-#include "kulisch.hpp"
+#include "marto/posit.hpp"
+#include "marto/kulisch.hpp"
 
 #include <omp.h>
 

@@ -12,7 +12,7 @@
 #include "softposit.h"
 #endif
 
-#include "posit.hpp"
+#include "marto/posit.hpp"
 
 using namespace std;
 

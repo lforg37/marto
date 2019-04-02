@@ -11,26 +11,17 @@ set(GENERATED_INCLUDE_ROOT ${CMAKE_CURRENT_BINARY_DIR}/includes)
 set(GENERATED_HEADER)
 set(GENERATED_LIST ${CMAKE_CURRENT_BINARY_DIR}/list.txt)
 
+set(SUBDIR_LIST_FILE ${CMAKE_CURRENT_SOURCE_DIR}/IncDirList.txt)
+file(STRINGS ${SUBDIR_LIST_FILE} SUBDIR_LIST)
+
 if(NOT DEFINED AP_INT_INCLUDE_DIR)
 	MESSAGE(FATAL_ERROR "Please provide the path to ap_int include directory in AP_INT_INCLUDE_DIR")
 endif()
 
 set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
-
-macro(generate_header dirname)
-	message(STATUS "Call generate_header for dirname "  ${dirname})
-	file(WRITE ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp "#pragma once\n\n")
-	file(STRINGS ${INCLUDE_ROOT}/${dirname}/list.txt cur_dir_files)
-	foreach(SUBFILE in LISTS ${cur_dir_files})
-		get_filename_component(FILENAME ${SUBFILE} NAME)
-		file(APPEND ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp "#include \"" ${dirname} "/" ${FILENAME} "\"\n")
-	endforeach()
-endmacro(generate_header)
-
 macro(add_subdir dirname)
 	message(STATUS "Call add_subdir for dirname " ${dirname})
-	file(APPEND ${GENERATED_LIST} "${dirname}.hpp\n")
-	set(dependency ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp)
+	set(dependency ${GENERATED_INCLUDE_ROOT}/${LIBNAME}/${dirname}.hpp)
 	if(
 		NOT EXISTS ${dependency} 
 		OR 
@@ -40,8 +31,8 @@ macro(add_subdir dirname)
 	)
 		execute_process(COMMAND
 			${CMAKE_COMMAND} 
-			-DPREFIX=${dirname}/ 
-			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${dirname}.hpp 
+			-DPREFIX=${dirname}/
+			-DOUTPUT=${dependency}
 			-DMERGE_LIST=${INCLUDE_ROOT}/${dirname}/list.txt
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/merge_headers.cmake
 		)
@@ -50,14 +41,14 @@ macro(add_subdir dirname)
 	add_custom_command(
 		OUTPUT ${dependency}
 		COMMAND ${CMAKE_COMMAND} 
-			-DPREFIX=${dirname}/ 
-			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${dirname}.hpp 
+			-DPREFIX=${dirname}/
+			-DOUTPUT=${dependency}
 			-DMERGE_LIST=${INCLUDE_ROOT}/${dirname}/list.txt
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/merge_headers.cmake
 		MAIN_DEPENDENCY ${INCLUDE_ROOT}/${dirname}/list.txt
 	)
-	set(GENERATED_HEADER ${GENERATED_HEADER} ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp)
-	target_sources(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT}/${dirname}.hpp)
+	set(GENERATED_HEADER ${GENERATED_HEADER} ${dependency})
+	target_sources(${GENERATED_HEADER_LIBNAME} PUBLIC ${dependency})
 endmacro(add_subdir)
 
 add_library(VIVADO_AP_INT INTERFACE IMPORTED)
@@ -70,21 +61,30 @@ set_target_properties(${GENERATED_HEADER_LIBNAME}
    )
 target_link_libraries(${LIBNAME} INTERFACE VIVADO_AP_INT ${GENERATED_HEADER_LIBNAME})
 
-file(REMOVE ${GENERATED_LIST})
 file(REMOVE ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp)
 
-add_subdir(bitvector) 
-add_subdir(kulisch)
-add_subdir(posit)  
-add_subdir(tools)
+foreach(header_dirname ${SUBDIR_LIST})
+	get_filename_component(dirname ${header_dirname} NAME_WE)
+	add_subdir(${dirname})
+endforeach()
 
 execute_process(COMMAND
 			${CMAKE_COMMAND} 
-			-DPREFIX= 
+			-DPREFIX=${LIBNAME}/ 
 			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp 
-			-DMERGE_LIST=${GENERATED_LIST}
+			-DMERGE_LIST=${SUBDIR_LIST_FILE}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/merge_headers.cmake
 		)
+add_custom_command(
+		OUTPUT ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp 
+		COMMAND ${CMAKE_COMMAND} 
+			-DPREFIX=${LIBNAME}/ 
+			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp 
+			-DMERGE_LIST=${SUBDIR_LIST_FILE}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/merge_headers.cmake
+		MAIN_DEPENDENCY ${INCLUDE_ROOT}/${dirname}/list.txt
+	)
+set(GENERATED_HEADER ${GENERATED_HEADER} ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp) 
 target_sources(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp)
 
 target_include_directories(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT})
@@ -130,4 +130,3 @@ if(BUILD_UNIT_TEST)
 	endif()
 
 endif()
-enable_testing()

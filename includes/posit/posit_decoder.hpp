@@ -1,6 +1,6 @@
 #pragma once
 #include "posit_dim.hpp"
-#include "bitvector.hpp"
+#include "marto/bitvector.hpp"
 
 
 template<int N, int WES>
