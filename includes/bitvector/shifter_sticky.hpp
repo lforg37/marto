@@ -6,8 +6,7 @@
 #include "ap_int.h"
 
 #include "shifter.hpp"
-#include "posit_dim.hpp"
-#include "utils.hpp"
+//#include "utils.hpp"
 
 template<int IS, int S>
 //IS : Input Size (including sticky bit),

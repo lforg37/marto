@@ -1,6 +1,6 @@
 #pragma once
 #include "posit_dim.hpp"
-#include "lzoc_shifter.hpp"
+#include "marto/bitvector.hpp"
 
 
 template<int N, int WES>

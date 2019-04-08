@@ -3,6 +3,7 @@
 #include <type_traits>
 
 #include "ap_int.h"
+#include "tools/static_math.hpp"
 
 template<int S>
 struct LZOCStageInfo

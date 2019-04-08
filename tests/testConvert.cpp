@@ -12,14 +12,7 @@
 #include "softposit.h"
 #endif
 
-#include "add_sub_quire.hpp"
-#include "lzoc_shifter.hpp"
-#include "posit_decoder.hpp"
-#include "posit_dim.hpp"
-#include "posit_encoder.hpp"
-#include "posit_mul.hpp"
-#include "quire_to_posit.hpp"
-#include "value_prod_conversions.hpp"
+#include "marto/posit.hpp"
 
 using namespace std;
 
