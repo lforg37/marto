@@ -553,4 +553,4 @@ PositProd<N, WES> operator*(
 template <int N>
 using StandardPositEncoding = PositEncoding<N, Static_Val<(N>>3)>::_log2>;
 
-#include "conversions.inc"
+#include "conversions.ipp"

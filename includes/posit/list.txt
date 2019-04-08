@@ -3,7 +3,6 @@ posit_add.hpp
 posit_dim.hpp
 posit_mul.hpp
 value_prod_conversions.hpp
-conversions.inc
 posit_decoder.hpp
 posit_encoder.hpp
 quire_to_posit.hpp

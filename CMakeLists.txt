@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(PositQuire CXX)
+project(Marto CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -88,7 +88,13 @@ set(GENERATED_HEADER ${GENERATED_HEADER} ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hp
 target_sources(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp)
 
 target_include_directories(${GENERATED_HEADER_LIBNAME} PUBLIC ${GENERATED_INCLUDE_ROOT})
-target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
+target_include_directories(${LIBNAME} INTERFACE 
+	$<BUILD_INTERFACE:${INCLUDE_ROOT}> 
+	$<INSTALL_INTERFACE:include/marto>
+)
+
+install(DIRECTORY ${INCLUDE_ROOT}/ DESTINATION include/marto FILES_MATCHING PATTERN "*.hpp" PATTERN "*.ipp") 
+install(DIRECTORY ${GENERATED_INCLUDE_ROOT}/ DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.ipp") 
 
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests") 
 if(BUILD_UNIT_TEST)
@@ -128,5 +134,4 @@ if(BUILD_UNIT_TEST)
 	else()
 		Message(WARNING "Tests on Kulisch value cannot be run")
 	endif()
-
 endif()
