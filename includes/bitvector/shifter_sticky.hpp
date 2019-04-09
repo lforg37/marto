@@ -27,7 +27,7 @@ ap_uint<IS> shifter_sticky_stage(
         ap_uint<S-1> countnext = count.range(S-2, 0);
 
         ap_uint<1> sticky_in = input[0];
-        ap_uint<IS - (1 << (S-1))> low = input.range(IS - 1 - (1 << (S-1)), 1);
+        ap_uint<IS - 1 - (1 << (S-1))> low = input.range(IS - 1 - (1 << (S-1)), 1);
         ap_uint<(1 << (S-1))> high = input.range(IS - 1 , IS - (1 << (S-1)));
         ap_uint<IS> next_stage_input;
         if (stageNeedsShift) {
