@@ -1,4 +1,5 @@
 bitvector.hpp
+ieeefloats.hpp
 kulisch.hpp
 posit.hpp
 tools.hpp
