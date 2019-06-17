@@ -71,7 +71,7 @@ foreach(header_dirname ${SUBDIR_LIST})
 endforeach()
 
 execute_process(COMMAND
-			${CMAKE_COMMAND} 
+			${CMAKE_SYSTEM_COMMAND} 
 			-DPREFIX=${LIBNAME}/ 
 			-DOUTPUT=${GENERATED_INCLUDE_ROOT}/${LIBNAME}.hpp 
 			-DMERGE_LIST=${SUBDIR_LIST_FILE}
@@ -139,23 +139,26 @@ if(BUILD_UNIT_TEST)
 		Message(WARNING "Tests on Kulisch value cannot be run")
 	endif()
 
-	find_path(GMP_INCLUDE_DIR gmpxx.h)
-	find_library(GMP gmp)
-	find_library(GMPXX gmpxx)
+	if(BUILD_GMP_TESTS)
+		find_path(GMP_INCLUDE_DIR gmpxx.h)
+		find_library(GMP gmp)
+		find_library(GMPXX gmpxx)
 
-	if (NOT (GMPXX-NOTFOUND OR GMP-NOTFOUND OR GMP_INCLUDE_DIR-NOTFOUND))
-		set(GMPTARGET-OK ON)
-		message(STATUS "GMP found")
-	else()
-		set(GMPTARGET-NOTFOUND ON)
-		message(STATUS "GMP Not found")
+		if (NOT (GMPXX-NOTFOUND OR GMP-NOTFOUND OR GMP_INCLUDE_DIR-NOTFOUND))
+			set(GMPTARGET-OK ON)
+			message(STATUS "GMP found")
+		else()
+			set(GMPTARGET-NOTFOUND ON)
+			message(STATUS "GMP Not found")
+		endif()
+
+		if(GMPTARGET-OK)
+			add_executable(testIEEEAdderGMP_exe tests/testIEEEAdderGMP.cpp)
+			target_compile_definitions(testIEEEAdderGMP_exe PRIVATE FASTSIM_BACKEND)
+			target_link_libraries(testIEEEAdderGMP_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} ${GMP} ${GMPXX})
+			target_compile_definitions(testIEEEAdderGMP_exe PRIVATE TESTDATA_ROOT="${TESTDATAROOT}")
+			add_test(testIEEEAdderGMP testIEEEAdderGMP_exe)
+		endif()
 	endif()
 
-	if(GMPTARGET-OK)
-		add_executable(testIEEEAdderGMP_exe tests/testIEEEAdderGMP.cpp)
-		target_compile_definitions(testIEEEAdderGMP_exe PRIVATE FASTSIM_BACKEND)
-		target_link_libraries(testIEEEAdderGMP_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} ${GMP} ${GMPXX})
-		target_compile_definitions(testIEEEAdderGMP_exe PRIVATE TESTDATA_ROOT="${TESTDATAROOT}")
-		add_test(testIEEEAdderGMP testIEEEAdderGMP_exe)
-	endif()
 endif()
