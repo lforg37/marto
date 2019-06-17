@@ -1,6 +1,5 @@
 #ifndef FP_DIM_TPP
 #define FP_DIM_TPP
-#define AP_INT_MAX_W 4500
 
 #include <cstdint>
 
@@ -10,8 +9,8 @@
 template<int N>
 class FPDim {
 	public:
-	static constexpr int WE = (N==32) ? 8 : 11; 
-	static constexpr int WF = (N==32) ? 23 : 52;
+	static constexpr int WE = (N==32) ? 8 : ((N==64) ? 11 : 5); 
+	static constexpr int WF = (N==32) ? 23 : ((N==64) ? 52 : 10);
 	static constexpr int BIAS = (1<<(WE-1))-1;
 	static constexpr int ACC_SIZE = (1<<(WE+1)) -1 + 2*WF+2;
 	static constexpr int ACC_MID = (1<<(WE)) -1 + 2*WF+2;

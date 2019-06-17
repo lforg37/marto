@@ -2,6 +2,7 @@
 #define BOOST_TEST_MODULE KulischAcc
 
 #include <boost/test/unit_test.hpp>
+#define AP_INT_MAX_W 4500
 
 
 #include "marto.hpp"
