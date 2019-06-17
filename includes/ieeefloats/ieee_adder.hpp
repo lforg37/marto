@@ -93,7 +93,7 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 				).modularSub(onlyOneSubnormal.template leftpad<WE>());
 	//cerr << "Shift value : " << shiftValue.unravel().get_str(2) << endl;
 
-	auto extendedMinFrac = explicitedMinFrac.concatenate(Wrapper<2, false>{0});
+	Wrapper<WF+3, false> extendedMinFrac = explicitedMinFrac.concatenate(Wrapper<2, false>{0});
 	//cerr << "extminfrac : " << extendedMinFrac.unravel().get_str(2) << endl;
 
 	auto shiftedMinFracSticky = shifter_sticky(extendedMinFrac, shiftValue);
