@@ -5,6 +5,8 @@
 #include "ap_int.h"
 #include "tools/static_math.hpp"
 
+using hint::Static_Val;
+
 template<int S>
 struct LZOCStageInfo
 {
@@ -19,7 +21,7 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 		ap_uint<1<<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<LZOCStageInfo<S>::NeedsRecursion>::type* dummy = 0
+		typename std::enable_if<LZOCStageInfo<S>::NeedsRecursion>::type* = 0
 	)
 {
 	#pragma HLS INLINE
@@ -53,7 +55,7 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 		ap_uint<1<<N> input,
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<LZOCStageInfo<S>::IsFinalStage>::type* dummy = 0
+		typename std::enable_if<LZOCStageInfo<S>::IsFinalStage>::type* = 0
 	)
 {
 	#pragma HLS INLINE
@@ -76,12 +78,6 @@ ap_uint<N + (1<<N)> lzoc_shifter(
 	return lzoc_shifter_stage<N, N-1>(input, leading, fill_bit);
 }
 
-
-
-
-
-
-
 template<int N>
 struct GenericLZOCStageInfo
 {
@@ -94,7 +90,7 @@ ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<GenericLZOCStageInfo<S>::is_a_power_of_2 and GenericLZOCStageInfo<S>::is_one>::type* dummy = 0)
+		typename std::enable_if<GenericLZOCStageInfo<S>::is_a_power_of_2 and GenericLZOCStageInfo<S>::is_one>::type* = 0)
 {
 	#pragma HLS INLINE
 	if (input[N - 1] == leading) {
@@ -108,10 +104,10 @@ ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 
 template<int N, int S>
 ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
-		ap_uint<N> input, 
+		ap_uint<N> input,
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<not(GenericLZOCStageInfo<S>::is_a_power_of_2)>::type* dummy = 0)
+		typename std::enable_if<not(GenericLZOCStageInfo<S>::is_a_power_of_2)>::type* = 0)
 {
 	#pragma HLS INLINE
 	static constexpr int log2S = Static_Val<S>::_rlog2-1;
@@ -171,7 +167,7 @@ ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<GenericLZOCStageInfo<S>::is_a_power_of_2  and not(GenericLZOCStageInfo<S>::is_one)>::type* dummy = 0)
+		typename std::enable_if<GenericLZOCStageInfo<S>::is_a_power_of_2  and not(GenericLZOCStageInfo<S>::is_one)>::type* = 0)
 {
 	#pragma HLS INLINE
 	ap_uint<S> padding;
@@ -198,15 +194,12 @@ ap_uint<Static_Val<S>::_rlog2 + N> generic_lzoc_shifter_stage(
 	return leader.concat(lower_stage);
 }	
 
-
-
-
 template<int N>
 ap_uint<Static_Val<N>::_rlog2 + N> generic_lzoc_shifter(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<not(GenericLZOCStageInfo<N>::is_a_power_of_2)>::type* dummy = 0
+		typename std::enable_if<not(GenericLZOCStageInfo<N>::is_a_power_of_2)>::type* = 0
 		)
 {
 	#pragma HLS INLINE
@@ -220,7 +213,7 @@ ap_uint<Static_Val<N>::_rlog2 + N> generic_lzoc_shifter(
 		ap_uint<N> input, 
 		ap_uint<1> leading,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<GenericLZOCStageInfo<N>::is_a_power_of_2>::type* dummy = 0
+		typename std::enable_if<GenericLZOCStageInfo<N>::is_a_power_of_2>::type* = 0
 		)
 {
 	#pragma HLS INLINE

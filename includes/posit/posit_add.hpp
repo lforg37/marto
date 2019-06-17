@@ -23,7 +23,6 @@ PositIntermediateFormat<N, WES> posit_add(
 ){
 	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
-	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<EXT_SUM_SIZE>::_log2;
 	
 	bool in1IsGreater = in1.getExp() > in2.getExp();
 
@@ -170,7 +169,5 @@ PositIntermediateFormat<N, WES> posit_add(
 				resultS,
 				resultSignificand[S_WF+1 -1],
                 resultSignificand.range(S_WF+1 -1 -1, 0)};
-
-
 	return result;
 }

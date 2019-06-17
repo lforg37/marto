@@ -9,8 +9,8 @@
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
-        IEEENumber<WE, WF, Wrapper> in0,
-        IEEENumber<WE, WF, Wrapper> in1
+	   IEEENumber<WE, WF, Wrapper> in0,
+	   IEEENumber<WE, WF, Wrapper> in1
     )
 {
 	auto exp0 = in0.getExponent();
@@ -126,7 +126,7 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 
 	//cerr << "LZC Input :" << lzcInput.unravel().get_str(2) << endl
 	//	<< "LZC  :" << lzc.unravel().get_str(2) << endl;
-	constexpr unsigned int lzcsize = Static_Val<WF+3>::_storage;
+	constexpr unsigned int lzcsize = hint::Static_Val<WF+3>::_storage;
 
 	static_assert (lzcsize<=WE, "The adder works only for wE > log2(WF).\nAre you sure you need subnormals ?\nIf yes, contact us wit hyour use case, we will be happy to make it work for you.");
 	auto subnormalLimitVal = Wrapper<lzcsize, false>{WF+3};
@@ -217,9 +217,8 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto bothZeros = maxIsZero & minIsZero;
 	auto signBothZero = minSign & maxSign;
 
-
 	auto signR = resultIsNan.invert() & // NaN forces sign to be zero
-			resultIsZero.invert() & // If summing two zeros of opposite sign, set result to zero
+			(resultIsZero & signBothZero.invert()).invert() & // If summing two zeros of opposite sign, set result to zero
 			maxSign;
 
 	return {signR.concatenate(finalRes)};

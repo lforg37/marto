@@ -4,7 +4,6 @@
 
 #include "ap_int.h"
 
-
 template<int S>
 struct ShifterStageInfo
 {
@@ -19,7 +18,7 @@ inline ap_uint<(1 << N)> shifter_stage(
 		ap_uint<1<<N> input, 
 		ap_uint<S> count,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<ShifterStageInfo<S>::NeedsRecursion>::type* dummy = 0
+		typename std::enable_if<ShifterStageInfo<S>::NeedsRecursion>::type* = 0
 	)
 {
 	#pragma HLS INLINE
@@ -44,7 +43,7 @@ inline ap_uint<(1 << N)> shifter_stage(
 		ap_uint<1<<N> input,
 		ap_uint<S> count,
 		ap_uint<1> fill_bit = 0,
-		typename std::enable_if<ShifterStageInfo<S>::IsFinalStage>::type* dummy = 0
+		typename std::enable_if<ShifterStageInfo<S>::IsFinalStage>::type* = 0
 	)
 {
 	#pragma HLS INLINE

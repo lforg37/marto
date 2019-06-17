@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(TestIEEAddWE3WF4GMP)
 	constexpr unsigned int WF = 4;
 	constexpr unsigned int WE = 3;
 
-	uint64_t nbTests = 1 << ((WF+WE) * 2);
+	uint64_t nbTests = 1 << ((WF+WE+1) * 2);
 
 	auto filepath = TESTDATA_ROOT"/ieeeadder/test_WE3_WF4.input";
 	ifstream testfile;
@@ -32,8 +32,8 @@ BOOST_AUTO_TEST_CASE(TestIEEAddWE3WF4GMP)
 		mpz_class i0gmp{i0, 2};
 		mpz_class i1gmp{i1, 2};
 		mpz_class mpzres{res, 2};
-		IEEENumber<WE, WF, GMPWrapper> i0ieee{i0gmp};
-		IEEENumber<WE, WF, GMPWrapper> i1ieee{i1gmp};
+		IEEENumber<WE, WF, hint::GMPWrapper> i0ieee{i0gmp};
+		IEEENumber<WE, WF, hint::GMPWrapper> i1ieee{i1gmp};
 
 		auto result = ieee_add_sub_impl(i0ieee, i1ieee);
 

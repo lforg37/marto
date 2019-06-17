@@ -2,7 +2,6 @@
 #include "posit_dim.hpp"
 #include "marto/bitvector.hpp"
 
-
 template<int N, int WES>
 ap_uint<PositDim<N, WES>::WE> getExponent(
 		ap_uint<Static_Val<N>::_log2 + 1> range_count,
