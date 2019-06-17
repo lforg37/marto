@@ -13,6 +13,7 @@
 #endif
 
 #include "marto/posit.hpp"
+#include "marto/tools.hpp"
 
 using namespace std;
 

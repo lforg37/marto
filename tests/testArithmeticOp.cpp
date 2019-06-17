@@ -1,8 +1,10 @@
 #define BOOST_TEST_DYN_LINK   
 #define BOOST_TEST_MODULE PositArithmeticOps
 
+#include <bitset>
 #include <cmath>
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <limits>
 
@@ -11,6 +13,10 @@
 
 #include "marto/posit.hpp"
 #include "marto/kulisch.hpp"
+#include "marto/tools.hpp"
+#include "ieeefloats/ieee_adder.hpp"
+
+#include "hint.hpp"
 
 #include <omp.h>
 
@@ -325,4 +331,43 @@ BOOST_AUTO_TEST_CASE(TestAllSegmentedSubQuirePosit16, *utf::disabled() * utf::la
 		error_counter = 0;
 	}
     fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
+}
+
+
+BOOST_AUTO_TEST_CASE(TestIEEAddWE3WF4Vivado)
+{
+	constexpr unsigned int WF = 4;
+	constexpr unsigned int WE = 3;
+
+	uint64_t nbTests = 1 << ((1+WF+WE) * 2);
+
+	auto filepath = TESTDATA_ROOT"/ieeeadder/test_WE3_WF4.input";
+	ifstream testfile;
+	testfile.open(filepath);
+	bitset<1+WE+WF> i0;
+	bitset<1+WE+WF> i1;
+	string tmp;
+	bitset<1+WE+WF> res;
+	BOOST_REQUIRE_MESSAGE(!testfile.fail(), "The test file " << filepath << " cannot be opened.");
+	for (uint64_t curtest = 0; curtest < nbTests ; ++curtest) {
+		testfile >> i0 >> i1 >> tmp >> res;
+
+		uint64_t i0num = static_cast<uint64_t>(i0.to_ulong());
+		uint64_t i1num = static_cast<uint64_t>(i1.to_ulong());
+		uint64_t resnum = static_cast<uint64_t>(res.to_ulong());
+
+		IEEENumber<WE, WF, hint::VivadoWrapper> i0ieee{{i0num}};
+		IEEENumber<WE, WF, hint::VivadoWrapper> i1ieee{{i1num}};
+
+		auto result = ieee_add_sub_impl(i0ieee, i1ieee);
+
+		uint64_t convertedRes = result.to_uint();
+
+		//cerr << "IN0 : " << endl << i0gmp.get_str(2) << endl;
+		//cerr << "IN1 : " << endl << i1gmp.get_str(2) << endl;
+		//cerr << "EXPECTED : " << endl << mpzres.get_str(2) << endl;
+		//cerr << "GOT : " << endl << result.unravel().get_str(2) << endl;
+
+		BOOST_REQUIRE_MESSAGE(resnum == convertedRes, "Error for iteration " << curtest);
+	}
 }

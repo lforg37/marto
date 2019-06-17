@@ -4,7 +4,7 @@
 #include <cstdio>
 
 #include "ap_int.h"
-#include "marto/tools.hpp"
+#include "tools/static_math.hpp"
 //N.B.: We are using int instead of size_t because of ap_uint is templatized
 //=====  with int
 // #include <boost/integer/static_log2.hpp>
@@ -23,6 +23,8 @@
 // }
 
 using namespace std;
+using hint::Static_Val;
+using hint::Static_Ceil_Div;
 
 
 template<int N>
@@ -44,9 +46,6 @@ template<int N>
 static ap_uint<N> negativeMinPosit() {
     return ap_uint<N>{-1};
 }
-
-
-
 
 template<int N, int WES_Val>
 class PositDim {

@@ -4,7 +4,10 @@
 #include <cstdint>
 
 #include "ap_int.h"
-#include "marto/tools.hpp"
+#include "tools/static_math.hpp"
+
+using hint::Static_Val;
+using hint::Static_Ceil_Div;
 
 template<int N>
 class FPDim {
@@ -35,7 +38,7 @@ class FPProd : public FPProdSize<N>
 		{
 			ap_uint<1+FPDim<N>::WE+1> signed_exp = mult_s.concat(mult_e);
 			FPProdSize<N>::operator=(signed_exp.concat(mult_m));		
-		};
+		}
 
 		FPProd(ap_uint<1+FPDim<N>::WE+1+2*FPDim<N>::WF+2> val):FPProdSize<N>(val){}
 
@@ -114,7 +117,7 @@ class acc_2CK3 : public acc_2CK3Size<N, bankSize>
 		{
 			ap_int<getSegmentedAccSize<N, bankSize>()> acc_ext = (ap_int<FPDim<N>::ACC_SIZE>) acc;
 			acc_2CK3Size<N, bankSize>::operator=(acc_ext.concat(carries));		
-		};
+		}
 
 		acc_2CK3(ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()> val):acc_2CK3Size<N, bankSize>(val){}
 
@@ -149,14 +152,6 @@ class acc_2CK3 : public acc_2CK3Size<N, bankSize>
 template<int N, int bankSize>
 using acc_segmented_2CK1 = acc_2CK3<N, bankSize>;
 
-
-
-
-
-
-
-
-
 template<int N, int bankSize>
 using acc_SMK3Size = ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()+ getNbStages<N, bankSize>()>;
 
@@ -173,7 +168,7 @@ class acc_SMK3 : public acc_SMK3Size<N, bankSize>
 			ap_int<getSegmentedAccSize<N, bankSize>()> acc_ext = (ap_int<FPDim<N>::ACC_SIZE>) acc;
 			ap_int<getSegmentedAccSize<N, bankSize>()+ getNbStages<N, bankSize>()> acc_ext_borrows = acc_ext.concat(borrows);
 			acc_SMK3Size<N, bankSize>::operator=(acc_ext_borrows.concat(carries));		
-		};
+		}
 
 		acc_SMK3(ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()+ getNbStages<N, bankSize>()> val):acc_SMK3Size<N, bankSize>(val){}
 
@@ -209,8 +204,4 @@ class acc_SMK3 : public acc_SMK3Size<N, bankSize>
 			printApUint(c);
 		}
 };
-
-
-
-
 #endif

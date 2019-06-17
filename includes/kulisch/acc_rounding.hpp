@@ -1,5 +1,7 @@
 #include "kulisch_dim.hpp"
+#include "tools/static_math.hpp"
 
+using hint::Static_Val;
 
 template<int N>
 ap_uint<N> acc_IEEE_rounding(

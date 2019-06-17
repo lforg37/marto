@@ -11,7 +11,6 @@
 
 namespace utf = boost::unit_test;
 
-
 #define N 32
 #define SEGMENT 32
 
@@ -65,10 +64,6 @@ BOOST_AUTO_TEST_CASE(TestRand2CK1_32, *utf::disabled() * utf::label("long"))
 	mpfr_init2(current_mpfr_value2,1000);
  	mpfr_set_d(mpfr_acc, 0.0, GMP_RNDZ);
 		
-
-
-
-
 	KulischAcc<N> acc(0);
 	ap_uint<32> res;
 	float mpfr_sum;
@@ -249,10 +244,6 @@ BOOST_AUTO_TEST_CASE(TestRand_segemented_2CK1_32, *utf::disabled() * utf::label(
 	mpfr_init2(current_mpfr_value1,1000);
 	mpfr_init2(current_mpfr_value2,1000);
  	mpfr_set_d(mpfr_acc, 0.0, GMP_RNDZ);
-		
-
-
-
 
 	acc_segmented_2CK1<N, SEGMENT> acc(KulischAcc<N>(0));
 	KulischAcc<N> acc2(0); 
@@ -348,10 +339,6 @@ BOOST_AUTO_TEST_CASE(TestRand2CK3_32, *utf::disabled() * utf::label("long"))
 	mpfr_init2(current_mpfr_value2,1000);
  	mpfr_set_d(mpfr_acc, 0.0, GMP_RNDZ);
 		
-
-
-
-
 	acc_2CK3<N, SEGMENT> acc(KulischAcc<N>(0));
 	KulischAcc<N> acc2(0); 
 	ap_uint<32> res;
@@ -447,10 +434,6 @@ BOOST_AUTO_TEST_CASE(TestRandSMK3_32, *utf::disabled() * utf::label("long"))
 	mpfr_init2(current_mpfr_value1,1000);
 	mpfr_init2(current_mpfr_value2,1000);
  	mpfr_set_d(mpfr_acc, 0.0, GMP_RNDZ);
-		
-
-
-
 
 	acc_SMK3<N, SEGMENT> acc(KulischAcc<N>(0));
 	KulischAcc<N> acc2(0); 

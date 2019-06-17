@@ -4,9 +4,12 @@
 #include <type_traits>
 
 #include "ap_int.h"
+#include "tools/static_math.hpp"
 
-#include "shifter.hpp"
+#include "shifter_marto.hpp"
 //#include "utils.hpp"
+
+using hint::Static_Val;
 
 template<int IS, int S>
 //IS : Input Size (including sticky bit),
@@ -70,7 +73,7 @@ inline ap_uint<IS> shifter_sticky_stage(
     )
 {
     #pragma HLS INLINE
-    constexpr int nb_null_shift = S - Static_Val<IS-1>::_log2;
+	constexpr int nb_null_shift = S - Static_Val<IS-1>::_log2;
     ap_uint<nb_null_shift> shift_weights_will_zero = count.range(S - 1,
                                                                  S - 1 - nb_null_shift);
     ap_uint<S-nb_null_shift> next_count = count.range(S-2-nb_null_shift, 0);

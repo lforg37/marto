@@ -3,6 +3,9 @@
 using namespace std;
 #include "marto/bitvector.hpp"
 
+using hint::Static_Val;
+using hint::Static_Ceil_Div;
+
 // template<int N, int bankSize>
 // static constexpr int ext_shift_size(){
 // 	return Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize;
@@ -19,8 +22,8 @@ ap_uint<bankSize> add_2CK3_to_add_Rec(
     ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> stageIndex, 
     ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1> stageSelect,
     ap_uint<1> inputSign,
-    ap_int<(1<<Static_Val<spread*bankSize>::_log2)> shiftedSignificand,
-    typename enable_if<(spread < 1)>::type* dummy = 0
+	ap_int<(1<<Static_Val<spread*bankSize>::_log2)>,
+	typename enable_if<(spread < 1)>::type* = 0
 )
 {
 	#pragma HLS INLINE
@@ -39,7 +42,7 @@ ap_uint<bankSize> add_2CK3_to_add_Rec(
     ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1> stageSelect,
     ap_uint<1> inputSign,
     ap_int<(1<<Static_Val<spread*bankSize>::_log2)> shiftedSignificand,
-    typename enable_if<(spread >= 1)>::type* dummy = 0
+	typename enable_if<(spread >= 1)>::type* = 0
     )
 {	
 	#pragma HLS INLINE
