@@ -26,28 +26,29 @@ inline ap_uint<S + 1 + (1 << N)> lzoc_shifter_stage(
 {
 	#pragma HLS INLINE
 
-	ap_uint<1<<S> padding;
-	if(fill_bit){
-		padding = -1;
-	}
-	else{
-		padding = 0;
-	}
+    ap_uint<1<<S> padding;
+    if(fill_bit){
+            padding = -1;
+    }
+    else{
+            padding = 0;
+    }
 
-	ap_uint<(1 << N) - (1 << S)> low = input.range((1 << N) - (1 << S) - 1, 0); 
+    ap_uint<(1 << N) - (1 << S)> low = input.range((1 << N) - (1 << S) - 1, 0);
 
+    ap_uint<(1 << S)> up = input.range((1 << N) - 1, (1<<N) - (1 << S));
+    ap_int<1> onebitmask = leading;
+    ap_int<(1 << S)> signedmask = onebitmask;
+    ap_uint<(1<<S)> maskedup = signedmask ^ up;
 
-	ap_uint<1> cmp = 1;
-	for(int i = (1 << N) - 1; i>=((1 << N) - (1 << S)); i--){
-		#pragma HLS UNROLL
-		cmp &= (input[i]==leading);
-	}
+    ap_uint<1> cmp = ~(maskedup.or_reduce());
 
-	ap_uint<1<<N> next_stage_input = (cmp) ? low.concat(padding) : input;
-	ap_uint<1> leader = (cmp) ? 1 : 0;
+    ap_uint<1<<N> next_stage_input = (cmp) ? low.concat(padding) : input;
+    ap_uint<1> leader = (cmp) ? 1 : 0;
 
-	auto lower_stage = lzoc_shifter_stage<N, S-1>(next_stage_input, leading, fill_bit);
-	return leader.concat(lower_stage);
+    auto lower_stage = lzoc_shifter_stage<N, S-1>(next_stage_input, leading, fill_bit);
+    return leader.concat(lower_stage);
+
 }
 
 template<int N, int S>
