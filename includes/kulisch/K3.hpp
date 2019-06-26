@@ -6,17 +6,6 @@ using namespace std;
 using hint::Static_Val;
 using hint::Static_Ceil_Div;
 
-// template<int N, int bankSize>
-// static constexpr int ext_shift_size(){
-// 	return Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize;
-// }
-
-template<int bankSize> 
-constexpr int add_2CK3_getIndex(int index, bool isUpper)
-{
-	return bankSize*index - isUpper;
-}
-
 template <int N, int bankSize, int spread>
 ap_uint<bankSize> add_2CK3_to_add_Rec(
     ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> stageIndex, 
@@ -47,7 +36,7 @@ ap_uint<bankSize> add_2CK3_to_add_Rec(
 {	
 	#pragma HLS INLINE
     if (stageIndex == (stageSelect+spread-1)) {
-        ap_uint<bankSize> tmp =shiftedSignificand.range(((spread)*bankSize)-1,(spread-1)*bankSize); 
+        ap_uint<bankSize> tmp = shiftedSignificand.range(((spread)*bankSize)-1,(spread-1)*bankSize); 
         return tmp;
     } else {
         return add_2CK3_to_add_Rec<N, bankSize, (spread-1)>(stageIndex, stageSelect, inputSign, shiftedSignificand);
@@ -76,9 +65,6 @@ ap_uint<bankSize+1> add_2CK3_acc_stage(acc_2CK3<N, bankSize> acc,
 {
 	#pragma HLS INLINE
 	ap_uint<bankSize+1> bank = acc.getBank(stageIndex);
-	// fprintf(stderr, "main input with size %d: ", (int) (1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2));
-	// printApInt(shiftedSignificand);
-	
 	ap_uint<1> accCarry = (stageIndex==0) ? carry0 : acc.getCarry(stageIndex-1);
 
 	ap_uint<bankSize> toAdd = add_2CK3_to_add_<N, bankSize, getMantSpread<N, bankSize>()>(stageIndex, stageSelect, sign, shiftedSignificand);
@@ -128,8 +114,8 @@ acc_2CK3<N, bankSize> add_2CK3(
 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 		#pragma HLS UNROLL
 		ap_uint<bankSize+1> stageResult = add_2CK3_acc_stage<N,bankSize>((acc_2CK3<N, bankSize>)acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
-		fullAcc[i] = stageResult[bankSize];
-		fullAcc.range(add_2CK3_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), add_2CK3_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+		fullAcc.setCarry(i, ap_uint<1>{stageResult[bankSize]});
+		fullAcc.setBank(i, stageResult.range(bankSize-1,0));
 	}
 
 	return fullAcc;
@@ -139,18 +125,17 @@ template<int N, int bankSize>
 KulischAcc<N> propagate_carries_2CK3(acc_2CK3<N, bankSize> acc)
 {	
 	#pragma HLS INLINE
-	acc_2CK3<N, bankSize> fullacc = acc;
+	acc_2CK3<N, bankSize> fullAcc = acc;
 	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
 		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 			#pragma HLS UNROLL
-			ap_uint<bankSize+1> stageResult = add_2CK3_acc_stage<N, bankSize>(fullacc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, 0);
-			// ap_uint<bankSize+1> stageResult = add_2CK3_acc_stage<N, bankSize>(fullacc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, (ap_uint<1>)((j==0) and (i==0) and acc.isNeg()));
-			fullacc[i] = stageResult[bankSize];
-			fullacc.range(add_2CK3_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), add_2CK3_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+			ap_uint<bankSize+1> stageResult = add_2CK3_acc_stage<N, bankSize>(fullAcc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, 0);
+			fullAcc.setCarry(i, stageResult[bankSize]);
+			fullAcc.setBank(i, stageResult.range(bankSize-1,0));
 		}	
 	}
 	// fullacc.printContent();
-	return fullacc.range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
+	return fullAcc.getAcc();
 }
 
 

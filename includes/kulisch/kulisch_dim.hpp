@@ -121,14 +121,30 @@ class acc_2CK3 : public acc_2CK3Size<N, bankSize>
 
 		acc_2CK3(ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()> val):acc_2CK3Size<N, bankSize>(val){}
 
+		KulischAcc<N> getAcc(){
+			#pragma HLS INLINE
+			return (*this).range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
+		}
+
 		ap_uint<bankSize> getBank(int index){
 			#pragma HLS INLINE
 			return (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize);
 		}
 
+
+		void setBank(int index, ap_uint<bankSize> bank){
+			#pragma HLS INLINE
+			(*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize) = bank;
+		}
+
 		ap_uint<1> getCarry(int index){
 			#pragma HLS INLINE
 			return (*this)[index];
+		}
+
+		void setCarry(int index, ap_uint<1> carry){
+			#pragma HLS INLINE
+			(*this)[index]=carry;
 		}
 
 		ap_uint<1> isNeg(){
