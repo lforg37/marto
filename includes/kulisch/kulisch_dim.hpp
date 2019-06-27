@@ -156,7 +156,21 @@ class acc_2CK3
 			// acc_2CK3Size<N, bankSize>::operator=(acc_ext.concat(carries));		
 		}
 
-		// acc_2CK3(ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()> val):acc_2CK3Size<N, bankSize>(val){}
+		acc_2CK3(	
+				const acc_2CK3<N, bankSize> & acc_in
+				)
+		{
+			
+			#pragma HLS array_partition variable=banks
+			#pragma HLS array_partition variable=carries
+			for(int i=0; i<getNbStages<N, bankSize>(); i++){
+				#pragma HLS UNROLL
+				banks[i] = acc_in.getBank(i);
+				carries[i] = acc_in.getCarry(i);
+			}	
+		}
+
+		//acc_2CK3(ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()> val):acc_2CK3Size<N, bankSize>(val){}
 
 		KulischAcc<N> getAcc(){
 			#pragma HLS INLINE
@@ -164,7 +178,7 @@ class acc_2CK3
 			// return (*this).range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
 		}
 
-		ap_uint<bankSize> getBank(int index){
+		ap_uint<bankSize> getBank(int index) const{
 			#pragma HLS INLINE
 			return (*this).banks[index];
 			// return (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize);
@@ -177,7 +191,7 @@ class acc_2CK3
 			// (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize) = bank;
 		}
 
-		ap_uint<1> getCarry(int index){
+		ap_uint<1> getCarry(int index) const{
 			#pragma HLS INLINE
 			return (*this).carries[index];
 			// return (*this)[index];
