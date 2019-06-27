@@ -379,8 +379,13 @@ BOOST_AUTO_TEST_CASE(TestRand2CK3_32, *utf::disabled() * utf::label("long"))
 			free(tab2_ap);
 			BOOST_REQUIRE_MESSAGE(false, "Accumulator holding incorrect result");
 		}
+
+		if(((i%1000) == 0) and (i != 0)){
+            fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(i)/static_cast<double>(SIZE)*100, i,SIZE);
+		}
 		// fprintf(stderr, "%d\n", i);
 	}	
+    fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(SIZE)/static_cast<double>(SIZE)*100, SIZE,SIZE);
 
 	free(tab1);
 	free(tab2);

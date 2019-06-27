@@ -97,8 +97,8 @@ static constexpr int getSegmentedAccSize(){
 	return getNbStages<N, bankSize>() * bankSize;
 } 
 
-template<int N, int bankSize>
-using acc_2CK3Size = ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()>;
+// template<int N, int bankSize>
+// using acc_2CK3Size = ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()>;
 
 template<int N, int bankSize>
 static constexpr int getMantSpread(){
@@ -106,62 +106,105 @@ static constexpr int getMantSpread(){
 } 
 
 
+template<int N, int bankSize, int stage>
+ap_uint<bankSize*(stage+1)> concatAccBanksRec(ap_uint<bankSize> acc[getNbStages<N, bankSize>()],
+	typename enable_if<(stage == 0)>::type* = 0
+	){
+	return acc[stage];
+}
+
+template<int N, int bankSize, int stage>
+ap_uint<bankSize*(stage+1)> concatAccBanksRec(ap_uint<bankSize> acc[getNbStages<N, bankSize>()],
+	typename enable_if<(stage >= 1)>::type* = 0
+	){
+	ap_uint<bankSize*(stage)> part = concatAccBanksRec<N, bankSize, stage-1>(acc);
+	ap_uint<bankSize> top = acc[stage];
+	ap_uint<bankSize*(stage+1)> res = top.concat(part);
+	return res;
+}
+
 template<int N, int bankSize>
-class acc_2CK3 : public acc_2CK3Size<N, bankSize>
+KulischAcc<N> concatAccBanks(ap_uint<bankSize> acc[getNbStages<N, bankSize>()]){
+	ap_uint<bankSize*getNbStages<N, bankSize>()> res = concatAccBanksRec<N, bankSize, getNbStages<N, bankSize>()-1>(acc);
+	return res.range(FPDim<N>::ACC_SIZE-1, 0);
+}
+
+
+template<int N, int bankSize>
+class acc_2CK3 
 {
+	private:
+		ap_uint<bankSize> banks[getNbStages<N, bankSize>()];
+		ap_uint<1> carries[getNbStages<N, bankSize>()];
 	public:
 		acc_2CK3(	
 				KulischAcc<N> acc,
-				ap_uint<getNbStages<N, bankSize>()> carries = 0
+				ap_uint<getNbStages<N, bankSize>()> carries_in = 0
 				)
 		{
-			ap_int<getSegmentedAccSize<N, bankSize>()> acc_ext = (ap_int<FPDim<N>::ACC_SIZE>) acc;
-			acc_2CK3Size<N, bankSize>::operator=(acc_ext.concat(carries));		
+			
+			#pragma HLS array_partition variable=banks
+			#pragma HLS array_partition variable=carries
+			for(int i=0; i<getNbStages<N, bankSize>()-1; i++){
+				#pragma HLS UNROLL
+				banks[i] = acc.range((i+1)*bankSize-1,i*bankSize);
+				carries[i] = carries_in[i];
+			}	
+			banks[getNbStages<N, bankSize>()-1] = (ap_int<FPDim<N>::ACC_SIZE-1-(getNbStages<N, bankSize>()-1)*bankSize+1>)acc.range(FPDim<N>::ACC_SIZE-1,(getNbStages<N, bankSize>()-1)*bankSize);
+			carries[getNbStages<N, bankSize>()-1] = carries_in[getNbStages<N, bankSize>()-1];
+			// ap_int<getSegmentedAccSize<N, bankSize>()> acc_ext = (ap_int<FPDim<N>::ACC_SIZE>) acc;
+			// acc_2CK3Size<N, bankSize>::operator=(acc_ext.concat(carries));		
 		}
 
-		acc_2CK3(ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()> val):acc_2CK3Size<N, bankSize>(val){}
+		// acc_2CK3(ap_uint<getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()> val):acc_2CK3Size<N, bankSize>(val){}
 
 		KulischAcc<N> getAcc(){
 			#pragma HLS INLINE
-			return (*this).range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
+			return concatAccBanks<N, bankSize>(banks);
+			// return (*this).range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
 		}
 
 		ap_uint<bankSize> getBank(int index){
 			#pragma HLS INLINE
-			return (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize);
+			return (*this).banks[index];
+			// return (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize);
 		}
 
 
 		void setBank(int index, ap_uint<bankSize> bank){
 			#pragma HLS INLINE
-			(*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize) = bank;
+			(*this).banks[index] = bank;
+			// (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize) = bank;
 		}
 
 		ap_uint<1> getCarry(int index){
 			#pragma HLS INLINE
-			return (*this)[index];
+			return (*this).carries[index];
+			// return (*this)[index];
 		}
 
 		void setCarry(int index, ap_uint<1> carry){
 			#pragma HLS INLINE
-			(*this)[index]=carry;
+			(*this).carries[index] = carry;
+			// (*this)[index]=carry;
 		}
 
 		ap_uint<1> isNeg(){
 			#pragma HLS INLINE
-			return (*this)[getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1];
+			return (*this).banks[getNbStages<N, bankSize>()-1][bankSize-1];
+			// return (*this)[getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1];
 		}
 
-		void printContent(){
-			fprintf(stderr, "Acc size: %d\n", getSegmentedAccSize<N, bankSize>());
-			fprintf(stderr, "Nb stages: %d\n", getNbStages<N, bankSize>());
-			ap_uint<getSegmentedAccSize<N, bankSize>() - FPDim<N>::ACC_SIZE> uselessbits = this->range(getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1,FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>());
-			ap_uint<FPDim<N>::ACC_SIZE> tmp = this->range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>() -1, getNbStages<N, bankSize>());
-			printApUint(uselessbits);
-			printApUint(tmp);
-			ap_uint<getNbStages<N, bankSize>()> c = this->range(getNbStages<N, bankSize>()-1,0);
-			printApUint(c);
-		}
+		// void printContent(){
+		// 	fprintf(stderr, "Acc size: %d\n", getSegmentedAccSize<N, bankSize>());
+		// 	fprintf(stderr, "Nb stages: %d\n", getNbStages<N, bankSize>());
+		// 	ap_uint<getSegmentedAccSize<N, bankSize>() - FPDim<N>::ACC_SIZE> uselessbits = this->range(getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1,FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>());
+		// 	ap_uint<FPDim<N>::ACC_SIZE> tmp = this->range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>() -1, getNbStages<N, bankSize>());
+		// 	printApUint(uselessbits);
+		// 	printApUint(tmp);
+		// 	ap_uint<getNbStages<N, bankSize>()> c = this->range(getNbStages<N, bankSize>()-1,0);
+		// 	printApUint(c);
+		// }
 };
 
 

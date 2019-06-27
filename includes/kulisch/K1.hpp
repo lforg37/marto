@@ -121,8 +121,8 @@ acc_segmented_2CK1<N, bankSize> add_segmented_2CK1(
 		ap_uint<bankSize+1> stageResult = acc.getBank(i)
 										+ shifted.range((i+1)*bankSize-1,i*bankSize)
 										+ carry;
-		fullAcc[i] = stageResult[bankSize];
-		fullAcc.range(add_segmented_2CK1_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), add_segmented_2CK1_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+		fullAcc.setCarry(i, stageResult[bankSize]);
+		fullAcc.setBank(i, stageResult.range(bankSize-1,0));
 	}
 	return fullAcc;
 }
@@ -138,11 +138,11 @@ KulischAcc<N> propagate_carries_segmented_2CK1(acc_segmented_2CK1<N, bankSize> a
 			ap_uint<1> carry = (i==0) ? (ap_uint<1> )0 : fullAcc.getCarry(i-1);
 			ap_uint<bankSize+1> stageResult = fullAcc.getBank(i)
 											+ carry;
-			fullAcc[i] = stageResult[bankSize];
-			fullAcc.range(add_segmented_2CK1_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>(), add_segmented_2CK1_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+			fullAcc.setCarry(i, stageResult[bankSize]);
+			fullAcc.setBank(i, stageResult.range(bankSize-1,0));
 		}	
 	}
 	// fullacc.printContent();
-	return fullAcc.range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>());
+	return fullAcc.getAcc();;
 }
 
