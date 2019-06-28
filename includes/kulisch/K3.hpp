@@ -156,11 +156,11 @@ KulischAcc<N> propagate_carries_2CK3(acc_2CK3<N, bankSize> acc)
 
 
 
-template<int bankSize> 
-constexpr int add_SMK3_getIndex(int index, bool isUpper)
-{
-	return bankSize*index - isUpper;
-}
+// template<int bankSize> 
+// constexpr int add_SMK3_getIndex(int index, bool isUpper)
+// {
+// 	return bankSize*index - isUpper;
+// }
 
 
 template <int N, int bankSize, int spread>
@@ -279,13 +279,9 @@ acc_SMK3<N, bankSize> add_SMK3(
 	static constexpr int bits_for_shift = Static_Val<spread*bankSize>::_log2;
 
 	ap_uint<FPDim<N>::WE+1 +1> prodExp = (ap_uint<FPDim<N>::WE+1 +1>)(prod.getExp());
-
 	ap_uint<2*FPDim<N>::WF+2> inputSignificand = prod.getSignificand();
-
 	ap_uint<Static_Val<bankSize>::_log2> shiftValue = prodExp.range(Static_Val<bankSize>::_log2-1,0);
-	
 	ap_uint<(1<<bits_for_shift)> ext = inputSignificand;
-
 	ap_uint<(1<<bits_for_shift)> shiftedInput = shifter<bits_for_shift>(ext,shiftValue,0);
 
 	ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1> stageSelect = prodExp.range(FPDim<N>::WE+1 +1 -1, Static_Val<bankSize>::_log2);
@@ -295,9 +291,9 @@ acc_SMK3<N, bankSize> add_SMK3(
 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 		#pragma HLS UNROLL
 		ap_uint<bankSize+1+1> stageResult = add_SMK3_acc_stage<N,bankSize>((acc_SMK3<N, bankSize>)acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>)i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
-		fullAcc[i] = stageResult[bankSize];
-		fullAcc[i+getNbStages<N, bankSize>()] = stageResult[bankSize+1];
-		fullAcc.range(add_SMK3_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>()+getNbStages<N, bankSize>(), add_SMK3_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+		fullAcc.setCarry(i, stageResult[bankSize]);
+		fullAcc.setBorrow(i, stageResult[bankSize+1]);
+		fullAcc.setBank(i, stageResult.range(bankSize-1,0));
 	}
 
 	return fullAcc;
@@ -308,12 +304,12 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 {	
 	#pragma HLS INLINE
 	acc_SMK3<N, bankSize> fullacc = acc;
-	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
+  	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
 		#pragma HLS PIPELINE II=1
 		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
 			ap_uint<bankSize+1+1> stageResult = add_SMK3_acc_stage<N, bankSize>(fullacc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, 0);
-			fullacc[i] = stageResult[bankSize];
-			fullacc[i+getNbStages<N, bankSize>()] = stageResult[bankSize+1];
+			fullacc.setCarry(i, stageResult[bankSize]);
+			fullacc.setBorrow(i, stageResult[bankSize+1]);
 			fullacc.setBank(i, stageResult.range(bankSize-1,0));
 		}	
 	}
