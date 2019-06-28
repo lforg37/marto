@@ -69,7 +69,11 @@ ap_uint<bankSize+1> add_2CK3_acc_stage(acc_2CK3<N, bankSize> acc,
 
 	ap_uint<bankSize> toAdd = add_2CK3_to_add_<N, bankSize, getMantSpread<N, bankSize>()>(stageIndex, stageSelect, sign, shiftedSignificand);
 
-	ap_uint<bankSize+1> sum = bank + toAdd + accCarry;
+	ap_uint<bankSize+1> op1 = bank;
+	ap_uint<bankSize+1> op2 = toAdd;
+	ap_uint<1> c = accCarry;
+	ap_uint<bankSize+1> sum = op1 + op2 + 1;
+	#pragma HLS RESOURCE variable=sum core=AddSub
 	return sum;
 }
 
@@ -127,8 +131,8 @@ KulischAcc<N> propagate_carries_2CK3(acc_2CK3<N, bankSize> acc)
 	#pragma HLS INLINE
 	acc_2CK3<N, bankSize> fullAcc = acc;
 	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
+		#pragma HLS PIPELINE II=1
 		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
-			#pragma HLS UNROLL
 			ap_uint<bankSize+1> stageResult = add_2CK3_acc_stage<N, bankSize>(fullAcc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, 0);
 			fullAcc.setCarry(i, stageResult[bankSize]);
 			fullAcc.setBank(i, stageResult.range(bankSize-1,0));
@@ -239,10 +243,10 @@ ap_uint<bankSize+1+1> add_SMK3_acc_stage(acc_SMK3<N, bankSize> acc,
 	ap_uint<bankSize> toSub = toAdd_sub.range(bankSize-1, 0);
 	ap_uint<bankSize> toAdd = toAdd_sub.range(bankSize+bankSize-1 ,bankSize);
 
-	ap_uint<bankSize+1> sum = bank - toSub - accBorrow;
-	ap_uint<1> borrow = sum[bankSize];
-	sum[bankSize]=0;
-	sum += toAdd + accCarry;
+	ap_uint<bankSize+1> sub = bank - toSub - accBorrow;
+	ap_uint<1> borrow = sub[bankSize];
+	sub[bankSize]=0;
+	ap_uint<bankSize+1> sum = sub + toAdd + accCarry;
 	ap_uint<bankSize+1+1> res = borrow.concat(sum);
 	if(res[bankSize+1] and res[bankSize]){
 		res[bankSize+1]=0;

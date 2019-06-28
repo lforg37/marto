@@ -36,7 +36,10 @@ FPProd<N> exact_prod(ap_uint<N> in1,
 	ap_uint<1> mult_s = s1 ^ s2;
 
 	mult_e = (ap_uint<FPDim<N>::WE+1>)e1 + (ap_uint<FPDim<N>::WE+1>)e2;
-	mult_m = ((ap_uint<2*FPDim<N>::WF+2>) m1) * ((ap_uint<2*FPDim<N>::WF+2>) m2);
+	ap_uint<2*FPDim<N>::WF+2> mul_op1 = m1;
+	ap_uint<2*FPDim<N>::WF+2> mul_op2 = m2;
+	mult_m = mul_op1*mul_op2;
+	// #pragma HLS RESOURCE variable=mult_m core=Mulns latency=8
 	return FPProd<N>(	mult_s,
 						mult_e,
 						mult_m	

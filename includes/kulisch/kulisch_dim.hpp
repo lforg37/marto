@@ -151,9 +151,7 @@ class acc_2CK3
 				carries[i] = carries_in[i];
 			}	
 			banks[getNbStages<N, bankSize>()-1] = (ap_int<FPDim<N>::ACC_SIZE-1-(getNbStages<N, bankSize>()-1)*bankSize+1>)acc.range(FPDim<N>::ACC_SIZE-1,(getNbStages<N, bankSize>()-1)*bankSize);
-			carries[getNbStages<N, bankSize>()-1] = carries_in[getNbStages<N, bankSize>()-1];
-			// ap_int<getSegmentedAccSize<N, bankSize>()> acc_ext = (ap_int<FPDim<N>::ACC_SIZE>) acc;
-			// acc_2CK3Size<N, bankSize>::operator=(acc_ext.concat(carries));		
+			carries[getNbStages<N, bankSize>()-1] = carries_in[getNbStages<N, bankSize>()-1];	
 		}
 
 		acc_2CK3(	
