@@ -233,6 +233,7 @@ ap_uint<bankSize+1+1> add_SMK3_acc_stage(acc_SMK3<N, bankSize> acc,
 										ap_uint<1> borrow0 =0)
 {
 	#pragma HLS INLINE
+	#pragma HLS PIPELINE
 	ap_uint<bankSize+1+1> bank = acc.getBank(stageIndex);
 	
 	ap_uint<1> accCarry = (stageIndex==0) ? carry0 : acc.getCarry(stageIndex-1);
@@ -242,16 +243,26 @@ ap_uint<bankSize+1+1> add_SMK3_acc_stage(acc_SMK3<N, bankSize> acc,
 
 	ap_uint<bankSize> toSub = toAdd_sub.range(bankSize-1, 0);
 	ap_uint<bankSize> toAdd = toAdd_sub.range(bankSize+bankSize-1 ,bankSize);
+	ap_uint<bankSize+1+1> res;
+	ap_uint<bankSize+1> sub;
 
-	ap_uint<bankSize+1> sub = bank - toSub - accBorrow;
+	ap_uint<bankSize+1> sub_op1{bank};
+	ap_uint<bankSize+1> sub_op2{toSub};
+	ap_uint<1> b{accBorrow};
+	sub = sub_op1 - sub_op2 - b;
 	ap_uint<1> borrow = sub[bankSize];
 	sub[bankSize]=0;
-	ap_uint<bankSize+1> sum = sub + toAdd + accCarry;
-	ap_uint<bankSize+1+1> res = borrow.concat(sum);
+
+	ap_uint<bankSize+1> sum_op1{sub};
+	ap_uint<bankSize+1> sum_op2{toAdd};
+	ap_uint<1> c{accCarry};
+	ap_uint<bankSize+1> sum = sum_op1 + sum_op2 + c;
+	res = borrow.concat(sum);
 	if(res[bankSize+1] and res[bankSize]){
 		res[bankSize+1]=0;
 		res[bankSize]=0;
 	}
+
 	return res;
 }
 
@@ -298,14 +309,14 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 	#pragma HLS INLINE
 	acc_SMK3<N, bankSize> fullacc = acc;
 	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
+		#pragma HLS PIPELINE II=1
 		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
-			#pragma HLS UNROLL
 			ap_uint<bankSize+1+1> stageResult = add_SMK3_acc_stage<N, bankSize>(fullacc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, 0);
 			fullacc[i] = stageResult[bankSize];
 			fullacc[i+getNbStages<N, bankSize>()] = stageResult[bankSize+1];
-			fullacc.range(add_SMK3_getIndex<bankSize>(i+1, 1)+getNbStages<N, bankSize>()+getNbStages<N, bankSize>(), add_SMK3_getIndex<bankSize>(i, 0)+getNbStages<N, bankSize>()+getNbStages<N, bankSize>()) = stageResult.range(bankSize-1,0);
+			fullacc.setBank(i, stageResult.range(bankSize-1,0));
 		}	
 	}
 	// fullacc.printContent();
-	return fullacc.range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>()+getNbStages<N, bankSize>()-1, getNbStages<N, bankSize>()+getNbStages<N, bankSize>());
+	return fullacc.getAcc();
 }
