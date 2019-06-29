@@ -277,6 +277,7 @@ ap_uint<bankSize+1> add_SMK3_acc_sub(acc_SMK3<N, bankSize> acc,
 										ap_uint<1> sign,
 										ap_uint<1> borrow0 =0)
 {
+	#pragma HLS INLINE
 	ap_uint<bankSize+1+1> bank = acc.getBank(stageIndex);
 	ap_uint<bankSize> toSub = add_SMK3_to_sub_<N, bankSize, getMantSpread<N, bankSize>()>(stageIndex, stageSelect, sign, shiftedSignificand);
 
@@ -297,6 +298,7 @@ ap_uint<bankSize+1> add_SMK3_acc_add(acc_SMK3<N, bankSize> acc,
 										ap_uint<bankSize> subed_to_add,
 										ap_uint<1> carry0 =0)
 {
+	#pragma HLS INLINE
 	ap_uint<bankSize> toAdd = add_SMK3_to_add_<N, bankSize, getMantSpread<N, bankSize>()>(stageIndex, stageSelect, sign, shiftedSignificand);
 	ap_uint<1> accCarry = (stageIndex==0) ? carry0 : acc.getCarry(stageIndex-1);
 
