@@ -319,8 +319,8 @@ ap_uint<bankSize+2> add_SMK3_acc_stage(acc_SMK3<N, bankSize> acc,
 										ap_uint<1> carry0 =0,
 										ap_uint<1> borrow0 =0)
 {
-	#pragma HLS INLINE
-	#pragma HLS PIPELINE
+	// #pragma HLS INLINE
+	// #pragma HLS PIPELINE
 	
 	ap_uint<bankSize+1> subed = add_SMK3_acc_sub(acc, stageIndex, stageSelect, shiftedSignificand, sign, borrow0);
 	ap_uint<1> borrow = subed[bankSize];
@@ -338,6 +338,42 @@ ap_uint<bankSize+2> add_SMK3_acc_stage(acc_SMK3<N, bankSize> acc,
 
 	return resWithCarryBorrow;
 }
+
+
+template<int N, int bankSize, int index>
+void add_SMK3_acc_stage_top(acc_SMK3<N, bankSize> * acc, 
+										ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1> stageSelect,
+										ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)> shiftedSignificand,
+										ap_uint<1> sign,
+										ap_uint<1> carry0 =0,
+										ap_uint<1> borrow0 =0,
+    									typename enable_if<(index == 0)>::type* dummy = 0
+										)
+{
+		ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize>((acc_SMK3<N, bankSize>)(*acc), stageSelect, shiftedSignificand, sign, carry0, borrow0);
+		acc->setCarry(index, stage_val[bankSize]);
+		acc->setBorrow(index, stage_val[bankSize+1]);
+		acc->setBank(index, stage_val.range(bankSize-1,0));
+}
+
+template<int N, int bankSize, int index>
+void add_SMK3_acc_stage_top(acc_SMK3<N, bankSize>*  acc, 
+										ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1> stageSelect,
+										ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)> shiftedSignificand,
+										ap_uint<1> sign,
+										ap_uint<1> carry0 =0,
+										ap_uint<1> borrow0 =0,
+    									typename enable_if<(index >= 1)>::type* dummy = 0
+										)
+{
+		ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize>((acc_SMK3<N, bankSize>)(*acc), (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>)index, stageSelect, shiftedSignificand, sign, carry0, borrow0);
+		acc->setCarry(index, stage_val[bankSize]);
+		acc->setBorrow(index, stage_val[bankSize+1]);
+		acc->setBank(index, stage_val.range(bankSize-1,0));
+		add_SMK3_acc_stage_top<N, bankSize, index-1>(acc, stageSelect, shiftedSignificand, sign, carry0, borrow0);
+}
+
+
 
 
 template<int N, int bankSize>
@@ -361,15 +397,17 @@ acc_SMK3<N, bankSize> add_SMK3(
 	acc_SMK3<N, bankSize> fullAcc = acc_SMK3<N, bankSize>(0, 0);
 
 
-	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
-		#pragma HLS UNROLL
-		ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize>((acc_SMK3<N, bankSize>)acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>)i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
-		fullAcc.setCarry(i, stage_val[bankSize]);
-		fullAcc.setBorrow(i, stage_val[bankSize+1]);
-		fullAcc.setBank(i, stage_val.range(bankSize-1,0));
-	}
+	add_SMK3_acc_stage_top<N, bankSize, getNbStages<N, bankSize>()-1>((acc_SMK3<N, bankSize>*)(&acc), (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
 
-	return fullAcc;
+	// for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
+	// 	#pragma HLS UNROLL
+	// 	ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize>((acc_SMK3<N, bankSize>)acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>)i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
+	// 	fullAcc.setCarry(i, stage_val[bankSize]);
+	// 	fullAcc.setBorrow(i, stage_val[bankSize+1]);
+	// 	fullAcc.setBank(i, stage_val.range(bankSize-1,0));
+	// }
+
+	return acc;
 }
 
 template<int N, int bankSize>
@@ -377,16 +415,20 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 {	
 
 	#pragma HLS INLINE
-	acc_SMK3<N, bankSize> fullAcc = acc;
+	// acc_SMK3<N, bankSize> fullAcc = acc;
   	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
 		#pragma HLS PIPELINE II=1
-		for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
-			ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N, bankSize>(fullAcc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, 0);
-			fullAcc.setCarry(i, stage_val[bankSize]);
-			fullAcc.setBorrow(i, stage_val[bankSize+1]);
-			fullAcc.setBank(i, stage_val.range(bankSize-1,0));
-		}	
+		
+		add_SMK3_acc_stage_top<N, bankSize, getNbStages<N, bankSize>()-1>((acc_SMK3<N, bankSize>*)(&acc), (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) 0, (ap_uint<1>) 0);
+
+		// for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
+
+		// 	ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N, bankSize>(fullAcc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> ) i, (ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>) 0, (ap_uint<Static_Ceil_Div<2*FPDim<N>::WF+2,bankSize>::val * bankSize>) 0, 0);
+		// 	fullAcc.setCarry(i, stage_val[bankSize]);
+		// 	fullAcc.setBorrow(i, stage_val[bankSize+1]);
+		// 	fullAcc.setBank(i, stage_val.range(bankSize-1,0));
+		// }	
 	}
 	// fullAcc.printContent();
-	return fullAcc.getAcc();
+	return acc.getAcc();
 }
