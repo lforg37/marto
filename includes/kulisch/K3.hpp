@@ -310,7 +310,7 @@ ap_uint<bankSize+2> add_SMK3_acc_stage(acc_SMK3<N, bankSize> acc,
 										ap_uint<1> carry0 =0,
 										ap_uint<1> borrow0 =0)
 {
-	// #pragma HLS INLINE
+	#pragma HLS INLINE
 	// #pragma HLS PIPELINE
 	
 	ap_uint<bankSize+1> subed = add_SMK3_acc_sub<N, bankSize, stageIndex>(acc, stageSelect, shiftedSignificand, sign, borrow0);
@@ -341,10 +341,11 @@ void add_SMK3_acc_stage_top(acc_SMK3<N, bankSize> * acc,
     									typename enable_if<(index == 0)>::type* dummy = 0
 										)
 {
-		ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize, index>((acc_SMK3<N, bankSize>)(*acc), stageSelect, shiftedSignificand, sign, carry0, borrow0);
-		acc->setCarry(index, stage_val[bankSize]);
-		acc->setBorrow(index, stage_val[bankSize+1]);
-		acc->setBank(index, stage_val.range(bankSize-1,0));
+	#pragma HLS INLINE
+	ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize, index>((acc_SMK3<N, bankSize>)(*acc), stageSelect, shiftedSignificand, sign, carry0, borrow0);
+	acc->setCarry(index, stage_val[bankSize]);
+	acc->setBorrow(index, stage_val[bankSize+1]);
+	acc->setBank(index, stage_val.range(bankSize-1,0));
 }
 
 template<int N, int bankSize, int index>
@@ -357,11 +358,12 @@ void add_SMK3_acc_stage_top(acc_SMK3<N, bankSize>*  acc,
     									typename enable_if<(index >= 1)>::type* dummy = 0
 										)
 {
-		ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize, index>((acc_SMK3<N, bankSize>)(*acc), stageSelect, shiftedSignificand, sign, carry0, borrow0);
-		acc->setCarry(index, stage_val[bankSize]);
-		acc->setBorrow(index, stage_val[bankSize+1]);
-		acc->setBank(index, stage_val.range(bankSize-1,0));
-		add_SMK3_acc_stage_top<N, bankSize, index-1>(acc, stageSelect, shiftedSignificand, sign, carry0, borrow0);
+	#pragma HLS INLINE
+	ap_uint<bankSize+2> stage_val = add_SMK3_acc_stage<N,bankSize, index>((acc_SMK3<N, bankSize>)(*acc), stageSelect, shiftedSignificand, sign, carry0, borrow0);
+	acc->setCarry(index, stage_val[bankSize]);
+	acc->setBorrow(index, stage_val[bankSize+1]);
+	acc->setBank(index, stage_val.range(bankSize-1,0));
+	add_SMK3_acc_stage_top<N, bankSize, index-1>(acc, stageSelect, shiftedSignificand, sign, carry0, borrow0);
 }
 
 
