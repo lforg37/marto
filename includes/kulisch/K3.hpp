@@ -305,55 +305,6 @@ ap_uint<bankSize+1> add_SMK3_acc_add(acc_SMK3<N, bankSize> acc,
 	return sum;	
 }
 
-// template<int N, int bankSize>
-// ap_uint<bankSize+bankSize+2> add_SMK3_acc_stage(acc_SMK3<N, bankSize> acc, 
-// 										ap_uint<bankSize> delayedSumInput, 
-// 										ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2> stageIndex, 
-// 										ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1> stageSelect,
-// 										ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)> shiftedSignificand,
-// 										ap_uint<1> sign,
-// 										ap_uint<1> carry0 =0,
-// 										ap_uint<1> borrow0 =0)
-// {
-// 	#pragma HLS INLINE
-// 	#pragma HLS PIPELINE
-
-// 	// fprintf(stderr, "STAGEINDEX: %d\n", (int)stageIndex);
-
-// 	// fprintf(stderr, "delayedSumInput: ");
-// 	// for (int i = bankSize-1; i>=0; i--)
-// 	// {
-// 	// 	fprintf(stderr, "%d", (int)delayedSumInput[i]);
-// 	// }
-// 	// fprintf(stderr, "\n");	
-	
-// 	ap_uint<bankSize+1> subed = add_SMK3_acc_sub(acc, stageIndex-1, stageSelect, shiftedSignificand, sign, borrow0);
-// 	ap_uint<1> borrow = subed[bankSize];
-// 	ap_uint<bankSize> subed_to_add = subed.range(bankSize-1,0);
-
-// 	ap_uint<bankSize+1> added = add_SMK3_acc_add(acc, stageIndex, stageSelect, shiftedSignificand, sign, delayedSumInput, carry0);
-// 	ap_uint<1> carry = added[bankSize];
-// 	ap_uint<bankSize> res = added.range(bankSize-1,0);
-	
-
-// 	// ap_uint<1> finalCarry{carry and not(borrow)};
-// 	ap_uint<1> finalCarry{carry};
-// 	ap_uint<bankSize+1> resWithCarry{finalCarry.concat(res)};
-// 	// ap_uint<1> finalBorrow{borrow and not(carry)};
-// 	ap_uint<1> finalBorrow{borrow};
-// 	ap_uint<bankSize+2> resWithCarryBorrow{borrow.concat(resWithCarry)};
-// 	ap_uint<bankSize+bankSize+2> completeRes = resWithCarryBorrow.concat(subed_to_add);
-
-// 	// fprintf(stderr, "concatenation: ");
-// 	// for (int i = bankSize+bankSize+2-1; i>=0; i--)
-// 	// {
-// 	// 	fprintf(stderr, "%d", (int)completeRes[i]);
-// 	// }
-// 	// fprintf(stderr, "\n");
-
-// 	return completeRes;
-// }
-
 
 template<int N, int bankSize>
 acc_SMK3<N, bankSize> add_SMK3(
@@ -376,7 +327,11 @@ acc_SMK3<N, bankSize> add_SMK3(
 	ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1> stageSelect = prodExp.range(FPDim<N>::WE+1 +1 -1, Static_Val<bankSize>::_log2);
 	acc_SMK3<N, bankSize> fullAcc = acc_SMK3<N, bankSize>(0, 0);
 
-	ap_uint<bankSize+1> subed = add_SMK3_acc_sub<N, bankSize>(acc, ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{getNbStages<N, bankSize>()-1}, stageSelect, shiftedInput, prod.getSignBit());
+	ap_uint<bankSize+1> subed = add_SMK3_acc_sub<N, bankSize>(acc, 
+																ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{getNbStages<N, bankSize>()-1}, 
+																ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{stageSelect}, 
+																ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{shiftedInput}, 
+																ap_uint<1>{prod.getSignBit()});
 	ap_uint<1> borrow = subed[bankSize];
 	fullAcc.setBorrow(getNbStages<N, bankSize>()-1, borrow);
 	ap_uint<bankSize> toDelay = subed.range(bankSize-1,0);
@@ -388,20 +343,36 @@ acc_SMK3<N, bankSize> add_SMK3(
 
 	for(int i=getNbStages<N, bankSize>()-1; i>=1; i--){
 		#pragma HLS UNROLL
-		added = add_SMK3_acc_add<N, bankSize>(acc, (ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>)i, stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit(), toDelay);
+		added = add_SMK3_acc_add<N, bankSize>(acc, 
+											ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i}, 
+											ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{stageSelect}, 
+											ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{shiftedInput}, 
+											ap_uint<1>{prod.getSignBit()}, 
+											ap_uint<bankSize>{toDelay});
+
+
 		carry = added[bankSize];
 		sum = added.range(bankSize-1,0);
 		fullAcc.setCarry(i, carry);
 		fullAcc.setBank(i, sum);
 
 
-		subed = add_SMK3_acc_sub<N, bankSize>(acc, ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i-1}, stageSelect, (ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>) shiftedInput, (ap_uint<1>) prod.getSignBit());
+		subed = add_SMK3_acc_sub<N, bankSize>(acc, 
+												ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i-1}, 
+												ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{stageSelect},
+												ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{shiftedInput}, 
+												ap_uint<1>{prod.getSignBit()});
 		borrow = subed[bankSize];
 		fullAcc.setBorrow(i-1, borrow);
 		toDelay = subed.range(bankSize-1,0);
 	}
 
-	added = add_SMK3_acc_add<N, bankSize>(acc, ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{0}, stageSelect, shiftedInput, prod.getSignBit(), toDelay);
+	added = add_SMK3_acc_add<N, bankSize>(acc, 
+										ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{0}, 
+										ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{stageSelect}, 
+										ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{shiftedInput}, 
+										ap_uint<1>{prod.getSignBit()}, 
+										ap_uint<bankSize>{toDelay});
 	carry = added[bankSize];
 	sum = added.range(bankSize-1,0);
 	fullAcc.setCarry(0, carry);
@@ -419,7 +390,11 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 	acc_SMK3<N, bankSize> fullAcc = acc;
   	for(int j=0; j<getNbStages<N, bankSize>()+1; j++){
 		#pragma HLS PIPELINE II=1
-  		ap_uint<bankSize+1> subed = add_SMK3_acc_sub<N, bankSize>(fullAcc, ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{getNbStages<N, bankSize>()-1}, 0, 0, 0);
+  		ap_uint<bankSize+1> subed = add_SMK3_acc_sub<N, bankSize>(fullAcc, 
+  																	ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{getNbStages<N, bankSize>()-1}, 
+  																	ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{0}, 
+  																	ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{0}, 
+  																	ap_uint<1>{0});
 		ap_uint<1> borrow = subed[bankSize];
 		fullAcc.setBorrow(getNbStages<N, bankSize>()-1, borrow);
 		ap_uint<bankSize> toDelay = subed.range(bankSize-1,0);
@@ -430,21 +405,38 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 
 		for(int i=getNbStages<N, bankSize>()-1; i>=1; i--){
 			#pragma HLS UNROLL
-			added = add_SMK3_acc_add<N, bankSize>(fullAcc, ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i}, 0, 0, 0, toDelay, 0);
+			added = add_SMK3_acc_add<N, bankSize>(fullAcc, 
+													ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i}, 
+													ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{0}, 
+													ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{0}, 
+													ap_uint<1>{0}, 
+													ap_uint<bankSize>{toDelay}, 
+													ap_uint<1>{0});
+
 			carry = added[bankSize];
 			sum = added.range(bankSize-1,0);
 			
 			fullAcc.setCarry(i, carry);
 			fullAcc.setBank(i, sum);
 
-			subed = add_SMK3_acc_sub<N, bankSize>(fullAcc, ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i-1}, 0, 0, 0, 0);
+			subed = add_SMK3_acc_sub<N, bankSize>(fullAcc, 
+													ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i-1}, 
+													ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{0}, 
+													ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{0}, 
+													ap_int<1>{0}, 
+													ap_uint<1>{0});
 			borrow = subed[bankSize];
 			fullAcc.setBorrow(i-1, borrow);
 			toDelay = subed.range(bankSize-1,0);
 
 		}
 
-		added = add_SMK3_acc_add<N, bankSize>(fullAcc, ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{0}, 0, 0, 0, toDelay);
+		added = add_SMK3_acc_add<N, bankSize>(fullAcc, 
+												ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{0}, 
+												ap_uint<FPDim<N>::WE+1 +1 - Static_Val<bankSize>::_log2 +1>{0}, 
+												ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{0}, 
+												ap_uint<1>{0}, 
+												ap_uint<bankSize>{toDelay});
 		carry = added[bankSize];
 		sum = added.range(bankSize-1,0);
 		fullAcc.setCarry(0, carry);
