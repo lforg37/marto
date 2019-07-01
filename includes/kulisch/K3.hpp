@@ -333,7 +333,6 @@ acc_SMK3<N, bankSize> add_SMK3(
 																ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{shiftedInput}, 
 																ap_uint<1>{prod.getSignBit()});
 	ap_uint<1> borrow = subed[bankSize];
-	fullAcc.setBorrow(getNbStages<N, bankSize>()-1, borrow);
 	ap_uint<bankSize> toDelay = subed.range(bankSize-1,0);
 
 
@@ -355,6 +354,7 @@ acc_SMK3<N, bankSize> add_SMK3(
 		sum = added.range(bankSize-1,0);
 		fullAcc.setCarry(i, carry);
 		fullAcc.setBank(i, sum);
+		fullAcc.setBorrow(i, borrow);
 
 
 		subed = add_SMK3_acc_sub<N, bankSize>(acc, 
@@ -363,7 +363,6 @@ acc_SMK3<N, bankSize> add_SMK3(
 												ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{shiftedInput}, 
 												ap_uint<1>{prod.getSignBit()});
 		borrow = subed[bankSize];
-		fullAcc.setBorrow(i-1, borrow);
 		toDelay = subed.range(bankSize-1,0);
 	}
 
@@ -377,6 +376,7 @@ acc_SMK3<N, bankSize> add_SMK3(
 	sum = added.range(bankSize-1,0);
 	fullAcc.setCarry(0, carry);
 	fullAcc.setBank(0, sum);
+	fullAcc.setBorrow(0, borrow);
 
 	// fullAcc.printContent();
 	return fullAcc;
@@ -396,7 +396,6 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
   																	ap_int<(1<<Static_Val<getMantSpread<N, bankSize>()*bankSize>::_log2)>{0}, 
   																	ap_uint<1>{0});
 		ap_uint<1> borrow = subed[bankSize];
-		fullAcc.setBorrow(getNbStages<N, bankSize>()-1, borrow);
 		ap_uint<bankSize> toDelay = subed.range(bankSize-1,0);
 		
 		ap_uint<bankSize+1> added;
@@ -418,6 +417,7 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 			
 			fullAcc.setCarry(i, carry);
 			fullAcc.setBank(i, sum);
+			fullAcc.setBorrow(i, borrow);
 
 			subed = add_SMK3_acc_sub<N, bankSize>(fullAcc, 
 													ap_uint<Static_Val<getNbStages<N, bankSize>()>::_log2>{i-1}, 
@@ -426,7 +426,6 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 													ap_int<1>{0}, 
 													ap_uint<1>{0});
 			borrow = subed[bankSize];
-			fullAcc.setBorrow(i-1, borrow);
 			toDelay = subed.range(bankSize-1,0);
 
 		}
@@ -441,9 +440,10 @@ KulischAcc<N> propagate_carries_SMK3(acc_SMK3<N, bankSize> acc)
 		sum = added.range(bankSize-1,0);
 		fullAcc.setCarry(0, carry);
 		fullAcc.setBank(0, sum);
+		fullAcc.setBorrow(0, borrow);
 
 
-		// fullAcc.printContent();
+
 
 	}
 
