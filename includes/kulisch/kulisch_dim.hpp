@@ -307,9 +307,9 @@ class acc_SMK3 : public acc_SMK3Size<N, bankSize>
 			// return (*this)[index];
 		}
 		
-		void setBorrow(int index, ap_uint<1> borrow){
+		void setBorrow(int index, ap_uint<1> carry){
 			#pragma HLS INLINE
-			(*this).borrows[index] = borrow;
+			(*this).borrows[index] = carry;
 		}
 
 		ap_uint<1> isNeg(){
@@ -317,20 +317,6 @@ class acc_SMK3 : public acc_SMK3Size<N, bankSize>
 			return (*this).banks[getNbStages<N, bankSize>()-1][bankSize-1];
 			// return (*this)[getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1];
 		}
-
-		// void printContent(){
-		// 	for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
-		// 		fprintf(stderr, "c%d", (int)(*this).getCarry(i));
-		// 		fprintf(stderr, "b%d ", (int)(*this).getBorrow(i));
-		// 		for(int j=bankSize-1; j>=0; j--){
-		// 			fprintf(stderr, "%d", (int)(*this).getBank(i)[j]);
-		// 		}	
-		// 		fprintf(stderr, " ");
-
-		// 	}
-		// 	fprintf(stderr, "\n");
-
-		// }
 
 };
 #endif
