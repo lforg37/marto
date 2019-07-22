@@ -3,31 +3,29 @@
 
 #include "ap_int.h"
 #include "posit_dim.hpp"
-#include "marto/bitvector.hpp"
+#include "bitvector/lzoc_shifter.hpp"
+#include "bitvector/shifter_sticky.hpp"
+#include "tools/utils.hpp"
 
 #define S_WF PositIntermediateFormat<N, WES>::FractionSize
 #define S_WE PositIntermediateFormat<N, WES>::ExpSize
 #define S_WES WES
 #define K_SIZE (S_WE-S_WES)
 
-/*
-	Uppon testing, the cheapest way to perform the add_sub component is to 
-	negate the input before the addition instead of merging the negation in
-	the operator.
-*/
+//#define DEBUG_ADDER 1
 
 template<int N, int WES>
 PositIntermediateFormat<N, WES> posit_add(
-        PositIntermediateFormat<N, WES> in1,
-        PositIntermediateFormat<N, WES> in2
+		PositIntermediateFormat<N, WES> in1,
+		PositIntermediateFormat<N, WES> in2
 ){
 	#pragma HLS INLINE
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
-	
+
 	bool in1IsGreater = in1.getExp() > in2.getExp();
 
 	ap_uint<S_WE> subExpOp1, subExpOp2;
-	ap_uint<S_WE+1> shiftValue;
+	ap_uint<S_WE> shiftValue;
 	ap_int<S_WF+2> mostSignificantSignificand, lessSignificantSignificand;
 
 	ap_int<S_WF+2> input2Significand = in2.getSignedSignificand();
@@ -39,6 +37,7 @@ PositIntermediateFormat<N, WES> posit_add(
 	printApInt(input2Significand);
 #endif
 
+
 	if(in1IsGreater){
 		subExpOp1 = in1.getExp();
 		subExpOp2 = in2.getExp();
@@ -49,14 +48,8 @@ PositIntermediateFormat<N, WES> posit_add(
 		subExpOp1 = in2.getExp();
 		subExpOp2 = in1.getExp();
 		mostSignificantSignificand = input2Significand;
-		lessSignificantSignificand = input1Significand;	
+		lessSignificantSignificand = input1Significand;
 	}
-
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Most, less\n");
-	printApInt(mostSignificantSignificand);
-	printApInt(lessSignificantSignificand);
-#endif
 
 	shiftValue = subExpOp1 - subExpOp2;
 
@@ -65,12 +58,33 @@ PositIntermediateFormat<N, WES> posit_add(
 	printApUint(shiftValue);
 #endif
 
+	//---------------------------------------
+
+	ap_uint<2> toConcatLess_new{0};
+	ap_uint<S_WF+4> paddedSignificand_new = lessSignificantSignificand.concat(toConcatLess_new);
+	ap_uint<S_WF+5> shiftedSignificand_new = shifter_sticky<S_WF+4, S_WE+1, true>(paddedSignificand_new, shiftValue, lessSignificantSignificand[S_WF+1]);
+
+	ap_uint<S_WF+3> shifted_top_new = shiftedSignificand_new.range(S_WF+4, 2);
+
+	ap_uint<1> shifted_guard_new = shiftedSignificand_new[1];
+	ap_uint<1> sticky_new = shiftedSignificand_new[0];
+	ap_uint<2> guard_sticky_shifted_new = shifted_guard_new.concat(ap_uint<1>(sticky_new));
+
+	//---------------------------------------
+
 	ap_uint<S_WF+1> toConcatLess = ap_uint<S_WF+1>(0);
 	ap_int<S_WF+2 + S_WF+1> shiftedSignificand = ((ap_int<S_WF+2 + S_WF+1>)lessSignificantSignificand.concat(toConcatLess)) >> shiftValue;
 
 #ifdef DEBUG_ADDER
 	fprintf(stderr, "Shifted\n");
 	printApInt(shiftedSignificand);
+
+	fprintf(stderr, "Shifter input : \n");
+	ap_int<S_WF+4> ssinput = paddedSignificand_new;
+	printApInt(ssinput);
+	fprintf(stderr, "Shifted_new\n");
+	ap_int<S_WF+5> ssnewi = shiftedSignificand_new;
+	printApInt(ssnewi);
 #endif
 
 	ap_uint<S_WF+3> shifted_top = shiftedSignificand.range(S_WF+2 + S_WF+1 -1, S_WF+1-1);
@@ -80,22 +94,24 @@ PositIntermediateFormat<N, WES> posit_add(
 	fprintf(stderr, "Shifted top, sticky bits\n");
 	printApUint(shifted_top);
 	printApUint(sticky_bits);
+
+	fprintf(stderr, "shifted_top new\n");
+	printApUint(shifted_top_new);
 #endif
 
 	ap_uint<1> shifted_guard = sticky_bits[S_WF-1];
 	ap_uint<S_WF-1> rest_sticky_shift = sticky_bits.range(S_WF-2,0);
 
 	ap_uint<1> sticky = rest_sticky_shift.or_reduce();
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "sticky_full\n");
-	printApUint(sticky_full);
-#endif
+
 
 	ap_uint<2> guard_sticky_shifted = shifted_guard.concat(ap_uint<1>(sticky));
 
 #ifdef DEBUG_ADDER
 	fprintf(stderr, "guard_sticky_shifted\n");
 	printApUint(guard_sticky_shifted);
+	fprintf(stderr, "guard_sticky_shifted_new\n");
+	printApUint(guard_sticky_shifted_new);
 #endif
 
 	ap_int<S_WF+4> sum_op_1 = (ap_int<S_WF+3>)mostSignificantSignificand.concat(ap_uint<1>(0));
@@ -105,7 +121,6 @@ PositIntermediateFormat<N, WES> posit_add(
 	fprintf(stderr, "Sum op1, op2, lastbit\n");
 	printApInt(sum_op_1);
 	printApInt(sum_op_2);
-	printApUint(carry_bit);
 #endif
 
 
@@ -115,9 +130,9 @@ PositIntermediateFormat<N, WES> posit_add(
 #ifdef DEBUG_ADDER
 	fprintf(stderr, "Sum\n");
 	printApUint(sum);
-#endif	
+#endif
 
-	ap_uint<2> to_append = guard_sticky_shifted;
+	ap_uint<2> to_append = guard_sticky_shifted_new;
 
 	ap_uint<S_WF+6> sum_ext = sum.concat(to_append);
 	ap_uint<Static_Val<S_WF+6>::_rlog2 + S_WF+6> lzocShifter = generic_lzoc_shifter<S_WF+6>(sum_ext, sum_sign);
@@ -131,6 +146,8 @@ PositIntermediateFormat<N, WES> posit_add(
 	printApUint(shiftedSum);
 #endif
 
+
+	// We add two bits to check for both overflows and negative exponents
 	ap_uint<S_WE +1 +1> computedExp = subExpOp1+1 - (lzoc-1);
 	// ap_uint<1> expIsNegative = computedExp[S_WE +1 +1 -1];
 	// ap_uint<1> expOverflowed = computedExp[S_WE +1 +1 -1 -1] == 1;
@@ -157,17 +174,21 @@ PositIntermediateFormat<N, WES> posit_add(
 
 	ap_uint<1> resultIsNaR = in1.getIsNaR() || in2.getIsNaR();
 	ap_uint<1> isZero = ((resultSignificand == 0) && ((guardBit == 0) || ((guardBit == 1) && (stickyBit == 0)))) && !(sum_sign);
-	ap_uint<1> resultS =  (isZero) ? 0 : (!resultSignificand[S_WF+1 -1]); 
+	ap_uint<1> resultS =  (isZero) ? 0 : (!resultSignificand[S_WF+1 -1]);
 
 	ap_uint<S_WE> resultExp = (isZero) ? 0 : computedExp.range(S_WE-1,0);
 
-    PositIntermediateFormat<N, WES> result {
+	PositIntermediateFormat<N, WES> result = PositIntermediateFormat<N, WES>(
 				guardBit,
 				stickyBit,
 				resultIsNaR,
 				resultExp,
 				resultS,
 				resultSignificand[S_WF+1 -1],
-                resultSignificand.range(S_WF+1 -1 -1, 0)};
+				resultSignificand.range(S_WF+1 -1 -1, 0));
+
+
 	return result;
+
+
 }
