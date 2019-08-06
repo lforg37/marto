@@ -11,9 +11,10 @@
 #include <boost/test/unit_test.hpp>
 #include "softposit.h"
 
-#include "marto/posit.hpp"
-#include "marto/kulisch.hpp"
-#include "marto/tools.hpp"
+#include "posit/posit_dim.hpp"
+#include "kulisch/kulisch_dim.hpp"
+#include "posit/add_sub_quire.hpp"
+//#include "tools/.hpp"
 #include "ieeefloats/ieee_adder.hpp"
 
 #include "hint.hpp"

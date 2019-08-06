@@ -1,5 +1,4 @@
 #include "kulisch_dim.hpp"
-#include "marto/bitvector.hpp"
 
 template<int N>
 FPProd<N> exact_prod(ap_uint<N> in1,

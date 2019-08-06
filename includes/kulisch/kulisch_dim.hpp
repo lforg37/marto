@@ -2,9 +2,12 @@
 #define FP_DIM_TPP
 
 #include <cstdint>
+#include <type_traits>
 
 #include "ap_int.h"
 #include "tools/static_math.hpp"
+
+using namespace std;
 
 using hint::Static_Val;
 using hint::Static_Ceil_Div;

@@ -12,8 +12,8 @@
 #include "softposit.h"
 #endif
 
-#include "marto/posit.hpp"
-#include "marto/tools.hpp"
+#include "posit/posit_dim.hpp"
+#include "posit/add_sub_quire.hpp"
 
 using namespace std;
 
@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 	//Positive underflow
     StandardQuire<16> quire{0};
     auto minpos = StandardPIF<16>::getMinPos();
-	auto prod = posit_mul(minpos, minpos);
+	auto prod = posit_quire_mul(minpos, minpos);
 	auto quire_conv = add_sub_quire(quire, prod, 0);
 	auto decoded = quire_to_posit(quire_conv);
 	BOOST_REQUIRE_MESSAGE(decoded == minpos, 
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 
 	//Positive overflow
     auto maxpos = StandardPIF<16>::getMaxPos();
-	prod = posit_mul(maxpos, maxpos);
+	prod = posit_quire_mul(maxpos, maxpos);
 	quire_conv = add_sub_quire(quire, prod, 0);
 	decoded = quire_to_posit(quire_conv);
 	BOOST_REQUIRE_MESSAGE(decoded == maxpos,
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 
 	//Negative underflow
     auto minneg = StandardPIF<16>::getMinPos();
-	prod = posit_mul(minpos, minneg);
+	prod = posit_quire_mul(minpos, minneg);
 	quire_conv = add_sub_quire(quire, prod, 0);
 	decoded = quire_to_posit(quire_conv);
 	BOOST_REQUIRE_MESSAGE(decoded == minneg,
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 
 	//Negative overflow
     auto maxneg = StandardPIF<16>::getMaxPos();
-	prod = posit_mul(maxpos, maxneg);
+	prod = posit_quire_mul(maxpos, maxneg);
 	quire_conv = add_sub_quire(quire, prod, 0);
 	decoded = quire_to_posit(quire_conv);
 	BOOST_REQUIRE_MESSAGE(decoded == maxneg,
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
         auto posit_val = static_cast<PositIntermediateFormat<16, 1> >(posit_encoding);
 
         auto posit_prod_direct = static_cast<PositProd<16, 1> >(posit_val);
-        auto posit_prod_by_one = posit_mul(posit_val, one);
+		auto posit_prod_by_one = posit_quire_mul(posit_val, one);
 
 		if (posit_val.getIsNaR() == 1) {
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getIsNaR() == 1, "Prod by one should be NAR");
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(TestOppositeProd)
         StandardPositEncoding<16> enc{i};
         StandardPositEncoding<16> opposite{i * -1};
 		auto value = posit_decoder(enc);
-		auto neg_prod = posit_mul(value, minus_one);
+		auto neg_prod = posit_quire_mul(value, minus_one);
 		auto op_value = posit_decoder(opposite);
 		auto convert_op = PositIF_to_PositProd(op_value);
 		if (convert_op != neg_prod) {

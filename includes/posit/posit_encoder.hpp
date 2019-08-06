@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include "posit_dim.hpp"
-#include "marto/bitvector.hpp"
 
 #define S_WF PositIntermediateFormat<N, WES>::FractionSize
 #define S_WE PositIntermediateFormat<N, WES>::ExpSize

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "posit_dim.hpp"
-#include "marto/bitvector.hpp"
 
 template<int N, int WES, int NB_CARRY>
 PositIntermediateFormat<N, WES> quire_to_posit(Quire<N, WES, NB_CARRY> quire)

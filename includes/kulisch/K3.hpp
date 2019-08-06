@@ -1,7 +1,8 @@
 
 #include "kulisch_dim.hpp"
 using namespace std;
-#include "marto/bitvector.hpp"
+#include "bitvector/lzoc_shifter.hpp"
+#include "bitvector/shifter_marto.hpp"
 
 using hint::Static_Val;
 using hint::Static_Ceil_Div;

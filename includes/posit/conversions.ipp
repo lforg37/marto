@@ -57,7 +57,7 @@ PositProd<N, WES> operator*(
     #pragma HLS INLINE
     auto lhs_val = static_cast<PositIntermediateFormat<N, WES> >(lhs);
     auto rhs_val = static_cast<PositIntermediateFormat<N, WES> >(rhs);
-    return posit_mul(lhs_val, rhs_val);
+    return posit_quire_mul(lhs_val, rhs_val);
 }
 
 /***

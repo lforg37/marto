@@ -3,7 +3,7 @@
 
 #include "ap_int.h"
 #include "posit_dim.hpp"
-#include "marto/bitvector.hpp"
+#include "bitvector/lzoc_shifter.hpp"
 
 template<int N, int WES, int NB_CARRY>
 Quire<N, WES, NB_CARRY> add_sub_quire(

@@ -1,5 +1,6 @@
 #include "kulisch_dim.hpp"
 #include "tools/static_math.hpp"
+#include "bitvector/lzoc_shifter.hpp"
 
 using hint::Static_Val;
 

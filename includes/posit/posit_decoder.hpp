@@ -1,6 +1,6 @@
 #pragma once
 #include "posit_dim.hpp"
-#include "marto/bitvector.hpp"
+#include "bitvector/lzoc_shifter.hpp"
 
 template<int N, int WES>
 ap_uint<PositDim<N, WES>::WE> getExponent(
