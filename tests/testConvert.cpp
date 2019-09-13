@@ -302,17 +302,21 @@ BOOST_AUTO_TEST_CASE(PositToValueTestPosit16)
 		floatingPointVal *= factor;
 		//cout << "Decoded value : " << value << endl;
 		
-		if (decoded.getIsNaR() == 1) {
-			floatingPointVal = numeric_limits<double>::infinity();
-		}
-
 		posit16_t posit_val = castP16(i);
 		double soft_posit_val = convertP16ToDouble(posit_val);
-		//cout << "Soft Posit decoded value : " << soft_posit_val << endl << endl;
-		BOOST_REQUIRE_MESSAGE(
-				soft_posit_val == floatingPointVal,
-			   "Error in conversion : decoding of value " << i << 
-			   " gives " << floatingPointVal << " instead of " << soft_posit_val );
+
+		if (decoded.getIsNaR() == 1) {
+			BOOST_REQUIRE_MESSAGE(isnan(soft_posit_val), 
+					"Error in conversion : decoding of value " << i << 
+					"gives NaN when softposit value gives " << soft_posit_val
+					);
+		} else {
+			//cout << "Soft Posit decoded value : " << soft_posit_val << endl << endl;
+			BOOST_REQUIRE_MESSAGE(
+					soft_posit_val == floatingPointVal,
+					"Error in conversion : decoding of value " << i << 
+					" gives " << floatingPointVal << " instead of " << soft_posit_val );
+		}
 		i += 1;
 	}while(i != 0);
 }
