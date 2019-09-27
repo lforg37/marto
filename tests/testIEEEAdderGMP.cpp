@@ -11,6 +11,8 @@
 
 #include "ieeefloats/ieee_adder.hpp"
 
+#include "numeric_formats/ieee_small.hpp"
+
 using namespace std;
 
 BOOST_AUTO_TEST_CASE(TestIEEAddWE3WF4GMP)
@@ -18,30 +20,39 @@ BOOST_AUTO_TEST_CASE(TestIEEAddWE3WF4GMP)
 	constexpr unsigned int WF = 4;
 	constexpr unsigned int WE = 3;
 
-	uint64_t nbTests = 1 << ((WF+WE+1) * 2);
+	uint32_t nbRepr = uint64_t{1} << (WF+WE+1);
 
-	auto filepath = TESTDATA_ROOT"/ieeeadder/test_WE3_WF4.input";
-	ifstream testfile;
-	testfile.open(filepath);
-	string i0;
-	string i1;
-	string res;
-	BOOST_REQUIRE_MESSAGE(!testfile.fail(), "The test file " << filepath << " cannot be opened.");
-	for (uint64_t curtest = 0; curtest < nbTests ; ++curtest) {
-		testfile >> i0 >> i1 >> res >> res;
-		mpz_class i0gmp{i0, 2};
-		mpz_class i1gmp{i1, 2};
-		mpz_class mpzres{res, 2};
-		IEEENumber<WE, WF, hint::GMPWrapper> i0ieee{i0gmp};
-		IEEENumber<WE, WF, hint::GMPWrapper> i1ieee{i1gmp};
+	libnumform::SmallIEEENumber<WE, WF> op1{0}, op2{0};
 
-		auto result = ieee_add_sub_impl(i0ieee, i1ieee);
 
-		//cerr << "IN0 : " << endl << i0gmp.get_str(2) << endl;
-		//cerr << "IN1 : " << endl << i1gmp.get_str(2) << endl;
-		//cerr << "EXPECTED : " << endl << mpzres.get_str(2) << endl;
-		//cerr << "GOT : " << endl << result.unravel().get_str(2) << endl;
+//	auto filepath = TESTDATA_ROOT"/ieeeadder/test_WE3_WF4.input";
+//	ifstream testfile;
+//	testfile.open(filepath);
+//	string i0;
+//	string i1;
+//	string res;
+//	BOOST_REQUIRE_MESSAGE(!testfile.fail(), "The test file " << filepath << " cannot be opened.");
+	for (mpz_class op1_repr = 0 ; op1_repr < nbRepr ; ++op1_repr ) {
+		op1 = static_cast<uint32_t>(op1_repr.get_ui());
+		hint::IEEENumber<WE, WF, hint::GMPWrapper> op1_hint{op1_repr};
+		for (mpz_class op2_repr = 0 ; op2_repr < nbRepr ; ++op2_repr ) {
+			//cerr << "Iter " << op1_repr.get_str(2)  << ", " << op2_repr.get_str(2) << endl;
+			op2 = static_cast<uint32_t>(op2_repr.get_ui());
+			hint::IEEENumber<WE, WF, hint::GMPWrapper> op2_hint{op2_repr};
 
-		BOOST_REQUIRE_MESSAGE(result.unravel() == mpzres, "Error for iteration " << curtest);
+			auto adder_res = ieee_add_sub_impl(op1_hint, op2_hint);
+			auto adder_res_gmp = adder_res.unravel();
+
+			auto test_res = op1 + op2;
+			if (test_res.isNaN()) {
+				BOOST_REQUIRE_MESSAGE(adder_res.isNaN().template isSet<0>(), "Result should be NaN");
+			} else {
+				auto res_repr = mpz_class{test_res.getRepr()};
+				BOOST_REQUIRE_MESSAGE(adder_res_gmp == res_repr, "Error for iteration " <<
+								  op1_repr << ", " << op2_repr <<
+								  "\nHint obtained result is\n" << adder_res_gmp.get_str(2) <<
+								  "\nShould be :\n" << res_repr.get_str(2));
+			}
+		}
 	}
-}
+}//*/
