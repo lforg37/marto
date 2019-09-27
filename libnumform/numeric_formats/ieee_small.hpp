@@ -383,10 +383,11 @@ namespace libnumform {
 				bool guard2 = guard_mask & frac2;
 				sticky = frac2 & (guard_mask - 1);
 
-				int8_t val = (guard << 2) | (guard2 << 1) | sticky;
+				int8_t val = (static_cast<int8_t>(guard) << 2) |
+						(static_cast<int8_t>(guard2) << 1) |
+						static_cast<int8_t>(sticky);
 
-				bool remove_one = guard or sticky or guard2;
-				if (remove_one) {
+				if (val) {
 					sum -= 1;
 					val = -val;
 				}
