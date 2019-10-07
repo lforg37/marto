@@ -27,6 +27,8 @@ install(DIRECTORY ${INCLUDE_ROOT}/ DESTINATION include/marto FILES_MATCHING PATT
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests")
 if(BUILD_UNIT_TEST)
 	find_package(Boost 1.55 REQUIRED COMPONENTS unit_test_framework)
+	find_package(OpenMP)
+
 	enable_testing()
 
 	set(TESTDATAROOT ${CMAKE_CURRENT_SOURCE_DIR}/testdata)
@@ -45,10 +47,13 @@ if(BUILD_UNIT_TEST)
 
 		add_executable(testAritOps_exe tests/testArithmeticOp.cpp)
 		target_include_directories(testAritOps_exe PRIVATE ${SOFTPOSIT_H})
-		target_compile_options(testAritOps_exe PRIVATE -O3 -fopenmp)
-		target_link_libraries(testAritOps_exe ${LIBNAME} ${Boost_LIBRARIES} ${SOFTPOSIT_LIB} VIVADO_AP_INT -fopenmp)
+		target_link_libraries(testAritOps_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} ${SOFTPOSIT_LIB} VIVADO_AP_INT -fopenmp)
 		target_compile_definitions(testAritOps_exe PRIVATE TESTDATA_ROOT="${TESTDATAROOT}" VIVADO_BACKEND)
 		add_test(testAritOps testAritOps_exe)
+
+		if(OpenMP_CXX_FOUND)
+			target_link_libraries(testAritOps_exe PRIVATE OpenMP::OpenMP_CXX)
+		endif()
 	else()
 		Message(WARNING "Tests on posit value cannot be run")
 	endif()
@@ -100,10 +105,22 @@ if(BUILD_UNIT_TEST)
 	endif()
 
 	if(NUMFORMATLIBTARGET-OK)
+		add_executable(testLibNumForm_exe tests/testLibNumForm.cpp)
+		target_link_libraries(testLibNumForm_exe PRIVATE libnumform ${Boost_LIBRARIES})
+		add_test(testLibNumForm testLibNumForm_exe)
+
 		add_executable(testIEEEAdderGMP_exe tests/testIEEEAdderGMP.cpp)
 		target_compile_definitions(testIEEEAdderGMP_exe PRIVATE FASTSIM_BACKEND)
 		target_link_libraries(testIEEEAdderGMP_exe PUBLIC ${LIBNAME} libnumform ${Boost_LIBRARIES})
-		target_compile_definitions(testIEEEAdderGMP_exe PRIVATE TESTDATA_ROOT="${TESTDATAROOT}")
 		add_test(testIEEEAdderGMP testIEEEAdderGMP_exe)
+
+		add_executable(testIEEEMultiplier_exe tests/testIEEEMultiplier.cpp)
+		target_compile_definitions(testIEEEMultiplier_exe PRIVATE FASTSIM_BACKEND)
+		target_link_libraries(testIEEEMultiplier_exe PUBLIC ${LIBNAME} libnumform ${Boost_LIBRARIES})
+		add_test(testIEEEMultiplier testIEEEMultiplier_exe)
+
+		if(OpenMP_CXX_FOUND)
+			target_link_libraries(testIEEEMultiplier_exe PRIVATE OpenMP::OpenMP_CXX)
+		endif()
 	endif()
 endif()
