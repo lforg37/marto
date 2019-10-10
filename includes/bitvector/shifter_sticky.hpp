@@ -117,3 +117,15 @@ ap_uint<IS+1> shifter_sticky(
         }
         return ret;
 }
+
+
+template<int IS, int S>
+ap_uint<IS+1> left_shifter(
+                ap_uint<IS> input,
+                ap_uint<S> count,
+                ap_uint<1> fill_bit = 0
+    )
+{
+        #pragma HLS INLINE
+        return shifter_sticky<IS, S, false>(input, count);
+}
