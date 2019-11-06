@@ -7,57 +7,52 @@
  *  PositEncoding cast
  *
  */
-template <int N, int WES>
-PositEncoding<N, WES>::operator PositIntermediateFormat<N, WES>() const
+template <unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+inline PositEncoding<N, WES, Wrapper>::operator PositIntermediateFormat<N, WES, Wrapper>() const
 {
-    #pragma HLS INLINE
-    return posit_decoder(*this);
+	return posit_decoder(*this);
 }
 
-template <int N, int WES>
-PositEncoding<N, WES>::operator PositProd<N, WES>() const
+template <unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+inline PositEncoding<N, WES, Wrapper>::operator PositProd<N, WES, Wrapper>() const
 {
-    #pragma HLS INLINE
-    return static_cast<PositProd<N, WES> >(static_cast<PositIntermediateFormat<N, WES >>(*this));
+	return static_cast<PositProd<N, WES, Wrapper> >(static_cast<PositIntermediateFormat<N, WES, Wrapper>>(*this));
 }
 
 #include "posit_add.hpp"
 
-template<int N, int WES>
-PositEncoding<N, WES> operator+(
-        PositEncoding<N, WES> const & lhs,
-        PositEncoding<N, WES> const & rhs
-    )
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+inline PositEncoding<N, WES, Wrapper> operator+(
+		PositEncoding<N, WES, Wrapper> const & lhs,
+		PositEncoding<N, WES, Wrapper> const & rhs
+	)
 {
-    #pragma HLS INLINE
-    auto lhs_val = static_cast<PositIntermediateFormat<N, WES> >(lhs);
-    auto rhs_val = static_cast<PositIntermediateFormat<N, WES> >(rhs);
-    return static_cast<PositEncoding<N, WES> >(posit_add_optimized(lhs_val, rhs_val));
+	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(lhs);
+	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(rhs);
+	return static_cast<PositEncoding<N, WES, Wrapper> >(posit_add_optimized(lhs_val, rhs_val));
 }
 
-template<int N, int WES>
-PositEncoding<N, WES> operator-(
-        PositEncoding<N, WES> const & lhs,
-        PositEncoding<N, WES> const & rhs
-    )
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+inline PositEncoding<N, WES, Wrapper> operator-(
+		PositEncoding<N, WES, Wrapper> const & lhs,
+		PositEncoding<N, WES, Wrapper> const & rhs
+	)
 {
-    #pragma HLS INLINE
-    auto lhs_val = static_cast<PositIntermediateFormat<N, WES> >(lhs);
-    auto rhs_val = static_cast<PositIntermediateFormat<N, WES> >(rhs);
-    return static_cast<PositEncoding<N, WES> >(posit_add_optimized(lhs_val, rhs_val, 1));
+	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(lhs);
+	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(rhs);
+	return static_cast<PositEncoding<N, WES, Wrapper> >(posit_add_optimized(lhs_val, rhs_val, 1));
 }
 
 #include "posit_mul.hpp"
-template<int N, int WES>
-PositProd<N, WES> operator*(
-        PositEncoding<N, WES> const & lhs,
-        PositEncoding<N, WES> const & rhs
-    )
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+inline PositProd<N, WES, Wrapper> operator*(
+		PositEncoding<N, WES, Wrapper> const & lhs,
+		PositEncoding<N, WES, Wrapper> const & rhs
+	)
 {
-    #pragma HLS INLINE
-    auto lhs_val = static_cast<PositIntermediateFormat<N, WES> >(lhs);
-    auto rhs_val = static_cast<PositIntermediateFormat<N, WES> >(rhs);
-    return posit_quire_mul(lhs_val, rhs_val);
+	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(lhs);
+	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(rhs);
+	return posit_mul(lhs_val, rhs_val);
 }
 
 /***
@@ -68,20 +63,18 @@ PositProd<N, WES> operator*(
 
 #include "value_prod_conversions.hpp"
 
-template <int N, int WES>
-PositIntermediateFormat<N, WES>::operator PositProd<N, WES>() const
+template <unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper>::operator PositProd<N, WES, Wrapper>() const
 {
-   #pragma HLS INLINE
    return PositIF_to_PositProd(*this);
 }
 
 #include "posit_encoder.hpp"
 
-template<int N, int WES>
-PositIntermediateFormat<N, WES>::operator PositEncoding<N, WES>() const
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper>::operator PositEncoding<N, WES, Wrapper>() const
 {
-    #pragma HLS INLINE
-    return posit_encoder(*this);
+	return posit_encoder(*this);
 }
 
 /***
@@ -89,19 +82,18 @@ PositIntermediateFormat<N, WES>::operator PositEncoding<N, WES>() const
  * PositProd conversion function
  *
  */
-template<int N, int WES>
-PositProd<N, WES>::operator PositIntermediateFormat<N, WES>() const
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositProd<N, WES, Wrapper>::operator PositIntermediateFormat<N, WES, Wrapper>() const
 {
-    #pragma HLS INLINE
-    return PositProd_to_PositIF(*this);
+	return PositProd_to_PositIF(*this);
 }
 
-template<int N, int WES>
-PositProd<N, WES>::operator PositEncoding<N, WES>() const
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositProd<N, WES, Wrapper>::operator PositEncoding<N, WES, Wrapper>() const
 {
-    #pragma HLS INLINE
-    return PositEncoding<N, WES>{PositProd_to_PositIF(*this)};
+	return PositEncoding<N, WES, Wrapper>{PositProd_to_PositIF(*this)};
 }
+
 
 /***
  *
@@ -110,31 +102,28 @@ PositProd<N, WES>::operator PositEncoding<N, WES>() const
  */
 
 #include "quire_to_posit.hpp"
-template<int N, int WES, int NB_CARRY>
-Quire<N, WES, NB_CARRY>::operator PositIntermediateFormat<N, WES>() const
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
+inline Quire<N, WES, Wrapper, NB_CARRY>::operator PositIntermediateFormat<N, WES, Wrapper>() const
 {
-    #pragma HLS INLINE
-    return quire_to_posit(*this);
+	return quire_to_posit(*this);
 }
 
-template<int N, int WES, int NB_CARRY>
-Quire<N, WES, NB_CARRY> operator+(
-        Quire<N, WES, NB_CARRY> const & lhs,
-        PositProd<N, WES> const & rhs
-    )
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
+inline Quire<N, WES, Wrapper, NB_CARRY> operator+(
+		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	)
 {
-    #pragma HLS INLINE
-    return add_sub_quire(lhs, rhs, 0);
+	return add_sub_quire(lhs, rhs, 0);
 }
 
-template<int N, int WES, int NB_CARRY>
-Quire<N, WES, NB_CARRY> operator-(
-        Quire<N, WES, NB_CARRY> const & lhs,
-        PositProd<N, WES> const & rhs
-    )
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
+inline Quire<N, WES, Wrapper, NB_CARRY> operator-(
+		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	)
 {
-    #pragma HLS INLINE
-    return add_sub_quire(lhs, rhs, 1);
+	return add_sub_quire(lhs, rhs, 1);
 }
 
 /***
@@ -143,33 +132,29 @@ Quire<N, WES, NB_CARRY> operator-(
  *
  */
 
-template<int N, int WES, int NB_CARRY, int banksize>
-SegmentedQuire<N, WES, NB_CARRY, banksize>::operator PositIntermediateFormat<N, WES>() const
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int banksize>
+inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize>::operator PositIntermediateFormat<N, WES, Wrapper>() const
 {
-#pragma HLS INLINE
-    auto propagated = propagateCarries(*this);
-    return static_cast<PositIntermediateFormat<N, WES> >(propagated);
+	auto propagated = propagateCarries(*this);
+	return static_cast<PositIntermediateFormat<N, WES, Wrapper> >(propagated);
 }
 
 
-template<int N, int WES, int NB_CARRY, int bankSize>
-SegmentedQuire<N, WES, NB_CARRY, bankSize> operator+(
-        SegmentedQuire<N, WES, NB_CARRY, bankSize> const & lhs,
-        PositProd<N, WES> const & rhs
-    )
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int banksize>
+inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> operator+(
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	)
 {
-    #pragma HLS INLINE
-    return segmented_add_sub_quire(lhs, rhs, 0);
+	return segmented_add_sub_quire(lhs, rhs, 0);
 }
-
-template<int N, int WES, int NB_CARRY, int bankSize>
-SegmentedQuire<N, WES, NB_CARRY, bankSize> operator-(
-        SegmentedQuire<N, WES, NB_CARRY, bankSize> const & lhs,
-        PositProd<N, WES> const & rhs
-    )
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int banksize>
+inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> operator-(
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	)
 {
-    #pragma HLS INLINE
-    return segmented_add_sub_quire(lhs, rhs, 1);
+	return segmented_add_sub_quire(lhs, rhs, 1);
 }
 
 

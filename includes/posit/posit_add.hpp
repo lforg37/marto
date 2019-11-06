@@ -1,194 +1,90 @@
 #pragma once
 #include <cstdio>
+#include "tools/static_math.hpp"
+#include "primitives/shifter_sticky.hpp"
+#include "primitives/lzoc_shifter.hpp"
 
-#include "ap_int.h"
 #include "posit_dim.hpp"
-#include "bitvector/lzoc_shifter.hpp"
-#include "bitvector/shifter_sticky.hpp"
-#include "tools/utils.hpp"
 
-#define S_WF PositIntermediateFormat<N, WES>::FractionSize
-#define S_WE PositIntermediateFormat<N, WES>::ExpSize
-#define S_WES WES
-#define K_SIZE (S_WE-S_WES)
+/*
+	Uppon testing, the cheapest way to perform the add_sub component is to
+	negate the input before the addition instead of merging the negation in
+	the operator.
+*/
 
-//#define DEBUG_ADDER 1
+using namespace hint;
 
-template<int N, int WES>
-PositIntermediateFormat<N, WES> posit_add(
-		PositIntermediateFormat<N, WES> in1,
-		PositIntermediateFormat<N, WES> in2
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper> posit_add(
+		PositIntermediateFormat<N, WES, Wrapper> in1,
+		PositIntermediateFormat<N, WES, Wrapper> in2
 ){
-	#pragma HLS INLINE
+	constexpr auto S_WF = PositDim<N, WES>::WF;
+	constexpr auto S_WE = PositDim<N, WES>::WE;
+	constexpr auto S_WES = WES;
+	constexpr auto K_SIZE = S_WE - S_WES;
 	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
+	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<EXT_SUM_SIZE>::_log2;
 
-	bool in1IsGreater = in1.getExp() > in2.getExp();
+	//Sort in order to have exponent of in1 greater than exponent of in2
+	auto in1IsGreater = in1.getExp() > in2.getExp();
 
-	ap_uint<S_WE> subExpOp1, subExpOp2;
-	ap_uint<S_WE> shiftValue;
-	ap_int<S_WF+2> mostSignificantSignificand, lessSignificantSignificand;
+	auto input2Significand = in2.getSignedSignificand();
+	auto input1Significand = in1.getSignedSignificand();
 
-	ap_int<S_WF+2> input2Significand = in2.getSignedSignificand();
-	ap_int<S_WF+2> input1Significand = in1.getSignedSignificand();
+	auto subExpOp1 = Wrapper<S_WE, false>::mux(in1IsGreater, in1.getExp(), in2.getExp());
+	auto subExpOp2 = Wrapper<S_WE, false>::mux(in1IsGreater, in2.getExp(), in1.getExp());
+	auto mostSignificantSignificand = Wrapper<S_WF+2, false>::mux(in1IsGreater, input1Significand, input2Significand);
+	auto lessSignificantSignificand = Wrapper<S_WF+2, false>::mux(in1IsGreater, input2Significand, input1Significand);
 
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Inputs 1,2\n");
-	printApInt(input1Significand);
-	printApInt(input2Significand);
-#endif
+	auto mostSignifSign = Wrapper<1, false>::mux(in1IsGreater, in1.getSignBit(), in2.getSignBit());
+	auto lessSignifSign = Wrapper<1, false>::mux(in1IsGreater, in2.getSignBit(), in1.getSignBit());
 
+	// Relative shift of exponents
+	auto shiftValue = subExpOp1.modularSub(subExpOp2);
+	auto shiftedSignificand = shifter_sticky(
+				lessSignificantSignificand.concatenate(Wrapper<2, false>{0}),
+				shiftValue,
+				lessSignifSign
+			);
 
-	if(in1IsGreater){
-		subExpOp1 = in1.getExp();
-		subExpOp2 = in2.getExp();
-		mostSignificantSignificand = input1Significand;
-		lessSignificantSignificand = input2Significand;
-	}
-	else{
-		subExpOp1 = in2.getExp();
-		subExpOp2 = in1.getExp();
-		mostSignificantSignificand = input2Significand;
-		lessSignificantSignificand = input1Significand;
-	}
+	Wrapper<S_WF + 2, false> shiftedTop = shiftedSignificand.template slice<S_WF+2+2, 3>();
+	auto guards = shiftedSignificand.template slice<2, 1>();
+	auto sticky_low = shiftedSignificand.template get<0>();
 
-	shiftValue = subExpOp1 - subExpOp2;
+	auto addOp1 = mostSignifSign.concatenate(mostSignificantSignificand);
+	auto addOp2 = lessSignifSign.concatenate(shiftedTop);
 
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Shift value\n");
-	printApUint(shiftValue);
-#endif
+	auto addRes = addOp1.modularAdd(addOp2);
+	auto toCount = addRes.template get<S_WF+2>();
+	auto usefulRes = addRes.template slice<S_WF+1, 0>();
 
-	//---------------------------------------
-
-	ap_uint<2> toConcatLess_new{0};
-	ap_uint<S_WF+4> paddedSignificand_new = lessSignificantSignificand.concat(toConcatLess_new);
-	ap_uint<S_WF+5> shiftedSignificand_new = shifter_sticky<S_WF+4, S_WE+1, true>(paddedSignificand_new, shiftValue, lessSignificantSignificand[S_WF+1]);
-
-	ap_uint<S_WF+3> shifted_top_new = shiftedSignificand_new.range(S_WF+4, 2);
-
-	ap_uint<1> shifted_guard_new = shiftedSignificand_new[1];
-	ap_uint<1> sticky_new = shiftedSignificand_new[0];
-	ap_uint<2> guard_sticky_shifted_new = shifted_guard_new.concat(ap_uint<1>(sticky_new));
-
-	//---------------------------------------
-
-	ap_uint<S_WF+1> toConcatLess = ap_uint<S_WF+1>(0);
-	ap_int<S_WF+2 + S_WF+1> shiftedSignificand = ((ap_int<S_WF+2 + S_WF+1>)lessSignificantSignificand.concat(toConcatLess)) >> shiftValue;
-
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Shifted\n");
-	printApInt(shiftedSignificand);
-
-	fprintf(stderr, "Shifter input : \n");
-	ap_int<S_WF+4> ssinput = paddedSignificand_new;
-	printApInt(ssinput);
-	fprintf(stderr, "Shifted_new\n");
-	ap_int<S_WF+5> ssnewi = shiftedSignificand_new;
-	printApInt(ssnewi);
-#endif
-
-	ap_uint<S_WF+3> shifted_top = shiftedSignificand.range(S_WF+2 + S_WF+1 -1, S_WF+1-1);
-	ap_uint<S_WF> sticky_bits = shiftedSignificand.range(S_WF-1, 0);
-
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Shifted top, sticky bits\n");
-	printApUint(shifted_top);
-	printApUint(sticky_bits);
-
-	fprintf(stderr, "shifted_top new\n");
-	printApUint(shifted_top_new);
-#endif
-
-	ap_uint<1> shifted_guard = sticky_bits[S_WF-1];
-	ap_uint<S_WF-1> rest_sticky_shift = sticky_bits.range(S_WF-2,0);
-
-	ap_uint<1> sticky = rest_sticky_shift.or_reduce();
+	auto lzoc_shifted = LZOC_shift<S_WF+4, S_WF+4>(usefulRes.concatenate(guards), toCount);
 
 
-	ap_uint<2> guard_sticky_shifted = shifted_guard.concat(ap_uint<1>(sticky));
+	auto lzoc = lzoc_shifted.template slice<S_WF + 3 + Static_Val<S_WF+4>::_storage, S_WF + 4>();
+	auto frac = lzoc_shifted.template slice<S_WF+3, 3>();
+	auto round = lzoc_shifted.template get<2>();
+	auto sticky = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
 
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "guard_sticky_shifted\n");
-	printApUint(guard_sticky_shifted);
-	fprintf(stderr, "guard_sticky_shifted_new\n");
-	printApUint(guard_sticky_shifted_new);
-#endif
+	auto is_zero = toCount.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
 
-	ap_int<S_WF+4> sum_op_1 = (ap_int<S_WF+3>)mostSignificantSignificand.concat(ap_uint<1>(0));
-	ap_int<S_WF+4> sum_op_2 = (ap_int<S_WF+3>)shifted_top;
+	auto final_exp = Wrapper<S_WE, false>::mux(
+					is_zero,
+					{0},
+					subExpOp1.subWithCarry(lzoc.template leftpad<S_WE>(), {1}).template slice<S_WE-1, 0>()
+				);
 
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Sum op1, op2, lastbit\n");
-	printApInt(sum_op_1);
-	printApInt(sum_op_2);
-#endif
+	auto isResultNar = in1.getIsNaR().bitwise_or(in2.getIsNaR());
 
-
-	ap_uint<S_WF+4> sum = sum_op_1 + sum_op_2 ;
-	ap_uint<1> sum_sign = sum[S_WF+4-1];
-
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Sum\n");
-	printApUint(sum);
-#endif
-
-	ap_uint<2> to_append = guard_sticky_shifted_new;
-
-	ap_uint<S_WF+6> sum_ext = sum.concat(to_append);
-	ap_uint<Static_Val<S_WF+6>::_rlog2 + S_WF+6> lzocShifter = generic_lzoc_shifter<S_WF+6>(sum_ext, sum_sign);
-
-	ap_uint<Static_Val<S_WF+6>::_rlog2> lzoc = lzocShifter.range(Static_Val<S_WF+6>::_rlog2 + S_WF+6-1,S_WF+6);
-	ap_uint<S_WF+6> shiftedSum = lzocShifter.range(S_WF+6-1,0);
-
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Lzoc, shift\n");
-	printApUint(lzoc);
-	printApUint(shiftedSum);
-#endif
-
-
-	// We add two bits to check for both overflows and negative exponents
-	ap_uint<S_WE +1 +1> computedExp = subExpOp1+1 - (lzoc-1);
-	// ap_uint<1> expIsNegative = computedExp[S_WE +1 +1 -1];
-	// ap_uint<1> expOverflowed = computedExp[S_WE +1 +1 -1 -1] == 1;
-
-
-	ap_uint<S_WF+1> resultSignificand = shiftedSum.range(S_WF+6-1,S_WF+6-1 -(S_WF+1)+1);
-	ap_uint<S_WF+6 -(S_WF+1)> resultRest = shiftedSum.range(S_WF+6 -(S_WF+1)-1,0);
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Significand, rest\n");
-	printApUint(resultSignificand);
-	printApUint(resultRest);
-#endif
-
-
-	ap_uint<1> guardBit = resultRest[S_WF+6 -(S_WF+1)-1];
-	ap_uint<S_WF+6 -(S_WF+1)-1> rest_sticky = resultRest.range(S_WF+6 -(S_WF+1) -1-1, 0);
-	ap_uint<1> stickyBit = rest_sticky.or_reduce();
-
-#ifdef DEBUG_ADDER
-	fprintf(stderr, "Guard, sticky\n");
-	printApUint(guardBit);
-	printApUint(stickyBit);
-#endif
-
-	ap_uint<1> resultIsNaR = in1.getIsNaR() || in2.getIsNaR();
-	ap_uint<1> isZero = ((resultSignificand == 0) && ((guardBit == 0) || ((guardBit == 1) && (stickyBit == 0)))) && !(sum_sign);
-	ap_uint<1> resultS =  (isZero) ? 0 : (!resultSignificand[S_WF+1 -1]);
-
-	ap_uint<S_WE> resultExp = (isZero) ? 0 : computedExp.range(S_WE-1,0);
-
-	PositIntermediateFormat<N, WES> result = PositIntermediateFormat<N, WES>(
-				guardBit,
-				stickyBit,
-				resultIsNaR,
-				resultExp,
-				resultS,
-				resultSignificand[S_WF+1 -1],
-				resultSignificand.range(S_WF+1 -1 -1, 0));
-
-
+	PositIntermediateFormat<N, WES, Wrapper> result {
+				round,
+				sticky,
+				isResultNar,
+				final_exp,
+				toCount,
+				frac.template get<S_WF>(),
+				frac.template slice<S_WF-1, 0>()
+	};
 	return result;
-
-
 }

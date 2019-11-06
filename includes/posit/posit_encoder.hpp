@@ -1,74 +1,102 @@
 #pragma once
-#include <iostream>
 
 #include "posit_dim.hpp"
+#include "primitives/shifter_sticky.hpp"
 
-#define S_WF PositIntermediateFormat<N, WES>::FractionSize
-#define S_WE PositIntermediateFormat<N, WES>::ExpSize
-#define S_WES WES
-#define K_SIZE (S_WE-S_WES)
+using namespace hint;
+using namespace std;
 
-template<int N, int WES>
-PositEncoding<N, WES> posit_encoder(PositIntermediateFormat<N, WES> positValue)
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper> positValue)
 {
-    ap_uint<S_WE> expWoBias = positValue.getExp() - PositDim<N, WES>::EXP_BIAS;
+	constexpr auto S_WF = PositDim<N, WES>::WF;
+	constexpr auto S_WE = PositDim<N, WES>::WE;
+	constexpr auto S_WES = WES;
+	constexpr auto K_SIZE = S_WE - S_WES;
 
-	ap_uint<1> sign = positValue.getSignBit();
-	ap_uint<S_WES> es = expWoBias.range(S_WES-1,0) ^ sign;
-	ap_int<K_SIZE> k = expWoBias.range(S_WE-1,S_WES);
-	ap_uint<S_WF> exactSignificand = positValue.getFraction();
-	ap_uint<N-1-2-S_WES> significand = exactSignificand.range(S_WF-1, S_WF-1-(N-1-2-S_WES)+1);
+	auto expWoBias = positValue.getExp().modularSub(Wrapper<S_WE, false>{PositDim<N, WES>::EXP_BIAS});
+	//cerr << "expwobias : " << to_string(expWoBias) << endl;
 
-	ap_uint<S_WES+N-1-2-S_WES> esAndSignificand = es.concat(significand);
-    ap_uint<2> zero_one{1};
-    ap_uint<2> one_zero{2};
+	auto sign = positValue.getSignBit();
+	auto sign_sequence_wes = Wrapper<S_WES, false>::generateSequence(sign);
 
-	ap_int<2+S_WES+N-1-2-S_WES> reverseBitAndEsAndSignificand;
-	if((k[K_SIZE-1] == 1)^sign){
-		reverseBitAndEsAndSignificand = zero_one.concat(esAndSignificand);
-	}
-	else{
-		reverseBitAndEsAndSignificand = one_zero.concat(esAndSignificand);
-	}
+	auto es_wo_xor = expWoBias.template slice<S_WES-1, 0>();
+	// TODO: why this does not work when hint<S_WES> es = es_wo_xor xor sign; ???
+	// Compiler throws error: error: conversion from ‘ap_int_base<1, false>::RType<1, false>::logic’ {aka ‘ap_uint<1>’} to non-scalar type ‘hint<1>’ {aka ‘hint_base<1, false>’} requested
+	auto es = es_wo_xor.bitwise_xor(sign_sequence_wes);
 
-	ap_uint<K_SIZE-1> absK;
+	//cerr << "ES : " << to_string(es) << endl;
 
-	if(k[K_SIZE-1] == 1){
-		absK = ~k;
-	}
-	else{
-		absK = k;
-	}
+	//K_SIZE
+	auto k = expWoBias.template slice<S_WE-1, S_WES>();
 
-    ap_int<N> reverseBitAndEsAndSignificandAndGuardBit = reverseBitAndEsAndSignificand.concat(positValue.getGuardBit());
-	// printApInt(readyToShift);
+	//cerr << "range : " << to_string(k) << endl;
 
-    ap_uint<N+1> shifted = shifter_sticky<N, K_SIZE-1, true>(
-                reverseBitAndEsAndSignificandAndGuardBit,
-                absK,
-                reverseBitAndEsAndSignificandAndGuardBit[N-1]
-        ); //TODO rajouter le fillbit
+	// N - (3 + WES)
+	auto significand = positValue.getFraction();
 
-	// printApUint(shifted);
+	//cerr << "significand : " << to_string(significand) << endl;
 
-    ap_uint<N-1> unroundedResult =  shifted.range(N, 2);
+	// N-3
+	auto esAndSignificand = es.concatenate(significand);
 
-	// printApUint(unroundedResult);
+	Wrapper<2, false> zero_one{1};
+	Wrapper<2, false> one_zero{2};
 
-    ap_uint<1> guard = shifted[1];
-    ap_uint<1> sticky = shifted[0] or positValue.getStickyBit();
+	auto isNegative = k.template get<K_SIZE-1>().bitwise_xor(sign);
+	auto leading = Wrapper<2, false>::mux(isNegative, zero_one, one_zero);
 
-	// printApUint(guard);
-	// printApUint(sticky);
+	//cerr << "Leading : " << to_string(leading) << endl;
+
+	//N-1
+	auto reverseBitAndEsAndSignificand = leading.concatenate(esAndSignificand);
+
+	// K_SIZE - 1
+	auto low_k = k.template slice<K_SIZE-2, 0>();
+	auto absK = Wrapper<K_SIZE-1, false>::mux(
+				k.template get<K_SIZE-1>(),
+				low_k.invert(),
+				low_k
+			);
+	//cerr << "AbsK : " << to_string(absK) << endl;
+
+	//N
+	auto reverseBitAndEsAndSignificandAndGuardBit = reverseBitAndEsAndSignificand.concatenate(positValue.getGuardBit());
+
+	//cerr << "Before shift : " << to_string(reverseBitAndEsAndSignificandAndGuardBit) << endl;
+	// readyToShift.print();
+
+	//N+1
+	auto shifted = shifter_sticky(
+				reverseBitAndEsAndSignificandAndGuardBit,
+				absK,
+				reverseBitAndEsAndSignificandAndGuardBit.template get<N-1>()
+		); //TODO rajouter le fillbit
+
+	//cerr << "Shifted : " << to_string(shifted) << endl;
+
+	//N-1
+	auto unroundedResult =  shifted.template slice<N, 2>();
+
+	//cerr << "Unrounded : " << to_string(unroundedResult) << endl;
 
 
-	ap_uint<1> roundingBit = (guard and not(sticky) and unroundedResult[0]) or (guard and sticky);
+	auto guard = shifted.template get<1>();
+	auto sticky = shifted.template get<0>().bitwise_or(positValue.getStickyBit());
 
-    ap_uint<N-1> roundedResult = unroundedResult + roundingBit;
+	//cerr << "guard : " << to_string(guard) << endl << "sticky : " << to_string(sticky) << endl;
 
-	ap_uint<N> normalOutput = sign.concat(roundedResult);
-	ap_uint<N-1> zero = 0;
-	ap_uint<1> isNaRBit = positValue.getIsNaR();
-	ap_uint<N> specialCasesValue = isNaRBit.concat(zero);
-	return (((not positValue.getSignBit()) and (not positValue.getImplicitBit())) or isNaRBit) ? specialCasesValue : normalOutput;
+	auto roundingBit = guard.bitwise_and(sticky.bitwise_or(unroundedResult.template get<0>()));
+
+	//cerr << "rounding : " << to_string(roundingBit) << endl;
+
+	auto roundedResult = unroundedResult.modularAdd(roundingBit.template leftpad<N-1>());
+
+	auto normalOutput = sign.concatenate(roundedResult);
+	auto zero = Wrapper<N-1, false>::generateSequence({0});
+	auto isNaRBit = positValue.getIsNaR();
+	auto specialCasesValue = isNaRBit.concatenate(zero);
+
+	auto isSpecial = positValue.getSignBit().invert().bitwise_and(positValue.getImplicitBit().invert()).bitwise_or(isNaRBit);
+	return Wrapper<N, false>::mux(isSpecial, specialCasesValue, normalOutput);
 }

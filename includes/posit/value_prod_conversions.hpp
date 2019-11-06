@@ -1,102 +1,94 @@
 #pragma once
 
-#include <cstdio> 
+#include <cstdio>
 
 #include "posit_dim.hpp"
 
-template<int N, int WES>
-PositProd<N, WES> PositIF_to_PositProd(PositIntermediateFormat<N, WES> val)
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositProd<N, WES, Wrapper> PositIF_to_PositProd(PositIntermediateFormat<N, WES, Wrapper> val)
 {
-	#pragma HLS INLINE
-    ap_uint<PositIntermediateFormat<N, WES>::FractionSize + 1> signed_val_frac = val.getSignificand();
-
-    ap_uint<PositProd<N, WES>::SignificandSize> significand = signed_val_frac.concat(
-            ap_uint<PositIntermediateFormat<N, WES>::FractionSize+1>(0)
+	auto val_frac = val.getSignificand();
+	auto significand = val_frac.concatenate(
+			Wrapper<PositDim<N, WES>::WF+1, false>::generateSequence({0})
 		);
 
 
-    auto expt = val.getExp();
+	auto expt = val.getExp().template leftpad<PositDim<N, WES>::ProdExpSize>();
 
-    ap_uint<PositProd<N, WES>::ExpSize> exponent;
-   	if (val.isZero()) {
-		exponent = 0;	
-	} else {
-        exponent = static_cast<ap_uint<PositProd<N, WES>::ExpSize> >(val.getExp()) +
-            ap_uint<PositProd<N, WES>::ExpSize>{PositDim<N, WES>::EXP_BIAS - 1};
-	}
+	auto exponent = Wrapper<PositDim<N, WES>::ProdExpSize, false>::mux(
+					val.isZero(),
+					{0},
+					expt.modularAdd(Wrapper<PositDim<N, WES>::ProdExpSize, false>{PositDim<N, WES>::EXP_BIAS - 1})
+				);
 
-    return PositProd<N, WES>(val.getIsNaR(), exponent, val.getSignBit(), significand);
+	return {val.getIsNaR(), exponent, val.getSignBit(), significand};
 }
 
-template<int N, int WES>
-PositIntermediateFormat<N, WES> PositProd_to_PositIF(PositProd<N, WES> val)
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper> PositProd_to_PositIF(PositProd<N, WES, Wrapper> val)
 {
-	#pragma HLS INLINE
-	ap_uint<1> isMinPos, isMaxPos;
-	ap_uint<1> isNaR = val.getIsNaR();
-    ap_uint<PositProd<N, WES>::SignificandSize> fraction = val.getSignificand();
-    ap_uint<1> implicitBit = fraction[PositProd<N, WES>::SignificandSize-1];
-    ap_uint<PositIntermediateFormat<N, WES>::FractionSize> resultFraction = fraction.range(PositProd<N, WES>::SignificandSize-1-1, PositProd<N, WES>::SignificandSize-1-1 -(PositIntermediateFormat<N, WES>::FractionSize)+1);
-    ap_uint<1> resultGuardBit = fraction[PositProd<N, WES>::SignificandSize-1-1 -(PositIntermediateFormat<N, WES>::FractionSize)+1-1];
-    ap_uint<1> resultStickyBit = not(fraction.range(PositProd<N, WES>::SignificandSize-1-1 -(PositIntermediateFormat<N, WES>::FractionSize)+1-1-1,0) == 0);
+	auto isNaR = val.getIsNaR();
+	auto fraction = val.getSignificand();
+	auto implicitBit = fraction.template get<PositDim<N, WES>::ProdSignificandSize-1>();
+	auto sign = val.getSignBit();
+	constexpr unsigned int WF = PositDim<N, WES>::WF;
+	constexpr unsigned int prod_WF = PositDim<N, WES>::ProdSignificandSize;
 
-	// ap_uint<1> isZero = not(((ap_uint<4>) val.getSignificand().range(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
-	ap_uint<1> isZero = not(val.getSignBit()) and not(implicitBit) and val.getExp()==0;
+	auto resultFraction = fraction.template slice<prod_WF - 2, prod_WF-1-WF>();
 
-    ap_int<PositProd<N, WES>::ExpSize+1> exp;
-	
-    ap_uint<PositProd<N, WES>::ExpSize> expt = val.getExp();
-	// printApUint(expt);	
-	// printApUint(bias);	
-	// printApUint(isZero);	
+	auto resultGuardBit = fraction.template get<prod_WF-2-WF>();
 
-	if (isZero) {
-		exp = 0;
-	} else {
-        exp	= static_cast<ap_int<PositProd<N, WES>::ExpSize+1> >(val.getExp()-(PositDim<N, WES>::EXP_BIAS - 1));
-	}
-	// printApInt(exp);	
+	auto resultStickyBit = fraction.template slice<prod_WF-3 -WF, 0>().or_reduction().invert();
+	auto expt = val.getExp();
 
+	// hint<1> isZero = not(((hint<4>) val.getSignificand().slice(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
+	auto isZero = val.getSignBit().invert().bitwise_and(implicitBit.invert()).bitwise_and(expt.or_reduction().invert());
 
-	if(exp<0 and not(isNaR)){
-		isMinPos = 1;
-	} else {
-		isMinPos = 0;
-	}
-    if(exp >= (2*PositDim<N, WES>::EXP_BIAS) and not(isNaR)){
-		isMaxPos = 1;
-	}
-	else{
-		isMaxPos = 0;
-	}
+	auto exp = Wrapper<PositDim<N, WES>::ProdExpSize + 1, false>::mux(
+					isZero,
+					{0},
+					expt.template leftpad<PositDim<N, WES>::ProdExpSize + 1>().modularSub({PositDim<N, WES>::EXP_BIAS-1})
+				);
+
+	// exp.print();
+	auto maxPosCheck = exp.modularSub({2*PositDim<N, WES>::EXP_BIAS});
+	auto isMinPos = exp.template get<PositDim<N, WES>::ProdExpSize>();
+	auto isMaxPos = maxPosCheck.template get<PositDim<N, WES>::ProdExpSize>().invert().bitwise_and(isNaR.invert());
 
 	// fprintf(stderr, "isminpos: ");
-	// printApUint(isMinPos);
+	// isMinPos.print();
 	// fprintf(stderr, "ismaxpos: ");
-	// printApUint(isMaxPos);
+	// isMaxPos.print();
 
+	auto minposval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+					sign,
+					PositIntermediateFormat<N, WES, Wrapper>::getMinNeg(),
+					PositIntermediateFormat<N, WES, Wrapper>::getMinPos()
+				);
 
-	if(isMinPos and val.getSignBit() ){
-        return PositIntermediateFormat<N, WES>::getMinNeg();
-	}
-	else if(isMinPos and not(val.getSignBit())){
-        return PositIntermediateFormat<N, WES>::getMinPos();
-	}
-	else if(isMaxPos and val.getSignBit()){
-        return PositIntermediateFormat<N, WES>::getMaxNeg();
-	}
-	else if(isMaxPos and not(val.getSignBit())){
-        return PositIntermediateFormat<N, WES>::getMaxPos();
-	}
-	else {
-        return PositIntermediateFormat<N, WES>(
-				resultGuardBit,
-				resultStickyBit,
-				isNaR,
-                exp.range(PositIntermediateFormat<N, WES>::ExpSize-1,0), //Warning : biased exp
-				val.getSignBit(),
-				implicitBit,
-				resultFraction
-            );
-	}
+	auto maxposval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+				sign,
+				PositIntermediateFormat<N, WES, Wrapper>::getMaxNeg(),
+				PositIntermediateFormat<N, WES, Wrapper>::getMaxPos()
+			);
+
+	auto specialval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+				isMaxPos,
+				maxposval,
+				minposval
+			);
+
+	return Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+				isMaxPos.bitwise_or(isMinPos),
+				specialval,
+				PositIntermediateFormat<N, WES, Wrapper>(
+								resultGuardBit,
+								resultStickyBit,
+								isNaR,
+								exp.template slice<PositDim<N, WES>::WE - 1, 0>(), //Warning : biased exp
+								val.getSignBit(),
+								implicitBit,
+								resultFraction
+							)
+			);
 }

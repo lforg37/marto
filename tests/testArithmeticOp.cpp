@@ -1,8 +1,13 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE PositArithmeticOps
 
+#ifndef VIVADO_BACKEND
+#define VIVADO_BACKEND
+#endif
+
 #include <bitset>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -18,11 +23,16 @@
 #include "ieeefloats/ieee_adder.hpp"
 
 #include "hint.hpp"
+#include "tools/printing.hpp"
 
 #include <omp.h>
 
 using namespace std;
 namespace utf = boost::unit_test;
+
+
+template<unsigned int N, bool is_signed>
+using Wrapper = hint::VivadoWrapper<N, is_signed>;
 
 BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 {
@@ -64,18 +74,18 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16> (value2);
-		auto decoded2 = StandardPIF<16>{value2Encoding};
+		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
+		auto decoded2 = StandardPIF<16, Wrapper>{value2Encoding};
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16> (value1);
-			StandardPositEncoding<16> encoded{value1Encoding * value2Encoding};
+			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
+			StandardPositEncoding<16, Wrapper> encoded{value1Encoding * value2Encoding};
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positMul = p16_mul(positValue1, positValue2);
 			ap_uint<16> softpositMul{castUI(positMul)};
-			if(!(encoded == softpositMul)){
-				fprintf(stderr, "\n\n\n\n");
+			if(!(encoded == softpositMul).template isSet<0>()){
+				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
 				printApUint(value1Encoding);
 				printApUint(value2Encoding);
@@ -84,8 +94,8 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 				fprintf(stderr, "=== Computed result === \n");
 				printApUint(encoded);
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
-
-				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << static_cast<unsigned int>(softpositMul));
+				*/
+				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned a problematic value while it should have returned " << static_cast<unsigned int>(softpositMul));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -106,24 +116,26 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16> (value2);
+		auto value2Encoding = StandardPositEncoding<16, Wrapper> {{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 		auto prod2 = PositIF_to_PositProd(decoded2);
-		auto base_quire = add_sub_quire(StandardQuire<16>{0}, prod2, 0);
+		auto base_quire = add_sub_quire(StandardQuire<16, Wrapper>{}, prod2, {0});
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16> (value1);
+			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto prod1 = PositIF_to_PositProd(decoded1);
-			auto sub = add_sub_quire(base_quire, prod1, 1);
+			auto sub = add_sub_quire(base_quire, prod1, {1});
 			auto subval = quire_to_posit(sub);
 			auto encoded = posit_encoder(subval);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_sub(positValue2, positValue1);
-			ap_uint<16> softpositSum{castUI(positSum)};
-			if(!(encoded == softpositSum)){
-				fprintf(stderr, "\n\n\n\n");
+			Wrapper<16, false> softpositSum{castUI(positSum)};
+			auto ok = (encoded == softpositSum);
+			bool res = ok.isSet<0>();
+			if(not res){
+				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
 				cerr << "  ";
 				printApUint(value2Encoding);
@@ -137,8 +149,8 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 				printApUint(encoded);
 				subval.printContent();
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
-
-				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositSum);
+*/
+				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned an other value");
 			}
 		}
 		if(((value2%20) == 0) and (value2 != 0)){
@@ -159,11 +171,11 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16> (value2);
+		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16> (value1);
+			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto sum = posit_add(decoded1, decoded2);
 			auto encoded = posit_encoder(sum);
@@ -171,8 +183,8 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_add(positValue1, positValue2);
 			ap_uint<16> softpositSum {castUI(positSum)};
-			if(!(encoded == softpositSum)){
-				fprintf(stderr, "\n\n\n\n");
+			if(!(encoded == softpositSum).template isSet<0>()){
+				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
 				printApUint(value1Encoding);
 				printApUint(value2Encoding);
@@ -182,8 +194,8 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 				printApUint(encoded);
 				sum.printContent();
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
-
-				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositSum);
+				*/
+				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned " << (unsigned int)softpositSum);
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -205,12 +217,12 @@ BOOST_AUTO_TEST_CASE(TestAllSubPosit16, *utf::disabled() * utf::label("long"))
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding =  - StandardPositEncoding<16> (value2);
+		auto value2Encoding =  - StandardPositEncoding<16, Wrapper>{{value2}};
 		// value2Encoding = ~value2Encoding+1;
 		auto decoded2 = posit_decoder(value2Encoding);
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16> (value1);
+			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto sub = posit_add(decoded1, decoded2);
 			auto encoded = posit_encoder(sub);
@@ -218,19 +230,8 @@ BOOST_AUTO_TEST_CASE(TestAllSubPosit16, *utf::disabled() * utf::label("long"))
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSub = p16_sub(positValue1, positValue2);
 			ap_uint<16> softpositSum{castUI(positSub)};
-			if(!(encoded == softpositSum)){
-				fprintf(stderr, "\n\n\n\n");
-				fprintf(stderr, "=== Inputs === \n");
-				printApUint(value1Encoding);
-				printApUint(value2Encoding);
-				fprintf(stderr, "=== Expected result === \n");
-				printApUint(softpositSum);
-				fprintf(stderr, "=== Computed result === \n");
-				printApUint(encoded);
-				sub.printContent();
-				fprintf(stderr, "Tests Passed: %lu\n", counter);
-
-				BOOST_REQUIRE_MESSAGE(false, "Sub of " << value1 << " and " << value2 << " returned " << static_cast<unsigned int>(encoded) << " while it should have returned " << static_cast<unsigned int>(softpositSum));
+			if(!(encoded == softpositSum).template isSet<0>()){
+				BOOST_REQUIRE_MESSAGE(false, "Sub of " << value1 << " and " << value2 << " returned " << hint::to_string(encoded) << " while it should have returned " << static_cast<unsigned int>(softpositSum));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -242,29 +243,6 @@ BOOST_AUTO_TEST_CASE(TestAllSubPosit16, *utf::disabled() * utf::label("long"))
 		error_counter = 0;
 	}
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%%  (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
-}
-
-BOOST_AUTO_TEST_CASE(TestShifter)
-{
-	constexpr int N = 5;
-	ap_uint<1<<N> val{1};
-
-	auto test = shifter<5>(val, 7, 0);
-
-	BOOST_REQUIRE_MESSAGE(test == (1<<7), "Shifted value should be 1 << 7, (" <<
-			(1 << 7) << ") got " << test << " instead."
-		);
-
-	test = shifter<5>(val, 7, 1);
-	BOOST_REQUIRE_MESSAGE(
-			test == ((1<<8) - 1),
-			"Shifted value should be (1 << 8) - 1, (" <<
-				((1 << 8) - 1) << ") got " << test << " instead."
-		);
-	ap_uint<1<<N> val2{1<<6};
-	test = shifter<5, true>(val2, 4, 0);
-	BOOST_REQUIRE_MESSAGE(test==(1<<2), "Shifted value should be 1 << 2, (" <<
-						  (1 << 2) << ") got " << test << " instead.");
 }
 
 BOOST_AUTO_TEST_CASE(TestStaticDivide)
@@ -281,46 +259,27 @@ BOOST_AUTO_TEST_CASE(TestAllSegmentedSubQuirePosit16, *utf::disabled() * utf::la
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16> (value2);
+		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 		auto prod2 = PositIF_to_PositProd(decoded2);
-		auto base_quire = segmented_add_sub_quire(StandardSegmentedQuire<16, 16>{0}, prod2, 0);
-		auto quire = add_sub_quire(StandardQuire<16>{0}, prod2, 0);
+		auto base_quire = segmented_add_sub_quire(StandardSegmentedQuire<16, 16, Wrapper>{}, prod2, {0});
+		auto quire = add_sub_quire(StandardQuire<16, Wrapper>{}, prod2, {0});
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16> (value1);
+			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto prod1 = PositIF_to_PositProd(decoded1);
-			auto sub = segmented_add_sub_quire(base_quire, prod1, 1);
-			auto sub_quire = add_sub_quire(quire, prod1, 1);
+			auto sub = segmented_add_sub_quire(base_quire, prod1, {1});
+			auto sub_quire = add_sub_quire(quire, prod1, {1});
 			auto propagation = propagateCarries(sub);
 			auto subval = quire_to_posit(propagation);
 			auto encoded = posit_encoder(subval);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_sub(positValue2, positValue1);
-			ap_uint<16> softpositSum {castUI(positSum)};
-			if(!(encoded == softpositSum)){
-				fprintf(stderr, "\n\n\n\n");
-				fprintf(stderr, "=== Inputs === \n");
-				cerr << "  ";
-				printApUint(value2Encoding);
-				cerr << "- ";
-				printApUint(value1Encoding);
-				cerr << "=== Segented Quire ===" << endl;
-				printApUint(sub);
-				cerr << "=== Quire ===" << endl;
-				printApUint(propagation);
-				cerr << "=== Normal Quire ===" << endl;
-				printApUint(sub_quire);
-				fprintf(stderr, "=== Expected result === \n");
-				printApUint(softpositSum);
-				fprintf(stderr, "=== Computed result === \n");
-				printApUint(encoded);
-				subval.printContent();
-				fprintf(stderr, "Tests Passed: %lu\n", counter);
-
-				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << (unsigned int)encoded << " while it should have returned " << (unsigned int)softpositSum);
+			Wrapper<16, false> softpositSum {{castUI(positSum)}};
+			if(!(encoded == softpositSum).isSet<0>()){
+				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << hint::to_string(encoded) << " while it should have returned " << hint::to_string(softpositSum));
 			}
 		}
 		if(((value2%20) == 0) and (value2 != 0)){

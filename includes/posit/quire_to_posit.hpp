@@ -1,109 +1,112 @@
 #pragma once
 
 #include "posit_dim.hpp"
+#include "primitives/lzoc_shifter.hpp"
 
-template<int N, int WES, int NB_CARRY>
-PositIntermediateFormat<N, WES> quire_to_posit(Quire<N, WES, NB_CARRY> quire)
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
+inline PositIntermediateFormat<N, WES, Wrapper> quire_to_posit(Quire<N, WES, Wrapper, NB_CARRY> quire)
 {
-	#pragma HLS INLINE
-    constexpr int logSize = Static_Val<quire.PositExpRange>::_log2;
-    constexpr int allsize = Static_Val<quire.PositExpRange>::_2pow;
-    constexpr int padd_width = allsize - quire.PositExpRange;
+	constexpr int logSize = Static_Val<quire.PositExpRange>::_log2;
+	constexpr int allsize = Static_Val<quire.PositExpRange>::_2pow;
+	constexpr int padd_width = allsize - quire.PositExpRange;
 
-	ap_int<1> sign = quire.getSignBit();
+	auto sign = quire.getSignBit();
 
-	ap_uint<padd_width> upper_low_bits = quire.range(
-            quire.PositRangeOffset - 1,
-            quire.PositRangeOffset - padd_width
-		);
+	auto upper_low_bits = quire.template slice<
+			quire.PositRangeOffset - 1,
+			quire.PositRangeOffset - padd_width
+		>();
 
-    ap_uint<quire.PositRangeOffset - padd_width> lower_low_bits = quire.range(
-            quire.PositRangeOffset - padd_width - 1,
+	auto lower_low_bits = quire.template slice<
+			quire.PositRangeOffset - padd_width - 1,
 			0
-		);
+		>();
 
-	ap_uint<1> lower_sticky = lower_low_bits.or_reduce();
-	ap_uint<1> upper_low_null = not(upper_low_bits.or_reduce());
+	auto lower_sticky = lower_low_bits.or_reduction();
+	auto upper_low_null = (upper_low_bits.or_reduction()).invert();
 
 	//Are the bits below posit range all null ?
-	ap_uint<1> low_bit_is_null = not(lower_sticky) and upper_low_null;
+	auto low_bit_is_null = lower_sticky.invert() & upper_low_null;
 
-    ap_uint<quire.PositExpRange> middle_bits = quire.range(
-            quire.PositRangeOffset + quire.PositExpRange - 1,
-            quire.PositRangeOffset
-		);
+	auto middle_bits = quire.template slice<
+			quire.PositRangeOffset + quire.PositExpRange - 1,
+			quire.PositRangeOffset
+		>();
 
-    ap_int<quire.PositExpRange> middle_s_ext = static_cast<ap_int<1> >(not sign);
-    ap_uint<quire.PositExpRange> underflow_base = middle_s_ext xor middle_bits;
-	ap_uint<1> middle_void_flag = underflow_base.and_reduce();
-	ap_uint<1> middle_is_null = not(middle_bits.or_reduce());
+	auto middle_s_ext = Wrapper<quire.PositExpRange, false>::generateSequence(sign.invert());
+	auto underflow_base = middle_s_ext xor middle_bits;
+	auto middle_void_flag = underflow_base.and_reduction();
+	auto middle_is_null = middle_bits.or_reduction().invert();
 
-	constexpr int remainingsize = 
-        quire.Size - 2 - quire.PositOverflowOffset;
+	constexpr unsigned int remainingsize =
+		quire.Size - 2 - quire.PositOverflowOffset;
 
-    ap_uint<remainingsize> uppercarry = quire.range(quire.Size - 3,
-            quire.PositOverflowOffset
-		); 
+	auto uppercarry = quire.template slice<
+			quire.Size - 3,
+			quire.PositOverflowOffset
+		>();
 
-	ap_int<remainingsize> upper_ext_sign = sign;
-	ap_uint<remainingsize> overflow = upper_ext_sign xor uppercarry;
-	ap_uint<1> high_overflow = overflow.or_reduce();
+	auto upper_ext_sign = Wrapper<remainingsize, false>::generateSequence(sign);
+	auto overflow = upper_ext_sign xor uppercarry;
+	auto high_overflow = overflow.or_reduction();
 
-	ap_uint<1> fin_overflow = 
-		high_overflow or (sign and middle_is_null and low_bit_is_null);
+	auto fin_overflow =
+		high_overflow | (sign & middle_is_null & low_bit_is_null);
 
-	ap_uint<1> isZero = (not sign) and 
-						(not fin_overflow) and 
-						middle_is_null and 
+	auto isZero = sign.invert() &
+						fin_overflow.invert() &
+						middle_is_null &
 						low_bit_is_null;
 
-	ap_uint<1> underflow = not(overflow) and middle_void_flag;
+	auto underflow = high_overflow.invert() & middle_void_flag;
 
-	ap_uint<allsize> padded_mid_bits = middle_bits.concat(
+	auto padded_mid_bits = middle_bits.concatenate(
 			upper_low_bits
 		);
 
-	auto lzocshifted = lzoc_shifter<logSize>(padded_mid_bits, sign);
-	ap_uint<logSize> exp = lzocshifted.range(logSize + allsize - 1, allsize);
+	auto lzocshifted = hint::LZOC_shift<allsize, 1<<logSize, false, Wrapper>(padded_mid_bits, sign);
+	auto exp = lzocshifted.template slice<logSize + allsize - 1, allsize>();
 
-    ap_uint<logSize> biased_exp = ap_uint<logSize>{quire.PositExpRange} - exp ;
-    ap_uint<PositIntermediateFormat<N, WES>::FractionSize> frac = lzocshifted.range(allsize - 2, allsize - (PositIntermediateFormat<N, WES>::FractionSize + 1));
-    ap_uint<1> guard = lzocshifted[allsize - PositIntermediateFormat<N, WES>::FractionSize - 2];
-    ap_uint<allsize -( PositIntermediateFormat<N, WES>::FractionSize + 2)> stickycomp = lzocshifted.range(
-            allsize - PositIntermediateFormat<N, WES>::FractionSize - 3,
+	auto biased_exp = Wrapper<logSize, false>{quire.PositExpRange}.modularSub(exp) ;
+	auto frac = lzocshifted.template slice<
+			allsize - 2,
+			allsize - (PositDim<N, WES>::WF + 1)
+		>();
+	auto guard = lzocshifted.template get<allsize - PositDim<N, WES>::WF - 2>();
+	auto stickycomp = lzocshifted.template slice<
+			allsize - PositDim<N, WES>::WF - 3,
 			0
+		>();
+	auto sticky = stickycomp.or_reduction() | lower_sticky;
+
+	auto isSpecial = isZero | fin_overflow | underflow | quire.getIsNaR();
+
+	auto fin_sticky = sticky & isSpecial.invert();
+	auto fin_guard = guard & isSpecial.invert();
+
+
+	auto fin_exp = Wrapper<logSize, false>::mux(
+				fin_overflow,
+				Wrapper<logSize, false>{PositDim<N, WES>::EXP_BIAS << 1}.modularSub(sign.invert().template leftpad<logSize>()),
+				Wrapper<logSize, false>::mux(
+					isZero,
+					{0},
+					Wrapper<logSize, false>::mux(
+						underflow,
+						Wrapper<logSize, false>::generateSequence(sign.invert()),
+						biased_exp
+					)
+				)
 		);
-    ap_uint<1> sticky = static_cast<ap_uint<1> >(stickycomp.or_reduce()) or lower_sticky;
 
-	ap_uint<1> isSpecial = isZero or fin_overflow or underflow or quire.getIsNaR();
 
-	ap_uint<1> fin_sticky = sticky and (not isSpecial);
-	ap_uint<1> fin_guard = guard and (not isSpecial);
+	auto implicit_bit = sign.invert() & isZero.invert();
+	auto fin_frac = Wrapper<PositDim<N, WES>::WF, false>::mux(isSpecial, {0}, frac);
 
-	ap_uint<logSize> fin_exp;
-	if (overflow) {
-        fin_exp = 2*PositDim<N, WES>::EXP_BIAS - (not static_cast<ap_uint<1> >(sign));
-	} else if (isZero) {
-		fin_exp = 0;
-	} else if (underflow)
-	{
-		fin_exp = not sign;
-	} else {
-		fin_exp = biased_exp;
-	}
-
-	ap_uint<1> implicit_bit = (not sign) and (not isZero); 
-    ap_uint<PositIntermediateFormat<N, WES>::FractionSize> fin_frac;
-	if (isSpecial) {
-		fin_frac = 0;
-	} else {
-		fin_frac = frac;
-	}
-	
-    return PositIntermediateFormat<N, WES>(
+	return PositIntermediateFormat<N, WES, Wrapper>(
 			fin_guard,
 			fin_sticky,
-			quire.getIsNaR(), 
+			quire.getIsNaR(),
 			fin_exp,
 			sign,
 			implicit_bit,

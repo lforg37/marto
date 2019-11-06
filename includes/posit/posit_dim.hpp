@@ -1,555 +1,496 @@
 #pragma once
-
 #include <cstdint>
-#include <cstdio>
-
-#include "ap_int.h"
 #include "tools/static_math.hpp"
-//N.B.: We are using int instead of size_t because of ap_uint is templatized
-//=====  with int
-// #include <boost/integer/static_log2.hpp>
 
-// #define get2Power(N) boost::static_log2<N>::value
-// constexpr int get2Power(int N)
-// {
-// 	// unsigned int result = 0;
-// 	// while(N>1){
-// 	// 	result+=1;
-// 	// 	N=N>>1;
-// 	// }
-// 	// return result;
-// 	return ::boost::static_log2<N>::value;
-// 	// return (N<=1) ? 0 : 1 + get2Power(N >> 1); 
-// }
-
-using namespace std;
-using hint::Static_Val;
-using hint::Static_Ceil_Div;
-
-
-template<int N>
-static ap_uint<N> positiveMaxPosit() {
-    return (ap_uint<N>{1} << (N-1)) - 2;
+template<unsigned int N, template<unsigned int, bool> class Wrapper>
+static Wrapper<N, false> positiveMaxPosit() {
+	return Wrapper<N, false>{(1 << (N-1)) - 2};
 }
 
-template<int N>
-static ap_uint<N> negativeMaxPosit() {
-    return (ap_uint<N>{1} << (N-1))+1;
+template<unsigned int N, template<unsigned int, bool> class Wrapper>
+static Wrapper<N, false> negativeMaxPosit() {
+	return Wrapper<N, false>{(1 << (N-1))+1};
 }
 
-template<int N>
-static ap_uint<N> positiveMinPosit() {
-    return ap_uint<N>{1};
+template<unsigned int N, template<unsigned int, bool> class Wrapper>
+static Wrapper<N, false> positiveMinPosit() {
+	return Wrapper<N, false>{1};
 }
 
-template<int N>
-static ap_uint<N> negativeMinPosit() {
-    return ap_uint<N>{-1};
+template<unsigned int N, template<unsigned int, bool> class Wrapper>
+static Wrapper<N, false> negativeMinPosit() {
+	return Wrapper<N, false>::generateSequence(Wrapper<1, false>{1});
 }
 
-template<int N, int WES_Val>
+template<unsigned int N, unsigned int WES_Val>
 class PositDim {
 	public:
-    static constexpr int WES = WES_Val;
-	// get2Power((N>>3)); 
-    static constexpr int WE = Static_Val<N>::_log2 + WES_Val + 1;
-    static constexpr int WF = N - (WES_Val+3);
+	static constexpr unsigned int WES = WES_Val;
+	// get2Power((N>>3));
+	static constexpr unsigned int WE = hint::Static_Val<N>::_log2 + WES_Val + 1;
+	static constexpr unsigned int WF = N - (WES_Val+3);
 
-	// The "2" is for the guard bit and the sticky 
-	static constexpr int ValSize = 2 + 3 + WE + WF;
-    static constexpr int EMax = (N-2) * (1 << WES_Val);
-	static constexpr int ProdSignificandSize = 2*WF + 2; 
-	//implicit bit twice 
-	
-	static constexpr int ProdExpSize = WE + 1;
-	static constexpr int ProdSize = 2 + ProdExpSize + ProdSignificandSize; // + sign bit and isNaR
+	// The "2" is for the guard bit and the sticky
+	static constexpr unsigned int ValSize = 2 + 3 + WE + WF;
+	static constexpr unsigned int EMax = (N-2) * (1 << WES_Val);
+	static constexpr unsigned int ProdSignificandSize = 2*WF + 2;
+	//implicit bit twice
 
-    static constexpr int EXP_BIAS = EMax + 1; //Add one because negative mantissa have an exponent shift of one compared to their opposite due to sign bit
+	static constexpr unsigned int ProdExpSize = WE + 1;
+	static constexpr unsigned int ProdSize = 2 + ProdExpSize + ProdSignificandSize; // + sign bit and isNaR
 
-    static constexpr bool HAS_ES = (WES_Val > 0);
+	static constexpr unsigned int EXP_BIAS = EMax + 1; //Add one because negative mantissa have an exponent shift of one compared to their opposite due to sign bit
+
+	static constexpr bool HAS_ES = (WES_Val > 0);
 };
 
-template <int N>
-using StandardPositDim = PositDim<N, Static_Val<(N>>3)>::_log2>;
+template <unsigned int N>
+using StandardPositDim = PositDim<N, hint::Static_Val<(N>>3)>::_log2>;
+
+
+template<unsigned int N, unsigned int WES, unsigned int NB_CARRY>
+struct QuireDim
+{
+	static constexpr unsigned int ProductRangeSize = PositDim<N, WES>::EMax * 4 + 1;
+	static constexpr unsigned int Size = ProductRangeSize + 2 + NB_CARRY;
+};
 
 //One bit is NaR + quire
-template<int N, int WES, int NB_CARRY>
-using QuireSizedAPUint = ap_uint<PositDim<N, WES>::EMax * 4 + 3 + NB_CARRY>; // + 3 : Sign, isNar, 0 exp
+template<int N, int WES, int NB_CARRY, template<unsigned int, bool> class Wrapper>
+using QuireSizedHint = Wrapper<QuireDim<N, WES, NB_CARRY>::Size, false>; // + 3 : Sign, isNar, 0 exp
 
-template <int N, int WES>
+template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 class PositIntermediateFormat;
-template <int N, int WES>
+template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 class PositProd;
 
-template<int N, int WES, int NB_CARRY = 1>
-class Quire : public QuireSizedAPUint<N, WES, NB_CARRY>
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY = 1>
+class Quire : public QuireSizedHint<N, WES, NB_CARRY, Wrapper>
 {
 	//Storage :
 	// isNar Sign Carry 2sCompValue
+		using _storage = QuireSizedHint<N, WES, NB_CARRY, Wrapper>;
 	public:
-        static constexpr int ProductRangeSize = PositDim<N, WES>::EMax * 4 + 1; //Zero exp and
-        static constexpr int Size =  ProductRangeSize + 2 + NB_CARRY; //isNaR bit + sign bit
-        Quire(ap_uint<Size> val):QuireSizedAPUint<N, WES, NB_CARRY>(val){}
+		static constexpr int ProductRangeSize = QuireDim<N, WES, NB_CARRY>::ProductRangeSize; //Zero exp and
+		static constexpr int Size = QuireDim<N, WES, NB_CARRY>::Size; //isNaR bit + sign bit
 
-        ap_uint<ProductRangeSize> getQuireValue() const
+		Quire(_storage val):_storage{val}{}
+		Quire():_storage{}{}
+
+		inline Wrapper<ProductRangeSize, false> getQuireValue() const
 		{
-			#pragma HLS INLINE
-            return QuireSizedAPUint<N, WES, NB_CARRY>::range(ProductRangeSize - 1, 0);
+			return _storage::template slice<ProductRangeSize - 1, 0>();
 		}
 
-        ap_uint<NB_CARRY> getCarry() const
+		inline Wrapper<NB_CARRY, false> getCarry() const
 		{
-			#pragma HLS INLINE
-            return QuireSizedAPUint<N, WES, NB_CARRY>::range(ProductRangeSize + NB_CARRY - 1,
-                    ProductRangeSize);
+			return _storage::template slice<ProductRangeSize + NB_CARRY - 1,
+					ProductRangeSize>();
 		}
 
-        ap_uint<Size-1> getQuireWithoutNaR() const
+		inline Wrapper<Size-1, false> getQuireWithoutNaR() const
 		{
-			#pragma HLS INLINE
-            return QuireSizedAPUint<N, WES, NB_CARRY>::range(Size-2, 0);
+			return _storage::template slice<Size-2, 0>();
 		}
 
-        ap_uint<1> getSignBit() const
+		inline Wrapper<1, false> getSignBit() const
 		{
-			#pragma HLS INLINE
-            return (*this)[Size - 2];
+			return _storage::template get<Size - 2>();
 		}
 
-        ap_uint<1> getIsNaR() const
+		inline Wrapper<1, false> getIsNaR() const
 		{
-			#pragma HLS INLINE
-            return (*this)[Size - 1];
+			return _storage::template get<Size - 1>();
 		}
 
-        void printContent() const{
-            printApUint(*this);
-		}
+		operator PositIntermediateFormat<N, WES, Wrapper>() const;
 
-        operator PositIntermediateFormat<N, WES>() const;
-
-        /*
-         * Quire organisation
-         *
-         *  _______________________________________________________
-         * !NaR|s| overflow        |  valid posits    | underflow  !
-         * --------------------------------------------------------
-         * Overflow  : weights > max pos and carry bits
-         * Underflow : weights < minPos
-         */
+		/*
+		 * Quire organisation
+		 *
+		 *  _______________________________________________________
+		 * !NaR|s| overflow        |  valid posits    | underflow  !
+		 * --------------------------------------------------------
+		 * Overflow  : weights > max pos and carry bits
+		 * Underflow : weights < minPos
+		 */
 
 
 
-        // Width of underflow region
-        static constexpr int PositRangeOffset = PositDim<N, WES>::EMax;
-        // Width of valid posit region
+		// Width of underflow region
+		static constexpr int PositRangeOffset = PositDim<N, WES>::EMax;
+		// Width of valid posit region
 		static constexpr int PositExpRange = 2*PositRangeOffset + 1;
-        // Position of first overflow bit
-        static constexpr int PositOverflowOffset = PositRangeOffset + PositExpRange;
+		// Position of first overflow bit
+		static constexpr int PositOverflowOffset = PositRangeOffset + PositExpRange;
 
 };
 
-template <int N, int WES, int NB_CARRY>
-Quire<N, WES, NB_CARRY> operator+(
-        Quire<N, WES, NB_CARRY> const & lhs,
-        PositProd<N, WES> const & rhs
-    );
-template <int N, int WES, int NB_CARRY>
-Quire<N, WES, NB_CARRY> operator-(
-        Quire<N, WES, NB_CARRY> const & lhs,
-        PositProd<N, WES> const & rhs
-    );
+template <int N, int WES, int NB_CARRY, template<unsigned int, bool> class Wrapper>
+Quire<N, WES, Wrapper, NB_CARRY> operator+(
+		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	);
+template <int N, int WES, int NB_CARRY, template<unsigned int, bool> class Wrapper>
+Quire<N, WES, Wrapper, NB_CARRY> operator-(
+		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	);
 
-template <int N>
-using StandardQuire = Quire<N, Static_Val<(N>>3)>::_log2, N-2>;
+template <unsigned int N, template<unsigned int, bool> class Wrapper>
+using StandardQuire = Quire<N, hint::Static_Val<(N>>3)>::_log2, Wrapper, N-2>;
 
-template<int N, int WES, int NB_CARRY, int bankSize>
-static constexpr int getNbStages(){
-    return Static_Ceil_Div<Quire<N, WES, NB_CARRY>::Size - 1, bankSize>::val;
-} 
 
-template<int bankSize>
-static constexpr int getShiftSize(){
-	return Static_Val<bankSize>::_log2;
-} 
+template<unsigned int N, unsigned int WES, unsigned int NB_CARRY, unsigned int bankSize>
+static constexpr unsigned int getNbStages(){
+	return hint::Static_Ceil_Div<QuireDim<N, WES, NB_CARRY>::Size - 1, bankSize>::val;
+}
 
-template<int N, int WES, int bankSize>
-static constexpr int getExtShiftSize(){
-    return (Static_Ceil_Div<PositDim<N, WES>::ProdSignificandSize+1+(1<<getShiftSize<bankSize>()),bankSize>::val)*bankSize ;
-} 
+template<unsigned int bankSize>
+static constexpr unsigned int getShiftSize(){
+	return hint::Static_Val<bankSize>::_log2;
+}
 
-template<int N, int WES, int bankSize>
-static constexpr int getMantSpread(){
-    return Static_Ceil_Div<getExtShiftSize<N, WES, bankSize>(),bankSize>::val;
-} 
+template<unsigned int N, unsigned int WES, unsigned int bankSize>
+static constexpr unsigned int getExtShiftSize(){
+	return (hint::Static_Ceil_Div<PositDim<N, WES>::ProdSignificandSize+1+(1<<getShiftSize<bankSize>()),bankSize>::val)*bankSize ;
+}
+
+template<unsigned int N, unsigned int WES, unsigned int bankSize>
+static constexpr unsigned int getMantSpread(){
+	return hint::Static_Ceil_Div<getExtShiftSize<N, WES, bankSize>(), bankSize>::val;
+}
+
+template<unsigned int N, unsigned int WES, unsigned int NB_CARRY, unsigned int bankSize, template<unsigned int, bool> class Wrapper>
+using SegmentedQuireSizedHint = Wrapper<QuireDim<N, WES, NB_CARRY>::Size + getNbStages<N, WES, NB_CARRY, bankSize>(), false>;
 
 // Stored as normal quire then carry bits from most significant to less
-template<int N, int WES, int NB_CARRY, int bankSize>
-class SegmentedQuire : public ap_uint<Quire<N, WES, NB_CARRY>::Size+getNbStages<N, WES, NB_CARRY, bankSize>()>
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int bankSize>
+class SegmentedQuire : public SegmentedQuireSizedHint<N, WES, NB_CARRY, bankSize, Wrapper>
 {
 	//Storage :
 	// isNar Sign Carry 2sCompValue
+	using _storage = SegmentedQuireSizedHint<N, WES, NB_CARRY, bankSize, Wrapper>;
 	public:
-        static constexpr int Nb_stages = getNbStages<N, WES, NB_CARRY, bankSize>();
-        static constexpr int Size = Quire<N, WES, NB_CARRY>::Size + Nb_stages;
-        static constexpr int PositRangeOffset = ((N*N) >> 3) - (N >> 2);
+		static constexpr unsigned int Nb_stages = getNbStages<N, WES, NB_CARRY, bankSize>();
+		static constexpr unsigned int Size = QuireDim<N, WES, NB_CARRY>::Size + Nb_stages;
+		static constexpr unsigned int PositRangeOffset = ((N*N) >> 3) - (N >> 2);
 
-        SegmentedQuire(ap_uint<Size> val):ap_uint<Size>(val){}
+		SegmentedQuire(_storage val):_storage{val}{}
+		SegmentedQuire():_storage{}{}
 
-        ap_uint<bankSize> getBank(int index) const{
-			#pragma HLS INLINE
-			// fprintf(stderr, "== quire bank (%d, %d) ==\n", getNbStages<N, bankSize>() + (index+1)*bankSize -1, getNbStages<N, bankSize>() + index*bankSize);
-			// fprintf(stderr, "From getNbStages<N, bankSize>()> (%d) + (index(%d)+1)*bankSize (%d) -1\n", getNbStages<N, bankSize>()  , index, bankSize);
-			// fprintf(stderr, "To getNbStages<N, bankSize>()> + index*bankSize\n");
-			// ap_uint<bankSize> tmp = (*this).range(getNbStages<N, bankSize>() + (index+1)*bankSize -1,getNbStages<N, bankSize>() + index*bankSize);
-			// printApUint(tmp);
-            return (*this).range(Nb_stages + (index+1)*bankSize -1, Nb_stages + index*bankSize);
+		template<unsigned int BankIdx>
+		inline Wrapper<bankSize, false> getBank() const{
+			static_assert (BankIdx < Nb_stages, "Trying to access a bank with an out of range index");
+			constexpr unsigned int low_idx = Nb_stages + BankIdx*bankSize;
+			constexpr unsigned int up_idx = low_idx + bankSize - 1;
+			return _storage::template slice<up_idx, low_idx>();
 		}
 
-        ap_uint<1> getCarry(int index) const{
-			#pragma HLS INLINE
-			return (*this)[index];
+		template<unsigned int BankIdx>
+		inline Wrapper<1, false> getCarry() const{
+			static_assert (BankIdx < Nb_stages, "Trying to access a carry with an out of range index");
+			return _storage::template get<BankIdx>();
 		}
 
-        ap_uint<1> getIsNaR() const{
-			#pragma HLS INLINE
-            return (*this)[Size-1];
+		inline Wrapper<1, false> getIsNaR() const{
+			return _storage::template get<Size-1>();
 		}
 
-        ap_uint<Quire<N, WES, NB_CARRY>::Size> getAsQuireWoCarries() const {
-			#pragma HLS INLINE
-            return (*this).range(Size-1, Nb_stages);
+		inline Wrapper<QuireDim<N, WES, NB_CARRY>::Size, false> getAsQuireWoCarries() const {
+			return _storage::template slice<Size-1, Nb_stages>();
 		}
 
-        ap_uint<Nb_stages> getAllCarries() const
-        {
-            return this->range(Nb_stages-1,0);
-        }
-
-        void printContent()  const {
-            fprintf(stderr, "Quire size: %d\n", Quire<N, WES, NB_CARRY>::Size);
-            fprintf(stderr, "Nb stages: %d\n", Nb_stages);
-            printApUint(getAsQuireWoCarries());
-            printApUint(getAllCarries());
+		inline Wrapper<Nb_stages, false> getAllCarries() const
+		{
+			return _storage::template slice<Nb_stages-1,0>();
 		}
 
-        operator PositIntermediateFormat<N, WES>() const;
+		operator PositIntermediateFormat<N, WES, Wrapper>() const;
 
 };
 
-template<int N, int WES, int NB_CARRY, int bankSize>
-SegmentedQuire<N, WES, NB_CARRY, bankSize> operator+(
-        SegmentedQuire<N, WES, NB_CARRY, bankSize> const & lhs,
-        PositProd<N, WES> const & rhs
-    );
-template<int N, int WES, int NB_CARRY, int bankSize>
-SegmentedQuire<N, WES, NB_CARRY, bankSize> operator-(
-        SegmentedQuire<N, WES, NB_CARRY, bankSize> const & lhs,
-        PositProd<N, WES> const & rhs
-    );
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int bankSize>
+SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> operator+(
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	);
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int bankSize>
+SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> operator-(
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> const & lhs,
+		PositProd<N, WES, Wrapper> const & rhs
+	);
 
-template<int N, int banksize>
-using StandardSegmentedQuire = SegmentedQuire<N, Static_Val<(N>>3)>::_log2, N-2, banksize>;
+template<unsigned int N, unsigned int banksize, template<unsigned int, bool> class Wrapper>
+using StandardSegmentedQuire = SegmentedQuire<N, hint::Static_Val<(N>>3)>::_log2, Wrapper, N-2, banksize>;
 
-template <int N, int WES>
+
+template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 class PositEncoding;
 
-template<int N, int WES>
-using PositProdSizedAPUint = ap_uint<PositDim<N, WES>::ProdSize>;
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+using PositProdSizedHint = Wrapper<PositDim<N, WES>::ProdSize, false>;
 
-// One bit isNar + WE+1 + 2(WF+1) 
-template<int N, int WES>
-class PositProd : public PositProdSizedAPUint<N, WES>
+// One bit isNar + WE+1 + 2(WF+1)
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+class PositProd : public PositProdSizedHint<N, WES, Wrapper>
 {
 	//Storage :
 	// isNar Exp Signed_significand
 	public:
-        static constexpr int Size = PositDim<N, WES>::ProdSize;
-        static constexpr int ExpSize = PositDim<N, WES>::ProdExpSize;
-        static constexpr int SignificandSize = PositDim<N, WES>::ProdSignificandSize;
+		typedef PositProdSizedHint<N, WES, Wrapper> hint_type;
+		template<unsigned int W>
+		using wrapper_helper = Wrapper<W, false>;
+		static constexpr unsigned int Size = PositDim<N, WES>::ProdSize;
+		static constexpr unsigned int ExpSize = PositDim<N, WES>::ProdExpSize;
+		static constexpr unsigned int SignificandSize = PositDim<N, WES>::ProdSignificandSize;
 		PositProd(
-				ap_uint<1> isNar, 
-                ap_uint<ExpSize> exp,
-				ap_uint<1> sign,
-                ap_uint<SignificandSize> fraction
-			) {
-            ap_uint<SignificandSize + 1> signed_frac = sign.concat(fraction);
-            ap_uint<ExpSize + SignificandSize + 1> prod = exp.concat(signed_frac);
-            PositProdSizedAPUint<N, WES>::operator=(isNar.concat(prod));
-		}
+				wrapper_helper<1> isNar,
+				wrapper_helper<ExpSize> exp,
+				wrapper_helper<1> sign,
+				wrapper_helper<SignificandSize> fraction
+			) : hint_type{isNar.concatenate(exp.concatenate(sign.concatenate(fraction)))}
+		{}
 
-        PositProd(ap_uint<Size> val):PositProdSizedAPUint<N, WES>(val){}
+		PositProd(hint_type val):hint_type{val}{}
+		// PositProd(PositIntermediateFormat<N, WES> val):PositProdSizedAPUint<N, WES>(val){}
 
-        ap_uint<SignificandSize> getSignificand() const
+		inline wrapper_helper<SignificandSize> getSignificand() const
 		{
-			#pragma HLS INLINE
-            return this->range(SignificandSize - 1, 0);
+			return hint_type::template slice<SignificandSize-1, 0>();
 		}
-		
-        ap_int<SignificandSize + 1> getSignedSignificand() const
+
+		inline wrapper_helper<SignificandSize + 1> getSignedSignificand() const
 		{
-			#pragma HLS INLINE
-            return this->range(SignificandSize, 0);
+			return hint_type::template slice<SignificandSize, 0>();
 		}
 
-        ap_uint<1> getSignBit() const
+		inline wrapper_helper<1> getSignBit() const
 		{
-			#pragma HLS INLINE
-            return (*this)[SignificandSize];
+			return hint_type::template get<SignificandSize>();
 		}
 
-        ap_uint<ExpSize> getExp() const
+		inline wrapper_helper<ExpSize> getExp() const
 		{
-			#pragma HLS INLINE
-            return this->range(
-                    SignificandSize + ExpSize,
-                    SignificandSize + 1
-				);
+			return hint_type::template slice<ExpSize+SignificandSize, SignificandSize + 1>();
 		}
 
-        ap_uint<1> getIsNaR() const
+		inline wrapper_helper<1> getIsNaR() const
 		{
-			#pragma HLS INLINE
-            return (*this)[Size - 1];
+			return hint_type::template get<Size - 1>();
 		}
 
-        operator PositIntermediateFormat<N, WES>() const;
-        operator PositEncoding<N, WES>() const;
+		operator PositIntermediateFormat<N, WES, Wrapper>() const;
+		operator PositEncoding<N, WES, Wrapper>() const;
 
-        void printContent() const {
-            fprintf(stderr, "isNaR: %d\n", static_cast<int>(this->getIsNaR()));
-			
+		/*void printContent() const {
+			fprintf(stderr, "isNaR: %d\n", static_cast<int>(this->getIsNaR()));
+
 			fprintf(stderr, "biased exp: ");
-            printApUint(getExp());
+			getExp().print();
 
 			fprintf(stderr, "sign: ");
-			printApUint(getSignBit());
+			getSignBit().print();
 
 			fprintf(stderr, "significand: ");
-            printApUint(getSignificand());
-		}
+			getSignificand().print();
+		}*/
 };
-template<int N>
-using StandardPositProd = PositProd<N, Static_Val<(N>>3)>::_log2>;
 
-template<int N, int WES>
-using PositValSizedAPUint = ap_uint<PositDim<N, WES>::ValSize>;
+template<unsigned int N, template<unsigned int, bool> class Wrapper>
+using StandardPositProd = PositProd<N, hint::Static_Val<(N>>3)>::_log2, Wrapper>;
 
-template<int N, int WES>
-class PositIntermediateFormat : public PositValSizedAPUint<N, WES>
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+using PositValSizedHint = Wrapper<PositDim<N, WES>::ValSize, false>;
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+class PositIntermediateFormat : public PositValSizedHint<N, WES, Wrapper>
 {
 	//Storage :
 	// Guard Sticky isNar Exp Sign ImplicitBit Fraction
 	public:
-        static constexpr int Size = PositDim<N, WES>::ValSize;
-        static constexpr int ExpSize = PositDim<N, WES>::WE;
-        static constexpr int FractionSize = PositDim<N, WES>::WF;
-        PositIntermediateFormat(
-				ap_uint<1> isNar,
-                ap_uint<ExpSize> exp, //Warning : biased exp
-				ap_uint<1> sign,
-				ap_uint<1> implicit_bit,
-                ap_uint<FractionSize> fraction)
+		typedef PositValSizedHint<N, WES, Wrapper> hint_type;
+		template<unsigned int W>
+		using wrapper_helper = Wrapper<W, false>;
+		static constexpr unsigned int Size = PositDim<N, WES>::ValSize;
+		static constexpr unsigned int ExpSize = PositDim<N, WES>::WE;
+		static constexpr unsigned int FractionSize = PositDim<N, WES>::WF;
+		PositIntermediateFormat(
+				wrapper_helper<1> isNar,
+				wrapper_helper<ExpSize> exp, //Warning : biased exp
+				wrapper_helper<1> sign,
+				wrapper_helper<1> implicit_bit,
+				wrapper_helper<FractionSize> fraction):hint_type{isNar.concatenate(exp.concatenate(sign)).concatenate(implicit_bit.concatenate(fraction)).template leftpad<Size>()}
 		{
-            ap_uint<1+ExpSize> tmp = isNar.concat(exp);
-			ap_uint<2> frac_lead = sign.concat(implicit_bit);
-            ap_uint<2+FractionSize> full_frac = frac_lead.concat(fraction);
-            PositValSizedAPUint<N, WES>::operator=(tmp.concat(full_frac));
 		}
 
-        PositIntermediateFormat(
-				ap_uint<1> guard,
-				ap_uint<1> sticky,
-				ap_uint<1> isNar,
-                ap_uint<ExpSize> exp,
-				ap_uint<1> sign,
-				ap_uint<1> implicit_bit,
-                ap_uint<FractionSize> fraction)
+		PositIntermediateFormat(
+				wrapper_helper<1> guard,
+				wrapper_helper<1> sticky,
+				wrapper_helper<1> isNar,
+				wrapper_helper<ExpSize> exp,
+				wrapper_helper<1> sign,
+				wrapper_helper<1> implicit_bit,
+				wrapper_helper<FractionSize> fraction):
+			hint_type{(guard.concatenate(sticky)).concatenate(isNar.concatenate(exp)).concatenate(sign.concatenate(implicit_bit.concatenate(fraction)))}
+		{}
+
+		// PositIntermediateFormat(hint<Size> val):PositValSizedAPUint<N, WES>(val){}
+		PositIntermediateFormat(PositEncoding<N, WES, Wrapper> val):hint_type{val}{}
+
+		PositIntermediateFormat(hint_type val):hint_type{val}{}
+
+		inline wrapper_helper<1> getGuardBit() const
 		{
-			ap_uint<2> guardAndSticky = guard.concat(sticky);
-            ap_uint<1+ExpSize> tmp = isNar.concat(exp);
-			ap_uint<2> frac_lead = sign.concat(implicit_bit);
-            ap_uint<2+FractionSize> full_frac = frac_lead.concat(fraction);
-            ap_uint<2+FractionSize+1+ExpSize> allWoGuardAndSticky = tmp.concat(full_frac);
-            PositValSizedAPUint<N, WES>::operator=(guardAndSticky.concat(allWoGuardAndSticky));
+			return hint_type::template get<Size-1>();
 		}
-				
-        PositIntermediateFormat(ap_uint<Size> val):PositValSizedAPUint<N, WES>(val){}
 
-        ap_uint<1> getGuardBit() const
+		inline wrapper_helper<1> getStickyBit() const
 		{
-			#pragma HLS INLINE
-            return (*this)[Size-1];
+			return hint_type::template get<Size-2>();
 		}
 
-        ap_uint<1> getStickyBit() const
+
+		inline wrapper_helper<FractionSize + 1> getSignificand() const //Implicit bit + fractional part
 		{
-			#pragma HLS INLINE
-            return (*this)[Size-2];
+			return hint_type::template slice<FractionSize, 0>();
 		}
 
-
-        ap_uint<FractionSize + 1> getSignificand() const //Implicit bit + fractional part
+		inline wrapper_helper<1> getImplicitBit() const
 		{
-			#pragma HLS INLINE
-            return this->range(FractionSize, 0);
+			return hint_type::template get<FractionSize>();
 		}
 
-        ap_uint<1> getImplicitBit() const
+		inline wrapper_helper<FractionSize> getFraction() const
 		{
-			#pragma HLS INLINE
-            return (*this)[FractionSize];
+			return hint_type::template slice<FractionSize-1, 0>();
 		}
 
-        ap_uint<FractionSize> getFraction() const
+		inline wrapper_helper<1> getSignBit() const
 		{
-			#pragma HLS INLINE
-            return this->range(FractionSize-1, 0);
+			return hint_type::template get<FractionSize + 1>();
 		}
 
-        ap_uint<1> getSignBit() const
+		inline wrapper_helper<ExpSize> getExp() const
 		{
-			#pragma HLS INLINE
-            return (*this)[FractionSize + 1];
+			return hint_type::template slice<ExpSize+FractionSize+1, FractionSize+2>();
 		}
 
-        ap_uint<ExpSize> getExp() const
+		inline wrapper_helper<1> getIsNaR() const
 		{
-			#pragma HLS INLINE
-            return this->range(FractionSize + 1 + ExpSize, FractionSize+2);
+			return hint_type::template get<FractionSize+2+ExpSize>();
 		}
 
-        ap_uint<1> getIsNaR() const
+		inline wrapper_helper<FractionSize+2> getSignedSignificand() const
 		{
-			#pragma HLS INLINE
-            return (*this)[FractionSize+2+ExpSize];
+			return getSignBit().concatenate(getSignificand());
 		}
 
-        ap_int<FractionSize+2> getSignedSignificand() const
+		inline wrapper_helper<1> isZero() const
 		{
-			#pragma HLS INLINE
-			ap_uint<1> sign = getSignBit();
-            return static_cast<ap_int<FractionSize+2> >(sign.concat(getSignificand()));
+			auto isExponentNull = getExp().or_reduction().invert();
+			return isExponentNull.bitwise_and(getSignBit().invert());
 		}
 
-        ap_uint<1> isZero() const
-		{
-			#pragma HLS INLINE
-			ap_uint<1> isExponentNull = not(getExp().or_reduce());
-			return isExponentNull and (not getSignBit());
-		}
+		operator PositProd<N, WES, Wrapper>() const;
+		operator PositEncoding<N, WES, Wrapper>() const;
 
-        void printContent() const {
-            fprintf(stderr, "guard: %d\n", static_cast<int>(this->getGuardBit()));
-            fprintf(stderr, "sticky: %d\n", static_cast<int>(this->getStickyBit()));
-
-            fprintf(stderr, "isNaR: %d\n", static_cast<int>(this->getIsNaR()));
-			
-			fprintf(stderr, "biased exp: ");
-			printApUint(this->getExp());
-
-            fprintf(stderr, "sign: %d\n", static_cast<int>(this->getSignBit()));
-
-            fprintf(stderr, "significand: %d.", static_cast<int>(this->getImplicitBit()));
-            printApUint(this->getFraction());
-
-			double temp = getSignedSignificand().to_int();
-            double exp = pow(2, getExp().to_int() - FractionSize - PositDim<N, WES>::EXP_BIAS);
-			fprintf(stderr, "Value : %1.20f\n", temp*exp);
-		}
-
-        operator PositProd<N, WES>() const;
-        operator PositEncoding<N, WES>() const;
-
-        static PositIntermediateFormat getMaxPos()
+		static PositIntermediateFormat getMaxPos()
 		{ //isNar Exp Sign Implicit Frac
-            return PositIntermediateFormat(
-					0, //isNar
-                    2*PositDim<N, WES>::EXP_BIAS - 1, //Biased Exp
-					0, //sign
-					1, //implicit bit
-					0 //fraction
-				);
-		}	
-
-        static PositIntermediateFormat getMinPos()
-		{
-            return PositIntermediateFormat(
-					0, //isNar
-					1, // Biased exp
-					0, // sign
-					1, // implicit bit
-					0 // fraction
+			return PositIntermediateFormat(
+					{0}, //isNar
+					{2*PositDim<N, WES>::EXP_BIAS - 1}, //Biased Exp
+					{0}, //sign
+					{1}, //implicit bit
+					{0} //fraction
 				);
 		}
 
-        static PositIntermediateFormat getMaxNeg()
+		static PositIntermediateFormat getMinPos()
 		{
-            return PositIntermediateFormat(
-					0,
-                    2*PositDim<N, WES>::EXP_BIAS - 2, // Biased Exp
-					1, //sign
-					0, //implicit bit
-					0  //fraction
+			return PositIntermediateFormat(
+					{0}, //isNar
+					{1}, // Biased exp
+					{0}, // sign
+					{1}, // implicit bit
+					{0} // fraction
 				);
 		}
 
-        static PositIntermediateFormat getMinNeg()
+		static PositIntermediateFormat getMaxNeg()
 		{
-            return PositIntermediateFormat(
-				0, //isNar
-				0, // Biased Exp
-				1, // sign
-				0, // implicit bit
-				0 // fraction
-			);
+			return PositIntermediateFormat(
+					{0},
+					{2*PositDim<N, WES>::EXP_BIAS - 2}, // Biased Exp
+					{1}, //sign
+					{0}, //implicit bit
+					{0}  //fraction
+				);
+		}
+
+		static PositIntermediateFormat getMinNeg()
+		{
+			return PositIntermediateFormat(
+					{0}, //isNar
+					{0}, // Biased Exp
+					{1}, // sign
+					{0}, // implicit bit
+					{0} // fraction
+				);
 		}
 };
 
-template <int N>
-using StandardPIF = PositIntermediateFormat<N, Static_Val<(N>>3)>::_log2>;
+template <unsigned int N, template <unsigned int, bool> class Wrapper>
+using StandardPIF = PositIntermediateFormat<N, hint::Static_Val<(N>>3)>::_log2, Wrapper>;
 
 
-template<int N, int WES>
-class PositEncoding : public ap_uint<N>
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+class PositEncoding : public Wrapper<N, false>
 {
 public:
-    PositEncoding(ap_uint<N> val):ap_uint<N>{val}{}
+		typedef Wrapper<N, false> hint_type;
+		template<unsigned int W>
+		using wrapper_helper = Wrapper<W, false>;
+	PositEncoding(hint_type const & val):hint_type{val}{}
 
-    operator PositIntermediateFormat<N, WES>() const;
-    operator PositProd<N, WES>() const;
+	operator PositIntermediateFormat<N, WES, Wrapper>() const;
+	operator PositProd<N, WES, Wrapper>() const;
 //    template<int NB_CARRY>
 //    operator Quire<N, WES, NB_CARRY>() const;
 //    template<int NB_CARRY, int banksize>
 //    operator SegmentedQuire<N, WES, NB_CARRY, banksize>() const;
 };
 
-template<int N, int WES>
-PositEncoding<N, WES> operator+(
-        PositEncoding<N, WES> const & lhs,
-        PositEncoding<N, WES> const & rhs
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+PositEncoding<N, WES, Wrapper> operator+(
+		PositEncoding<N, WES, Wrapper> const & lhs,
+		PositEncoding<N, WES, Wrapper> const & rhs
    );
 
-template<int N, int WES>
-PositEncoding<N, WES> operator-(
-        PositEncoding<N, WES> const & lhs,
-        PositEncoding<N, WES> const & rhs
-    );
-template<int N, int WES>
-PositEncoding<N, WES> operator-(
-        PositEncoding<N, WES> const & val
-    )
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+PositEncoding<N, WES, Wrapper> operator-(
+		PositEncoding<N, WES, Wrapper> const & lhs,
+		PositEncoding<N, WES, Wrapper> const & rhs
+	);
+
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+PositEncoding<N, WES, Wrapper> operator-(
+		PositEncoding<N, WES, Wrapper> const & val
+	)
 {
-	return  PositEncoding<N, WES> ( ~(static_cast< ap_uint<N> >(val))+1 );
+	auto one = Wrapper<1, false>{{1}}.template leftpad<N>();
+	auto xor_seq = Wrapper<N, false>::generateSequence({1});
+	auto twocomp = (val xor xor_seq).modularAdd(one);
+	return  PositEncoding<N, WES, Wrapper>{twocomp};
 };
 
-template<int N, int WES>
-PositProd<N, WES> operator*(
-        PositEncoding<N, WES> const & lhs,
-        PositEncoding<N, WES> const & rhs
-    );
+template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
+PositProd<N, WES, Wrapper> operator*(
+		PositEncoding<N, WES, Wrapper> const & lhs,
+		PositEncoding<N, WES, Wrapper> const & rhs
+	);
 
-template <int N>
-using StandardPositEncoding = PositEncoding<N, Static_Val<(N>>3)>::_log2>;
+template <unsigned int N, template <unsigned int, bool> class Wrapper>
+using StandardPositEncoding = PositEncoding<N, hint::Static_Val<(N>>3)>::_log2, Wrapper>;
 
 #include "conversions.ipp"

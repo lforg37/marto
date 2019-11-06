@@ -4,45 +4,59 @@
 
 using namespace std;
 
-template <int N, int WES> PositProd<N, WES> posit_quire_mul(PositIntermediateFormat<N, WES> in1, PositIntermediateFormat<N, WES> in2)
+template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrapper> in1, PositIntermediateFormat<N, WES, Wrapper> in2)
 {
-	#pragma HLS INLINE
-    ap_uint<1> isNar = in1.getIsNaR() | in2.getIsNaR();
-    ap_int<1> isZero = in1.isZero() or in2.isZero();
+	auto isNar = in1.getIsNaR().bitwise_or(in2.getIsNaR());
+	auto isZero = in1.isZero().bitwise_or(in2.isZero());
+	auto mul_op1 = in1.getSignedSignificand();
+	auto mul_op2 = in2.getSignedSignificand();
+	// Compute the significand
+	auto significand = mul_op1 * mul_op2;
 
-    // Compute the significand
-    ap_uint<PositProd<N, WES>::SignificandSize + 2> significand =
-		in1.getSignedSignificand() * in2.getSignedSignificand();
+	//     fprintf(stderr, "ICI\n");
+	// significand.print();
 
-    ap_uint<1> sign = significand[PositProd<N, WES>::SignificandSize + 1];
-    ap_uint<1> exbit = significand[PositProd<N, WES>::SignificandSize - 1];
-    ap_uint<1> neg_neg_2power = sign xor significand[PositProd<N, WES>::SignificandSize];
+	auto sign = significand.template get<PositDim<N, WES>::ProdSignificandSize + 1>();
+	// sign.print();
+	auto exbit = significand.template get<PositDim<N, WES>::ProdSignificandSize - 1>();
+	auto neg_neg_2power = sign.bitwise_xor(significand.template get<PositDim<N, WES>::ProdSignificandSize>());
 
-	ap_uint<1> needs_shift = (exbit xor sign) or neg_neg_2power;
+	auto needs_shift = exbit.bitwise_xor(sign).bitwise_or(neg_neg_2power);
 
-    ap_uint<PositProd<N, WES>::SignificandSize> fin_significand;
-    ap_uint<PositProd<N, WES>::SignificandSize - 1> last_bits =
-        significand.range(PositProd<N, WES>::SignificandSize - 2, 0);
-	if (needs_shift) {
-        ap_uint<1> first_bit = (significand[PositProd<N, WES>::SignificandSize - 1])
+	auto potential_first_bit = exbit.bitwise_or(neg_neg_2power);
+	auto last_bits = significand.template slice<PositDim<N, WES>::ProdSignificandSize - 2, 0>();
+
+	auto fin_significand = Wrapper<PositDim<N, WES>::ProdSignificandSize, false>::mux(
+				needs_shift,
+				potential_first_bit.concatenate(last_bits),
+				last_bits.concatenate(Wrapper<1, false>{0})
+			);
+	/*if (needs_shift) {
+		hint<1> first_bit = (significand[PositProd<N, WES>::SignificandSize - 1])
 			or neg_neg_2power;
-		fin_significand = first_bit.concat(last_bits);
+		fin_significand = first_bit.concatenate(last_bits);
 	} else {
-		fin_significand = last_bits.concat(ap_uint<1>{0}); 
-	}
+		fin_significand = last_bits.concatenate(hint<1>{0});
+	}*/
 
-    // Compute the exponent
-    ap_uint<PositProd<N, WES>::ExpSize> exponent;
-    if (isZero) {
-		exponent = 0;
-    } else {
-		exponent = in1.getExp() + in2.getExp() - not(needs_shift) + neg_neg_2power;
-    }
+	// Compute the exponent
+	auto expSumVal = in1.getExp().addWithCarry(
+				in2.getExp(),
+				neg_neg_2power
+			).template slice<PositDim<N, WES>::ProdExpSize-1, 0>().modularSub(
+					needs_shift.invert().template leftpad<PositDim<N, WES>::ProdExpSize>()
+			);
+	auto exponent = Wrapper<PositDim<N, WES>::ProdExpSize, false>::mux(
+				isZero,
+				{0},
+				expSumVal
+			);
 
-    return PositProd<N, WES>(
-		isNar, 
-		exponent, 
+	return PositProd<N, WES, Wrapper>{
+		isNar,
+		exponent,
 		sign,
 		fin_significand
-	);
+	};
 }
