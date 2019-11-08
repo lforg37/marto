@@ -14,6 +14,9 @@
 #endif
 
 #include <primitives/lzoc_shifter.hpp>
+#include <tools/printing.hpp>
+
+using hint::to_string;
 
 #include "posit/posit_dim.hpp"
 #include "posit/add_sub_quire.hpp"
@@ -36,11 +39,22 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 {
 	//Positive underflow
 	StandardQuire<16, Wrapper> quire{};
+	constexpr unsigned int PIF_SIZE = StandardPositDim<16>::ValSize;
+	constexpr unsigned int PROD_SIZE = StandardPositDim<16>::ProdSize;
+	constexpr unsigned int QUIRE_SIZE = StandardQuireDim<16>::Size;
 	auto minpos = StandardPIF<16, Wrapper>::getMinPos();
 	auto prod = posit_mul(minpos, minpos);
 	auto quire_conv = add_sub_quire(quire, prod, {0});
 	auto decoded = quire_to_posit(quire_conv);
-	BOOST_REQUIRE_MESSAGE((decoded == minpos).isSet<0>(),
+	bool ok = (decoded == minpos).isSet<0>();
+	if (!ok) {
+		cerr << "minpos:\t" << hint::to_string(static_cast<Wrapper<PIF_SIZE, false> >(minpos)) << endl;
+		cerr << "prod:\t" << hint::to_string(static_cast<Wrapper<PROD_SIZE, false> >(prod)) << endl;
+		cerr << "quire:\t" << hint::to_string(static_cast<Wrapper<QUIRE_SIZE, false> >(quire_conv)) << endl;
+		cerr << "decoded:\t" << hint::to_string(static_cast<Wrapper<PIF_SIZE, false> >(decoded)) << endl;
+
+	}
+	BOOST_REQUIRE_MESSAGE(ok,
 			"Positive underflow does not returns minpos"
 		);
 
@@ -48,10 +62,13 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 	prod = PositIF_to_PositProd(minpos);
 	quire_conv = add_sub_quire(quire_conv, prod, {0});
 	decoded = quire_to_posit(quire_conv);
+	auto encoding = posit_encoder(decoded);
+	auto minpos_enc = posit_encoder(minpos);
 	auto res = StandardPIF<16, Wrapper>{{1<<19}};
-	BOOST_REQUIRE_MESSAGE(((decoded xor minpos) == res).isSet<0>(),
-			"Error, sticky bit is not set for minpos * (1+minpos)"
+	BOOST_REQUIRE_MESSAGE((encoding == minpos_enc).isSet<0>(),
+			"Min pos * (1+minpos) should return minpos"
 		);
+	BOOST_REQUIRE_MESSAGE(decoded.getStickyBit().isSet<0>(), "minpos * 1+minpos should set sticky bit");
 
 	//Positive overflow
 	auto maxpos = StandardPIF<16, Wrapper>::getMaxPos();
@@ -84,6 +101,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 BOOST_AUTO_TEST_CASE(PositValueToProd)
 {
 	uint16_t value = 0;
+	constexpr unsigned int PROD_SIZE = StandardPositDim<16>::ProdSize;
 	StandardPIF<16, Wrapper> one({0}, {StandardPositDim<16>::EXP_BIAS}, {0}, {1}, {0});
 	do {
 		PositEncoding<16, 1, Wrapper> posit_encoding{{value}};
@@ -96,7 +114,12 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getIsNaR().template isSet<0>() , "Prod by one should be NAR");
 			BOOST_REQUIRE_MESSAGE(posit_prod_direct.getIsNaR().template isSet<0>(), "Direct conversion should be NAR");
 		} else {
-			BOOST_REQUIRE_MESSAGE((posit_prod_by_one == posit_prod_direct).isSet<0>(), "Error for conversion with value " << value);
+			bool ok = (posit_prod_by_one == posit_prod_direct).isSet<0>();
+			if (!ok) {
+				cerr << "posit_prod_by_one : " << hint::to_string(static_cast<Wrapper<PROD_SIZE, false> >(posit_prod_by_one)) << endl;
+				cerr << "posit_prod_direct : " << hint::to_string(static_cast<Wrapper<PROD_SIZE, false> >(posit_prod_direct)) << endl;
+			}
+			BOOST_REQUIRE_MESSAGE(ok, "Error for conversion with value " << value);
 		}
 		value += 1;
 	} while (value != 0);
@@ -155,6 +178,7 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 {
 	StandardQuire<16, Wrapper> quire{};
 
+	//TODO activvae whole loop
 	for(uint32_t value = 0; value < (1<<16); value++) {
 		StandardPositEncoding<16, Wrapper> valueEncoding{{value}};
 		StandardPIF<16, Wrapper> decoded{valueEncoding};
@@ -177,11 +201,13 @@ BOOST_AUTO_TEST_CASE(TestSegmentedQuireConvertBack)
 {
 	StandardSegmentedQuire<16, 64, Wrapper> quire{};
 
+	//TODO restore loop
 	for(uint32_t value = 0; value < (1<<16); value++) {
 		StandardPositEncoding<16, Wrapper> valueEncoding{{value}};
 		StandardPIF<16, Wrapper> decoded{valueEncoding};
 		StandardPositProd<16, Wrapper> prod{valueEncoding};
 		StandardSegmentedQuire<16, 64, Wrapper> segmentedQuireConvert = segmented_add_sub_quire(quire, prod, {0});
+		//cerr << to_string(static_cast<Wrapper<segmentedQuireConvert.Size, false> >(segmentedQuireConvert)) << endl;
 		StandardQuire<16, Wrapper>  quireConvert = propagateCarries(segmentedQuireConvert);
 		auto back_convert = quire_to_posit(quireConvert);
 		if (decoded.getIsNaR().template isSet<0>()) {

@@ -55,6 +55,10 @@ struct QuireDim
 	static constexpr unsigned int Size = ProductRangeSize + 2 + NB_CARRY;
 };
 
+
+template <unsigned int N>
+using StandardQuireDim = QuireDim<N, hint::Static_Val<(N>>3)>::_log2, N-2>;
+
 //One bit is NaR + quire
 template<int N, int WES, int NB_CARRY, template<unsigned int, bool> class Wrapper>
 using QuireSizedHint = Wrapper<QuireDim<N, WES, NB_CARRY>::Size, false>; // + 3 : Sign, isNar, 0 exp

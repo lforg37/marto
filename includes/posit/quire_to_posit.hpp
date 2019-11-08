@@ -1,7 +1,12 @@
 #pragma once
 
+#include <iostream>
+
 #include "posit_dim.hpp"
 #include "primitives/lzoc_shifter.hpp"
+#include "tools/printing.hpp"
+
+using hint::to_string;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
 inline PositIntermediateFormat<N, WES, Wrapper> quire_to_posit(Quire<N, WES, Wrapper, NB_CARRY> quire)
@@ -23,7 +28,7 @@ inline PositIntermediateFormat<N, WES, Wrapper> quire_to_posit(Quire<N, WES, Wra
 		>();
 
 	auto lower_sticky = lower_low_bits.or_reduction();
-	auto upper_low_null = (upper_low_bits.or_reduction()).invert();
+	auto upper_low_null = upper_low_bits.or_reduction().invert();
 
 	//Are the bits below posit range all null ?
 	auto low_bit_is_null = lower_sticky.invert() & upper_low_null;
@@ -60,11 +65,11 @@ inline PositIntermediateFormat<N, WES, Wrapper> quire_to_posit(Quire<N, WES, Wra
 
 	auto underflow = high_overflow.invert() & middle_void_flag;
 
-	auto padded_mid_bits = middle_bits.concatenate(
+	Wrapper<allsize, false> padded_mid_bits = middle_bits.concatenate(
 			upper_low_bits
 		);
 
-	auto lzocshifted = hint::LZOC_shift<allsize, 1<<logSize, false, Wrapper>(padded_mid_bits, sign);
+	auto lzocshifted = hint::LZOC_shift<allsize, allsize-1, false, Wrapper>(padded_mid_bits, sign);
 	auto exp = lzocshifted.template slice<logSize + allsize - 1, allsize>();
 
 	auto biased_exp = Wrapper<logSize, false>{quire.PositExpRange}.modularSub(exp) ;
@@ -83,26 +88,44 @@ inline PositIntermediateFormat<N, WES, Wrapper> quire_to_posit(Quire<N, WES, Wra
 
 	auto fin_sticky = sticky & isSpecial.invert();
 	auto fin_guard = guard & isSpecial.invert();
+	/*
+	cerr << to_string(fin_overflow) << endl;
+	cerr << to_string(isZero) << endl;
+	cerr << to_string(underflow) << endl;
+	*/
 
+	constexpr unsigned int overflow_neg = 2*PositDim<N, WES>::EXP_BIAS;
+	constexpr unsigned int overflow_pos = overflow_neg - 1;
+
+	Wrapper<logSize, false> overflow_neg_wrap{{ overflow_neg }};
+	Wrapper<logSize, false> overflow_pos_wrap{{ overflow_pos }};
+
+	auto overflow_exp_val = Wrapper<logSize, false>::mux(sign, overflow_neg_wrap, overflow_pos_wrap);
 
 	auto fin_exp = Wrapper<logSize, false>::mux(
-				fin_overflow,
-				Wrapper<logSize, false>{PositDim<N, WES>::EXP_BIAS << 1}.modularSub(sign.invert().template leftpad<logSize>()),
+				high_overflow,
+				overflow_exp_val,
 				Wrapper<logSize, false>::mux(
 					isZero,
 					{0},
 					Wrapper<logSize, false>::mux(
 						underflow,
-						Wrapper<logSize, false>::generateSequence(sign.invert()),
+						sign.invert().template leftpad<logSize>(),
 						biased_exp
 					)
 				)
 		);
 
-
 	auto implicit_bit = sign.invert() & isZero.invert();
 	auto fin_frac = Wrapper<PositDim<N, WES>::WF, false>::mux(isSpecial, {0}, frac);
-
+	/*
+	cerr << to_string(fin_guard) << endl;
+	cerr << to_string(fin_sticky) << endl;
+	cerr << to_string(fin_exp) << endl;
+	cerr << to_string(sign) << endl;
+	cerr << to_string(implicit_bit) << endl;
+	cerr << to_string(fin_frac) << endl;
+	*/
 	return PositIntermediateFormat<N, WES, Wrapper>(
 			fin_guard,
 			fin_sticky,

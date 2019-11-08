@@ -28,6 +28,7 @@
 #include <omp.h>
 
 using namespace std;
+using hint::to_string;
 namespace utf = boost::unit_test;
 
 
@@ -79,7 +80,9 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
 			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
-			StandardPositEncoding<16, Wrapper> encoded{value1Encoding * value2Encoding};
+			auto prod = value1Encoding * value2Encoding;
+			//cerr << to_string(static_cast<Wrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
+			StandardPositEncoding<16, Wrapper> encoded{prod};
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positMul = p16_mul(positValue1, positValue2);
@@ -126,7 +129,12 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto prod1 = PositIF_to_PositProd(decoded1);
 			auto sub = add_sub_quire(base_quire, prod1, {1});
+			//cerr << to_string(static_cast<Wrapper<StandardQuireDim<16>::Size, false> >(sub)) <<
+			//	endl;
 			auto subval = quire_to_posit(sub);
+			//cerr <<
+			//	to_string(static_cast<Wrapper<StandardPositDim<16>::ValSize, false> >(subval)) <<
+			//	endl;
 			auto encoded = posit_encoder(subval);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
@@ -135,21 +143,6 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 			auto ok = (encoded == softpositSum);
 			bool res = ok.isSet<0>();
 			if(not res){
-				/*fprintf(stderr, "\n\n\n\n");
-				fprintf(stderr, "=== Inputs === \n");
-				cerr << "  ";
-				printApUint(value2Encoding);
-				cerr << "- ";
-				printApUint(value1Encoding);
-				cerr << "=== Quire ===" << endl;
-				printApUint(sub);
-				fprintf(stderr, "=== Expected result === \n");
-				printApUint(softpositSum);
-				fprintf(stderr, "=== Computed result === \n");
-				printApUint(encoded);
-				subval.printContent();
-				fprintf(stderr, "Tests Passed: %lu\n", counter);
-*/
 				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned an other value");
 			}
 		}

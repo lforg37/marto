@@ -2,6 +2,10 @@
 #include <cstdio>
 #include <utility>
 
+#include <tools/printing.hpp>
+
+using hint::to_string;
+
 #include "posit_dim.hpp"
 #include "primitives/lzoc_shifter.hpp"
 
@@ -17,12 +21,12 @@ inline Quire<N, WES, Wrapper, NB_CARRY> add_sub_quire(
 
 	auto inputSignificand = input.getSignedSignificand();
 	auto sign = input.getSignBit();
-	auto replicated_sign = Wrapper<PROD_SIGNIFICAND_SIZE + 1, false>::generateSequence(sign);
+	auto replicated_sign = Wrapper<PROD_SIGNIFICAND_SIZE + 1, false>::generateSequence(isSub);
 	auto complementedInputIfIsSub = replicated_sign ^ inputSignificand;
 
 	auto shiftValue = input.getExp();
 	constexpr unsigned int SHIFT_SIZE  = 1<<LOG2_EXT_SUM_SIZE;
-	auto ext = complementedInputIfIsSub.template leftpad<SHIFT_SIZE>();
+	auto ext = complementedInputIfIsSub.as_signed().template leftpad<SHIFT_SIZE>().as_unsigned();
 
 	auto shiftedInput = hint::shifter<false, SHIFT_SIZE, input.ExpSize>(ext, shiftValue, isSub);
 	auto shiftedInputShrinked = shiftedInput.template slice<
@@ -158,17 +162,20 @@ inline _partial_seg_quire_store<loop_idx, bankSize, Wrapper> _seq_quire_partial_
 			typename enable_if<(loop_idx > 0)>::type* = 0
 		)
 {
-	auto stageResult = add_sub_quire_stage<N, WES, Wrapper, NB_CARRY, bankSize, loop_idx>(
+	auto stage_result = add_sub_quire_stage<N, WES, Wrapper, NB_CARRY, bankSize, loop_idx>(
 				quire,
 				stage_select,
 				sign,
 				isSub,
 				input
 		);
+	//cerr << loop_idx << ":" << to_string(stage_result) << endl;
 	auto lower_stages = _seq_quire_partial_add<NB_CARRY, bankSize, N, WES, Wrapper, loop_idx - 1>(quire, stage_select, sign, isSub, input);
+	auto cur_stage_carry = stage_result.template get<bankSize>();
+	auto cur_stage_bank = stage_result.template slice<bankSize - 1, 0>();
 	_partial_seg_quire_store<loop_idx, bankSize, Wrapper> ret = make_pair(
-			lower_stages.first.concatenate(stageResult.template slice<bankSize - 1, 0>()),
-			lower_stages.second.concatenate(stageResult.template get<bankSize>())
+			cur_stage_bank.concatenate(lower_stages.first),
+			cur_stage_carry.concatenate(lower_stages.second)
 		);
 	return ret;
 }
@@ -183,13 +190,14 @@ inline _partial_seg_quire_store<loop_idx, bankSize, Wrapper> _seq_quire_partial_
 			typename enable_if<(loop_idx== 0)>::type* = 0
 		)
 {
-	 Wrapper<bankSize+1, false> stageResult = add_sub_quire_stage<N, WES, Wrapper, NB_CARRY, bankSize, 0>(
+	 auto stageResult = add_sub_quire_stage<N, WES, Wrapper, NB_CARRY, bankSize, 0>(
 				quire,
 				stage_select,
 				sign,
 				isSub,
 				input
 		);
+	// cerr << loop_idx << ":" << to_string(stageResult) << endl;
 	_partial_seg_quire_store<loop_idx, bankSize, Wrapper> ret{stageResult.template slice<bankSize - 1, 0>(), stageResult.template get<bankSize>()};
 	return ret;
 }
@@ -222,43 +230,63 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> segmented_add_sub_qui
 		PositProd<N, WES, Wrapper> input,
 		Wrapper<1, false> isSub)
 {
-	//static constexpr int SHIFTED_SIGNIFICAND_SIZE = PositProd<N, WES>::SignificandSize+1 + (1<<getShiftSize<bankSize>());
 	constexpr unsigned int PROD_EXP_SIZE = PositDim<N, WES>::ProdExpSize;
 	constexpr unsigned int PROD_SIGIFICAND_SIZE = PositDim<N, WES>::ProdSignificandSize;
-	// constexpr unsigned int BANKS_FOR_USELESS_BITS = hint::Static_Ceil_Div<PROD_SIGIFICAND_SIZE, bankSize>::val;
-	// constexpr unsigned int padding = bankSize*BANKS_FOR_USELESS_BITS - PROD_SIGIFICAND_SIZE;
-	// constexpr unsigned int ENCODING_BITS_FOR_USELESS_BANKS = hint::Static_Val<BANKS_FOR_USELESS_BITS>::_log2;
 	constexpr unsigned int LOG2_SHIFT_SIZE = Static_Val<getExtShiftSize<N, WES, bankSize>()>::_log2;
 	constexpr unsigned int NB_STAGES = getNbStages<N, WES, NB_CARRY, bankSize>();
 	constexpr unsigned int PROD_EXP_BANK_SIZE_MOD = PROD_EXP_SIZE % bankSize;
 	constexpr unsigned int SHIFT_SIZE = getShiftSize<bankSize>();
 	constexpr unsigned int EXT_SHIFT_SIZE = getExtShiftSize<N, WES, bankSize>();
 	constexpr unsigned int STAGE_SELECT_SIZE = PROD_EXP_SIZE - SHIFT_SIZE;
+    constexpr unsigned int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PROD_SIGIFICAND_SIZE, bankSize>::val;
+	constexpr unsigned int ENCODING_BITS_FOR_USELESS_BANKS = Static_Val<BANKS_FOR_USELESS_BITS>::_log2;
+    constexpr unsigned int PADDING = bankSize*BANKS_FOR_USELESS_BITS - PROD_SIGIFICAND_SIZE;
+	constexpr unsigned int EXT_PROD_EXP_SIZE = PROD_EXP_SIZE + BANKS_FOR_USELESS_BITS;
 
-	//Wrapper<PROD_EXP_SIZE+ENCODING_BITS_FOR_USELESS_BANKS, false> prodExp = input.getExp()+padding;
-	auto prod_exp = input.getExp();
+	Wrapper<EXT_PROD_EXP_SIZE, false> padding{{PADDING}};
+	auto prod_exp = input.getExp()
+						.as_signed()
+						.template leftpad<EXT_PROD_EXP_SIZE>()
+						.as_unsigned()
+						.modularAdd(padding);
+	//cerr << to_string(prod_exp) << endl;
 	auto input_significand = input.getSignedSignificand();
-	auto sign = input_significand.template get<PROD_SIGIFICAND_SIZE>();
-	auto extended_sign = Wrapper<PROD_SIGIFICAND_SIZE + 1, false>::generateSequence(sign);
+	auto sign = input.getSignBit();
+	auto extended_isSub = Wrapper<PROD_SIGIFICAND_SIZE + 1, false>::generateSequence(isSub);
+	auto complementedInputIfIsSub = extended_isSub ^ input_significand;
+	//cerr << to_string(complementedInputIfIsSub) << endl;
 
-	auto complementedInputIfIsSub = extended_sign ^ input_significand;
-	auto last_bit_exp_extended = (prod_exp.template slice<SHIFT_SIZE-1,0>()).template leftpad<SHIFT_SIZE+1>();
-
-	Wrapper<SHIFT_SIZE + 1, false> shift_modulus{PROD_EXP_BANK_SIZE_MOD};
-
-	auto last_bit_exp_ext_sub = last_bit_exp_extended.modularSub(shift_modulus);
-	auto exp_borrow = last_bit_exp_ext_sub.template get<SHIFT_SIZE>().template leftpad<STAGE_SELECT_SIZE>();
-	auto exp_low_bits = last_bit_exp_ext_sub.template slice<SHIFT_SIZE - 1, 0>();
-
-	auto ext = complementedInputIfIsSub.template leftpad<(1<<LOG2_SHIFT_SIZE)>();
-	auto shifted_input = hint::shifter<false, (1<<LOG2_SHIFT_SIZE), SHIFT_SIZE, false>(ext, exp_low_bits, isSub);
+	auto shift_value = prod_exp.template slice<SHIFT_SIZE - 1, 0>();
+	auto ext = complementedInputIfIsSub
+							.as_signed()
+							.template leftpad<(1<<LOG2_SHIFT_SIZE)>()
+							.as_unsigned();
+	auto shifted_input = hint::shifter<false, (1<<LOG2_SHIFT_SIZE), SHIFT_SIZE, false>(
+			ext, 
+			shift_value, 
+			isSub
+		);
 	auto shifted_input_shrinked = shifted_input.template slice<EXT_SHIFT_SIZE-1, 0>();
+	auto stage_select = prod_exp.template slice<PROD_EXP_SIZE-1, SHIFT_SIZE>();
 
-	auto stage_select = prod_exp.template slice<PROD_EXP_SIZE-1, SHIFT_SIZE>().modularSub(exp_borrow);
+	auto result_is_NaR = input.getIsNaR() | quire.getIsNaR();
 
-	Wrapper<1, false> resultIsNaR = input.getIsNaR().bitwise_or(quire.getIsNaR());
-	auto fullQuireWoNaR = _perform_seg_add(quire, stage_select, sign, isSub, shifted_input_shrinked);
-	return SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize>{resultIsNaR.concatenate(fullQuireWoNaR)};
+	/*
+	cerr << "----------------------------------" << endl;
+	cerr << to_string(stage_select) << endl;
+	cerr << to_string(shifted_input_shrinked) << endl;
+	cerr << "=================================" << endl;
+	*/
+	auto fullQuireWoNaR = _perform_seg_add(
+			quire, 
+			stage_select, 
+			sign, 
+			isSub, 
+			shifted_input_shrinked
+		);
+	return SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize>{
+			result_is_NaR.concatenate(fullQuireWoNaR)
+		};
 }
 
 template<unsigned int NB_CARRY, unsigned int bankSize, unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int loop_idx>

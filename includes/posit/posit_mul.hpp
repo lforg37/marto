@@ -7,12 +7,12 @@ using namespace std;
 template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrapper> in1, PositIntermediateFormat<N, WES, Wrapper> in2)
 {
-	auto isNar = in1.getIsNaR().bitwise_or(in2.getIsNaR());
-	auto isZero = in1.isZero().bitwise_or(in2.isZero());
-	auto mul_op1 = in1.getSignedSignificand();
-	auto mul_op2 = in2.getSignedSignificand();
+	auto isNar = in1.getIsNaR() | in2.getIsNaR();
+	auto isZero = in1.isZero() | in2.isZero();
+	auto mul_op1 = in1.getSignedSignificand().as_signed();
+	auto mul_op2 = in2.getSignedSignificand().as_signed();
 	// Compute the significand
-	auto significand = mul_op1 * mul_op2;
+	auto significand = (mul_op1 * mul_op2).as_unsigned();
 
 	//     fprintf(stderr, "ICI\n");
 	// significand.print();
