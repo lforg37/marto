@@ -63,10 +63,11 @@ inline Wrapper<bankSize, false> getToAddRec(
 {
 	constexpr unsigned int SS_WIDTH = PositDim<N, WES>::ProdExpSize - getShiftSize<bankSize>();
 	constexpr unsigned int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N, WES>::ProdSignificandSize, bankSize>::val;
-	constexpr unsigned int BOUND = loop_idx + BANKS_FOR_USELESS_BITS - getMantSpread<N, WES, bankSize>();
+	constexpr int TMP_BOUND = loop_idx + BANKS_FOR_USELESS_BITS - getMantSpread<N, WES, bankSize>();
+	constexpr unsigned int BOUND = (TMP_BOUND < 0) ? 0 : TMP_BOUND;
 	Wrapper<SS_WIDTH + 1, false> bound_wrapper{{BOUND}};
 	Wrapper<SS_WIDTH, false> loop_idx_wrap {{loop_idx}};
-	auto test_wrap = (stageSelect.template leftpad<SS_WIDTH + 1>() <  bound_wrapper);
+	auto test_wrap = (stageSelect.template leftpad<SS_WIDTH + 1>() <=  bound_wrapper);
 	auto loop_idx_below_wrap = loop_idx_wrap < stageSelect;
 	Wrapper<1, false> fill_bit = (test_wrap & (inputSign xor isSub)) | (loop_idx_below_wrap & isSub);
 	return Wrapper<bankSize, false>::generateSequence(fill_bit);
@@ -120,6 +121,7 @@ inline Wrapper<bankSize+1, false> add_sub_quire_stage(SegmentedQuire<N, WES, Wra
 
 	auto toAdd = getToAdd<N, WES, Wrapper, NB_CARRY, bankSize, getMantSpread<N, WES, bankSize>(), loop_idx>(stageSelect, inputSign, isSub, shiftedSignificand);
 
+
 	auto sum = quireBank.addWithCarry(toAdd, quireCarry);
 	return sum;
 }
@@ -169,7 +171,6 @@ inline _partial_seg_quire_store<loop_idx, bankSize, Wrapper> _seq_quire_partial_
 				isSub,
 				input
 		);
-	//cerr << loop_idx << ":" << to_string(stage_result) << endl;
 	auto lower_stages = _seq_quire_partial_add<NB_CARRY, bankSize, N, WES, Wrapper, loop_idx - 1>(quire, stage_select, sign, isSub, input);
 	auto cur_stage_carry = stage_result.template get<bankSize>();
 	auto cur_stage_bank = stage_result.template slice<bankSize - 1, 0>();
@@ -190,18 +191,16 @@ inline _partial_seg_quire_store<loop_idx, bankSize, Wrapper> _seq_quire_partial_
 			typename enable_if<(loop_idx== 0)>::type* = 0
 		)
 {
-	 auto stageResult = add_sub_quire_stage<N, WES, Wrapper, NB_CARRY, bankSize, 0>(
+	 auto stage_result = add_sub_quire_stage<N, WES, Wrapper, NB_CARRY, bankSize, 0>(
 				quire,
 				stage_select,
 				sign,
 				isSub,
 				input
 		);
-	// cerr << loop_idx << ":" << to_string(stageResult) << endl;
-	_partial_seg_quire_store<loop_idx, bankSize, Wrapper> ret{stageResult.template slice<bankSize - 1, 0>(), stageResult.template get<bankSize>()};
+	_partial_seg_quire_store<loop_idx, bankSize, Wrapper> ret{stage_result.template slice<bankSize - 1, 0>(), stage_result.template get<bankSize>()};
 	return ret;
 }
-
 
 template<unsigned int NB_CARRY, unsigned int bankSize, unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline Wrapper<QuireDim<N, WES, NB_CARRY>::Size + getNbStages<N, WES, NB_CARRY, bankSize>() - 1, false>
@@ -238,9 +237,9 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> segmented_add_sub_qui
 	constexpr unsigned int SHIFT_SIZE = getShiftSize<bankSize>();
 	constexpr unsigned int EXT_SHIFT_SIZE = getExtShiftSize<N, WES, bankSize>();
 	constexpr unsigned int STAGE_SELECT_SIZE = PROD_EXP_SIZE - SHIFT_SIZE;
-    constexpr unsigned int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PROD_SIGIFICAND_SIZE, bankSize>::val;
+	constexpr unsigned int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PROD_SIGIFICAND_SIZE, bankSize>::val;
 	constexpr unsigned int ENCODING_BITS_FOR_USELESS_BANKS = Static_Val<BANKS_FOR_USELESS_BITS>::_log2;
-    constexpr unsigned int PADDING = bankSize*BANKS_FOR_USELESS_BITS - PROD_SIGIFICAND_SIZE;
+	constexpr unsigned int PADDING = bankSize*BANKS_FOR_USELESS_BITS - PROD_SIGIFICAND_SIZE;
 	constexpr unsigned int EXT_PROD_EXP_SIZE = PROD_EXP_SIZE + BANKS_FOR_USELESS_BITS;
 
 	Wrapper<EXT_PROD_EXP_SIZE, false> padding{{PADDING}};
@@ -262,8 +261,8 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> segmented_add_sub_qui
 							.template leftpad<(1<<LOG2_SHIFT_SIZE)>()
 							.as_unsigned();
 	auto shifted_input = hint::shifter<false, (1<<LOG2_SHIFT_SIZE), SHIFT_SIZE, false>(
-			ext, 
-			shift_value, 
+			ext,
+			shift_value,
 			isSub
 		);
 	auto shifted_input_shrinked = shifted_input.template slice<EXT_SHIFT_SIZE-1, 0>();
@@ -278,10 +277,10 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> segmented_add_sub_qui
 	cerr << "=================================" << endl;
 	*/
 	auto fullQuireWoNaR = _perform_seg_add(
-			quire, 
-			stage_select, 
-			sign, 
-			isSub, 
+			quire,
+			stage_select,
+			sign,
+			isSub,
 			shifted_input_shrinked
 		);
 	return SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize>{
