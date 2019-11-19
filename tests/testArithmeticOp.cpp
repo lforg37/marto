@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positMul = p16_mul(positValue1, positValue2);
-			ap_uint<16> softpositMul{castUI(positMul)};
+			Wrapper<16, false> softpositMul{castUI(positMul)};
 			if(!(encoded == softpositMul).template isSet<0>()){
 				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 				printApUint(encoded);
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
 				*/
-				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned a problematic value while it should have returned " << static_cast<unsigned int>(softpositMul));
+				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned a problematic value while it should have returned " << to_string(softpositMul));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_add(positValue1, positValue2);
-			ap_uint<16> softpositSum {castUI(positSum)};
+			Wrapper<16, false> softpositSum {castUI(positSum)};
 			if(!(encoded == softpositSum).template isSet<0>()){
 				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 				sum.printContent();
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
 				*/
-				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned " << (unsigned int)softpositSum);
+				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned " << to_string(softpositSum));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -222,9 +222,9 @@ BOOST_AUTO_TEST_CASE(TestAllSubPosit16, *utf::disabled() * utf::label("long"))
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSub = p16_sub(positValue1, positValue2);
-			ap_uint<16> softpositSum{castUI(positSub)};
+			Wrapper<16, false> softpositSum{castUI(positSub)};
 			if(!(encoded == softpositSum).template isSet<0>()){
-				BOOST_REQUIRE_MESSAGE(false, "Sub of " << value1 << " and " << value2 << " returned " << hint::to_string(encoded) << " while it should have returned " << static_cast<unsigned int>(softpositSum));
+				BOOST_REQUIRE_MESSAGE(false, "Sub of " << value1 << " and " << value2 << " returned " << hint::to_string(encoded) << " while it should have returned " << to_string(softpositSum));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
