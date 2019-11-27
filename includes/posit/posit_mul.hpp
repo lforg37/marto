@@ -5,7 +5,7 @@
 using namespace std;
 
 template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrapper> in1, PositIntermediateFormat<N, WES, Wrapper> in2)
+inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrapper, true> in1, PositIntermediateFormat<N, WES, Wrapper, true> in2)
 {
 	auto isNar = in1.getIsNaR() | in2.getIsNaR();
 	auto isZero = in1.isZero() | in2.isZero();
@@ -59,4 +59,14 @@ inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrap
 		sign,
 		fin_significand
 	};
+}
+
+template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper, true>  posit_mul_in_place(PositIntermediateFormat<N, WES, Wrapper, true> in1, PositIntermediateFormat<N, WES, Wrapper, true> in2)
+{
+
+    // TODO
+	cerr << "Use of empty function PositIntermediateFormat<N, WES, Wrapper, true>  posit_mul_in_place(PositIntermediateFormat<N, WES, Wrapper, true> in1, PositIntermediateFormat<N, WES, Wrapper, true> in2)" << endl;
+
+    return PositIntermediateFormat<N, WES, Wrapper, true>{{0}};
 }

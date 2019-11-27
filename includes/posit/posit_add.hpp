@@ -15,9 +15,9 @@
 using namespace hint;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositIntermediateFormat<N, WES, Wrapper> posit_add(
-		PositIntermediateFormat<N, WES, Wrapper> in1,
-		PositIntermediateFormat<N, WES, Wrapper> in2
+inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
+		PositIntermediateFormat<N, WES, Wrapper, true> in1,
+		PositIntermediateFormat<N, WES, Wrapper, true> in2
 ){
 	constexpr auto S_WF = PositDim<N, WES>::WF;
 	constexpr auto S_WE = PositDim<N, WES>::WE;
@@ -77,7 +77,7 @@ inline PositIntermediateFormat<N, WES, Wrapper> posit_add(
 
 	auto isResultNar = in1.getIsNaR().bitwise_or(in2.getIsNaR());
 
-	PositIntermediateFormat<N, WES, Wrapper> result {
+	PositIntermediateFormat<N, WES, Wrapper, false> result {
 				round,
 				sticky,
 				isResultNar,
@@ -87,4 +87,17 @@ inline PositIntermediateFormat<N, WES, Wrapper> posit_add(
 				frac.template slice<S_WF-1, 0>()
 	};
 	return result;
+}
+
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
+		PositIntermediateFormat<N, WES, Wrapper, true> in1,
+		PositIntermediateFormat<N, WES, Wrapper, true> in2
+){
+
+	// TODO
+	cerr << "Use of empty function PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(PositIntermediateFormat<N, WES, Wrapper, true> in1, PositIntermediateFormat<N, WES, Wrapper, true> in2)" << endl;
+
+	return PositIntermediateFormat<N, WES, Wrapper, true>{{0}};
 }

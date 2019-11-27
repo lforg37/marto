@@ -9,7 +9,7 @@
 using hint::to_string;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
-inline PositIntermediateFormat<N, WES, Wrapper> quire_to_posit(Quire<N, WES, Wrapper, NB_CARRY> quire)
+inline PositIntermediateFormat<N, WES, Wrapper, false> quire_to_posit(Quire<N, WES, Wrapper, NB_CARRY> quire)
 {
 	constexpr int logSize = Static_Val<quire.PositExpRange>::_log2;
 	constexpr int allsize = Static_Val<quire.PositExpRange>::_2pow;
@@ -126,7 +126,7 @@ inline PositIntermediateFormat<N, WES, Wrapper> quire_to_posit(Quire<N, WES, Wra
 	cerr << to_string(implicit_bit) << endl;
 	cerr << to_string(fin_frac) << endl;
 	*/
-	return PositIntermediateFormat<N, WES, Wrapper>(
+	return PositIntermediateFormat<N, WES, Wrapper, false>(
 			fin_guard,
 			fin_sticky,
 			quire.getIsNaR(),

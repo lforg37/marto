@@ -8,7 +8,7 @@
  *
  */
 template <unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
-inline PositEncoding<N, WES, Wrapper>::operator PositIntermediateFormat<N, WES, Wrapper>() const
+inline PositEncoding<N, WES, Wrapper>::operator PositIntermediateFormat<N, WES, Wrapper, true>() const
 {
 	return posit_decoder(*this);
 }
@@ -16,7 +16,7 @@ inline PositEncoding<N, WES, Wrapper>::operator PositIntermediateFormat<N, WES, 
 template <unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 inline PositEncoding<N, WES, Wrapper>::operator PositProd<N, WES, Wrapper>() const
 {
-	return static_cast<PositProd<N, WES, Wrapper> >(static_cast<PositIntermediateFormat<N, WES, Wrapper>>(*this));
+	return static_cast<PositProd<N, WES, Wrapper> >(static_cast<PositIntermediateFormat<N, WES, Wrapper, true>>(*this));
 }
 
 #include "posit_add.hpp"
@@ -27,9 +27,9 @@ inline PositEncoding<N, WES, Wrapper> operator+(
 		PositEncoding<N, WES, Wrapper> const & rhs
 	)
 {
-	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(lhs);
-	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(rhs);
-	return static_cast<PositEncoding<N, WES, Wrapper> >(posit_add_optimized(lhs_val, rhs_val));
+	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(lhs);
+	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(rhs);
+	return static_cast<PositEncoding<N, WES, Wrapper> >(posit_add(lhs_val, rhs_val));
 }
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
@@ -38,9 +38,9 @@ inline PositEncoding<N, WES, Wrapper> operator-(
 		PositEncoding<N, WES, Wrapper> const & rhs
 	)
 {
-	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(lhs);
-	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(rhs);
-	return static_cast<PositEncoding<N, WES, Wrapper> >(posit_add_optimized(lhs_val, rhs_val, 1));
+	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(lhs);
+	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(rhs);
+	return static_cast<PositEncoding<N, WES, Wrapper> >(posit_add(lhs_val, rhs_val, 1));
 }
 
 #include "posit_mul.hpp"
@@ -50,8 +50,8 @@ inline PositProd<N, WES, Wrapper> operator*(
 		PositEncoding<N, WES, Wrapper> const & rhs
 	)
 {
-	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(lhs);
-	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper> >(rhs);
+	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(lhs);
+	auto rhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(rhs);
 	return posit_mul(lhs_val, rhs_val);
 }
 
@@ -64,7 +64,7 @@ inline PositProd<N, WES, Wrapper> operator*(
 #include "value_prod_conversions.hpp"
 
 template <unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
-inline PositIntermediateFormat<N, WES, Wrapper>::operator PositProd<N, WES, Wrapper>() const
+inline PositIntermediateFormat<N, WES, Wrapper, true>::operator PositProd<N, WES, Wrapper>() const
 {
    return PositIF_to_PositProd(*this);
 }
@@ -72,7 +72,13 @@ inline PositIntermediateFormat<N, WES, Wrapper>::operator PositProd<N, WES, Wrap
 #include "posit_encoder.hpp"
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositIntermediateFormat<N, WES, Wrapper>::operator PositEncoding<N, WES, Wrapper>() const
+inline PositIntermediateFormat<N, WES, Wrapper, false>::operator PositEncoding<N, WES, Wrapper>() const
+{
+	return posit_encoder(*this);
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper, true>::operator PositEncoding<N, WES, Wrapper>() const
 {
 	return posit_encoder(*this);
 }
@@ -83,7 +89,7 @@ inline PositIntermediateFormat<N, WES, Wrapper>::operator PositEncoding<N, WES, 
  *
  */
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositProd<N, WES, Wrapper>::operator PositIntermediateFormat<N, WES, Wrapper>() const
+inline PositProd<N, WES, Wrapper>::operator PositIntermediateFormat<N, WES, Wrapper, false>() const
 {
 	return PositProd_to_PositIF(*this);
 }
@@ -103,7 +109,7 @@ inline PositProd<N, WES, Wrapper>::operator PositEncoding<N, WES, Wrapper>() con
 
 #include "quire_to_posit.hpp"
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
-inline Quire<N, WES, Wrapper, NB_CARRY>::operator PositIntermediateFormat<N, WES, Wrapper>() const
+inline Quire<N, WES, Wrapper, NB_CARRY>::operator PositIntermediateFormat<N, WES, Wrapper, false>() const
 {
 	return quire_to_posit(*this);
 }
@@ -133,10 +139,10 @@ inline Quire<N, WES, Wrapper, NB_CARRY> operator-(
  */
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int banksize>
-inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize>::operator PositIntermediateFormat<N, WES, Wrapper>() const
+inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize>::operator PositIntermediateFormat<N, WES, Wrapper, false>() const
 {
 	auto propagated = propagateCarries(*this);
-	return static_cast<PositIntermediateFormat<N, WES, Wrapper> >(propagated);
+	return static_cast<PositIntermediateFormat<N, WES, Wrapper, false> >(propagated);
 }
 
 

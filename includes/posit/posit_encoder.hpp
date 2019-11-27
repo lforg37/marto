@@ -7,7 +7,7 @@ using namespace hint;
 using namespace std;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper> positValue)
+inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper, false> positValue)
 {
 	constexpr auto S_WF = PositDim<N, WES>::WF;
 	constexpr auto S_WE = PositDim<N, WES>::WE;
@@ -99,4 +99,15 @@ PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wra
 
 	auto isSpecial = positValue.getSignBit().invert().bitwise_and(positValue.getImplicitBit().invert()).bitwise_or(isNaRBit);
 	return Wrapper<N, false>::mux(isSpecial, specialCasesValue, normalOutput);
+}
+
+
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper, true> positValue)
+{
+	
+	// TODO
+	cerr << "Use of empty function PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper, true> positValue)" << endl;
+	return PositEncoding<N, WES, Wrapper>{{0}};
 }

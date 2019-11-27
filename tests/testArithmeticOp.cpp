@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
 		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
-		auto decoded2 = StandardPIF<16, Wrapper>{value2Encoding};
+		auto decoded2 = StandardPIF<16, Wrapper, true>{value2Encoding};
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
 			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};

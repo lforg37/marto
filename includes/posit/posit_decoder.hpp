@@ -30,7 +30,7 @@ inline Wrapper<PositDim<N, WES>::WE, false> getExponent(
 }
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositIntermediateFormat<N, WES, Wrapper> posit_decoder(PositEncoding<N, WES, Wrapper> positN)
+inline PositIntermediateFormat<N, WES, Wrapper, true> posit_decoder(PositEncoding<N, WES, Wrapper> positN)
 {
 	//Sign bit
 	auto s = positN.template get<N-1>();
@@ -85,7 +85,7 @@ inline PositIntermediateFormat<N, WES, Wrapper> posit_decoder(PositEncoding<N, W
 	auto extended_is_not_zero = Wrapper<PositDim<N, WES>::WE, false>::generateSequence(is_not_zero);
 	auto final_biased_exp = biased_exp.bitwise_and(extended_is_not_zero);
 
-	return PositIntermediateFormat<N, WES, Wrapper>(
+	return PositIntermediateFormat<N, WES, Wrapper, true>(
 				is_NAR,
 				final_biased_exp,
 				s,

@@ -8,7 +8,7 @@
 using hint::to_string;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositProd<N, WES, Wrapper> PositIF_to_PositProd(PositIntermediateFormat<N, WES, Wrapper> val)
+inline PositProd<N, WES, Wrapper> PositIF_to_PositProd(PositIntermediateFormat<N, WES, Wrapper, true> val)
 {
 	auto val_frac = val.getSignificand();
 	auto significand = val_frac.concatenate(
@@ -28,7 +28,7 @@ inline PositProd<N, WES, Wrapper> PositIF_to_PositProd(PositIntermediateFormat<N
 }
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositIntermediateFormat<N, WES, Wrapper> PositProd_to_PositIF(PositProd<N, WES, Wrapper> val)
+inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(PositProd<N, WES, Wrapper> val)
 {
 	auto isNaR = val.getIsNaR();
 	auto fraction = val.getSignificand();
@@ -68,14 +68,14 @@ inline PositIntermediateFormat<N, WES, Wrapper> PositProd_to_PositIF(PositProd<N
 
 	auto minposval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
 					sign,
-					PositIntermediateFormat<N, WES, Wrapper>::getMinNeg(),
-					PositIntermediateFormat<N, WES, Wrapper>::getMinPos()
+					PositIntermediateFormat<N, WES, Wrapper, true>::getMinNeg(),
+					PositIntermediateFormat<N, WES, Wrapper, true>::getMinPos()
 				);
 
 	auto maxposval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
 				sign,
-				PositIntermediateFormat<N, WES, Wrapper>::getMaxNeg(),
-				PositIntermediateFormat<N, WES, Wrapper>::getMaxPos()
+				PositIntermediateFormat<N, WES, Wrapper, true>::getMaxNeg(),
+				PositIntermediateFormat<N, WES, Wrapper, true>::getMaxPos()
 			);
 
 	auto specialval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
@@ -87,7 +87,7 @@ inline PositIntermediateFormat<N, WES, Wrapper> PositProd_to_PositIF(PositProd<N
 	auto ret = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
 				isMaxPos.bitwise_or(isMinPos),
 				specialval,
-				PositIntermediateFormat<N, WES, Wrapper>(
+				PositIntermediateFormat<N, WES, Wrapper, false>(
 								resultGuardBit,
 								resultStickyBit,
 								isNaR,

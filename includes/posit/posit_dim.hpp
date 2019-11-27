@@ -63,7 +63,7 @@ using StandardQuireDim = QuireDim<N, hint::Static_Val<(N>>3)>::_log2, N-2>;
 template<int N, int WES, int NB_CARRY, template<unsigned int, bool> class Wrapper>
 using QuireSizedHint = Wrapper<QuireDim<N, WES, NB_CARRY>::Size, false>; // + 3 : Sign, isNar, 0 exp
 
-template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, bool isExact>
 class PositIntermediateFormat;
 template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 class PositProd;
@@ -107,7 +107,7 @@ class Quire : public QuireSizedHint<N, WES, NB_CARRY, Wrapper>
 			return _storage::template get<Size - 1>();
 		}
 
-		operator PositIntermediateFormat<N, WES, Wrapper>() const;
+		operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
 
 		/*
 		 * Quire organisation
@@ -210,7 +210,7 @@ class SegmentedQuire : public SegmentedQuireSizedHint<N, WES, NB_CARRY, bankSize
 			return _storage::template slice<Nb_stages-1,0>();
 		}
 
-		operator PositIntermediateFormat<N, WES, Wrapper>() const;
+		operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
 
 };
 
@@ -284,7 +284,7 @@ class PositProd : public PositProdSizedHint<N, WES, Wrapper>
 			return hint_type::template get<Size - 1>();
 		}
 
-		operator PositIntermediateFormat<N, WES, Wrapper>() const;
+		operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
 		operator PositEncoding<N, WES, Wrapper>() const;
 
 		/*void printContent() const {
@@ -308,7 +308,7 @@ template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wr
 using PositValSizedHint = Wrapper<PositDim<N, WES>::ValSize, false>;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-class PositIntermediateFormat : public PositValSizedHint<N, WES, Wrapper>
+class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<N, WES, Wrapper>
 {
 	//Storage :
 	// Guard Sticky isNar Exp Sign ImplicitBit Fraction
@@ -396,8 +396,9 @@ class PositIntermediateFormat : public PositValSizedHint<N, WES, Wrapper>
 			return isExponentNull.bitwise_and(getSignBit().invert());
 		}
 
-		operator PositProd<N, WES, Wrapper>() const;
-		operator PositEncoding<N, WES, Wrapper>() const;
+        operator PositEncoding<N, WES, Wrapper>() const;
+        operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
+        operator PositProd<N, WES, Wrapper>() const;
 
 		static PositIntermediateFormat getMaxPos()
 		{ //isNar Exp Sign Implicit Frac
@@ -444,8 +445,145 @@ class PositIntermediateFormat : public PositValSizedHint<N, WES, Wrapper>
 		}
 };
 
-template <unsigned int N, template <unsigned int, bool> class Wrapper>
-using StandardPIF = PositIntermediateFormat<N, hint::Static_Val<(N>>3)>::_log2, Wrapper>;
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+class PositIntermediateFormat<N, WES, Wrapper, false> : public PositValSizedHint<N, WES, Wrapper>
+{
+	//Storage :
+	// Guard Sticky isNar Exp Sign ImplicitBit Fraction
+	public:
+		typedef PositValSizedHint<N, WES, Wrapper> hint_type;
+		template<unsigned int W>
+		using wrapper_helper = Wrapper<W, false>;
+		static constexpr unsigned int Size = PositDim<N, WES>::ValSize;
+		static constexpr unsigned int ExpSize = PositDim<N, WES>::WE;
+		static constexpr unsigned int FractionSize = PositDim<N, WES>::WF;
+		PositIntermediateFormat(
+				wrapper_helper<1> isNar,
+				wrapper_helper<ExpSize> exp, //Warning : biased exp
+				wrapper_helper<1> sign,
+				wrapper_helper<1> implicit_bit,
+				wrapper_helper<FractionSize> fraction):hint_type{isNar.concatenate(exp.concatenate(sign)).concatenate(implicit_bit.concatenate(fraction)).template leftpad<Size>()}
+		{
+		}
+
+		PositIntermediateFormat(
+				wrapper_helper<1> guard,
+				wrapper_helper<1> sticky,
+				wrapper_helper<1> isNar,
+				wrapper_helper<ExpSize> exp,
+				wrapper_helper<1> sign,
+				wrapper_helper<1> implicit_bit,
+				wrapper_helper<FractionSize> fraction):
+			hint_type{(guard.concatenate(sticky)).concatenate(isNar.concatenate(exp)).concatenate(sign.concatenate(implicit_bit.concatenate(fraction)))}
+		{}
+
+		// PositIntermediateFormat(hint<Size> val):PositValSizedAPUint<N, WES>(val){}
+		PositIntermediateFormat(PositEncoding<N, WES, Wrapper> val):hint_type{val}{}
+
+		PositIntermediateFormat(hint_type val):hint_type{val}{}
+
+		inline wrapper_helper<1> getGuardBit() const
+		{
+			return hint_type::template get<Size-1>();
+		}
+
+		inline wrapper_helper<1> getStickyBit() const
+		{
+			return hint_type::template get<Size-2>();
+		}
+
+
+		inline wrapper_helper<FractionSize + 1> getSignificand() const //Implicit bit + fractional part
+		{
+			return hint_type::template slice<FractionSize, 0>();
+		}
+
+		inline wrapper_helper<1> getImplicitBit() const
+		{
+			return hint_type::template get<FractionSize>();
+		}
+
+		inline wrapper_helper<FractionSize> getFraction() const
+		{
+			return hint_type::template slice<FractionSize-1, 0>();
+		}
+
+		inline wrapper_helper<1> getSignBit() const
+		{
+			return hint_type::template get<FractionSize + 1>();
+		}
+
+		inline wrapper_helper<ExpSize> getExp() const
+		{
+			return hint_type::template slice<ExpSize+FractionSize+1, FractionSize+2>();
+		}
+
+		inline wrapper_helper<1> getIsNaR() const
+		{
+			return hint_type::template get<FractionSize+2+ExpSize>();
+		}
+
+		inline wrapper_helper<FractionSize+2> getSignedSignificand() const
+		{
+			return getSignBit().concatenate(getSignificand());
+		}
+
+		inline wrapper_helper<1> isZero() const
+		{
+			auto isExponentNull = getExp().or_reduction().invert();
+			return isExponentNull.bitwise_and(getSignBit().invert());
+		}
+
+        operator PositEncoding<N, WES, Wrapper>() const;
+		
+		static PositIntermediateFormat getMaxPos()
+		{ //isNar Exp Sign Implicit Frac
+			return PositIntermediateFormat(
+					{0}, //isNar
+					{2*PositDim<N, WES>::EXP_BIAS - 1}, //Biased Exp
+					{0}, //sign
+					{1}, //implicit bit
+					{0} //fraction
+				);
+		}
+
+		static PositIntermediateFormat getMinPos()
+		{
+			return PositIntermediateFormat(
+					{0}, //isNar
+					{1}, // Biased exp
+					{0}, // sign
+					{1}, // implicit bit
+					{0} // fraction
+				);
+		}
+
+		static PositIntermediateFormat getMaxNeg()
+		{
+			return PositIntermediateFormat(
+					{0},
+					{2*PositDim<N, WES>::EXP_BIAS - 2}, // Biased Exp
+					{1}, //sign
+					{0}, //implicit bit
+					{0}  //fraction
+				);
+		}
+
+		static PositIntermediateFormat getMinNeg()
+		{
+			return PositIntermediateFormat(
+					{0}, //isNar
+					{0}, // Biased Exp
+					{1}, // sign
+					{0}, // implicit bit
+					{0} // fraction
+				);
+		}
+};
+
+template <unsigned int N, template <unsigned int, bool> class Wrapper, bool isExact>
+using StandardPIF = PositIntermediateFormat<N, hint::Static_Val<(N>>3)>::_log2, Wrapper, isExact>;
 
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
@@ -457,7 +595,7 @@ public:
 		using wrapper_helper = Wrapper<W, false>;
 	PositEncoding(hint_type const & val):hint_type{val}{}
 
-	operator PositIntermediateFormat<N, WES, Wrapper>() const;
+	operator PositIntermediateFormat<N, WES, Wrapper, true>() const;
 	operator PositProd<N, WES, Wrapper>() const;
 //    template<int NB_CARRY>
 //    operator Quire<N, WES, NB_CARRY>() const;
