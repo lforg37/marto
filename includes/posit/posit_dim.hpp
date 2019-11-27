@@ -328,31 +328,11 @@ class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<
 		{
 		}
 
-		PositIntermediateFormat(
-				wrapper_helper<1> guard,
-				wrapper_helper<1> sticky,
-				wrapper_helper<1> isNar,
-				wrapper_helper<ExpSize> exp,
-				wrapper_helper<1> sign,
-				wrapper_helper<1> implicit_bit,
-				wrapper_helper<FractionSize> fraction):
-			hint_type{(guard.concatenate(sticky)).concatenate(isNar.concatenate(exp)).concatenate(sign.concatenate(implicit_bit.concatenate(fraction)))}
-		{}
 
 		// PositIntermediateFormat(hint<Size> val):PositValSizedAPUint<N, WES>(val){}
 		PositIntermediateFormat(PositEncoding<N, WES, Wrapper> val):hint_type{val}{}
 
 		PositIntermediateFormat(hint_type val):hint_type{val}{}
-
-		inline wrapper_helper<1> getGuardBit() const
-		{
-			return hint_type::template get<Size-1>();
-		}
-
-		inline wrapper_helper<1> getStickyBit() const
-		{
-			return hint_type::template get<Size-2>();
-		}
 
 
 		inline wrapper_helper<FractionSize + 1> getSignificand() const //Implicit bit + fractional part
@@ -537,49 +517,6 @@ class PositIntermediateFormat<N, WES, Wrapper, false> : public PositValSizedHint
 
         operator PositEncoding<N, WES, Wrapper>() const;
 		
-		static PositIntermediateFormat getMaxPos()
-		{ //isNar Exp Sign Implicit Frac
-			return PositIntermediateFormat(
-					{0}, //isNar
-					{2*PositDim<N, WES>::EXP_BIAS - 1}, //Biased Exp
-					{0}, //sign
-					{1}, //implicit bit
-					{0} //fraction
-				);
-		}
-
-		static PositIntermediateFormat getMinPos()
-		{
-			return PositIntermediateFormat(
-					{0}, //isNar
-					{1}, // Biased exp
-					{0}, // sign
-					{1}, // implicit bit
-					{0} // fraction
-				);
-		}
-
-		static PositIntermediateFormat getMaxNeg()
-		{
-			return PositIntermediateFormat(
-					{0},
-					{2*PositDim<N, WES>::EXP_BIAS - 2}, // Biased Exp
-					{1}, //sign
-					{0}, //implicit bit
-					{0}  //fraction
-				);
-		}
-
-		static PositIntermediateFormat getMinNeg()
-		{
-			return PositIntermediateFormat(
-					{0}, //isNar
-					{0}, // Biased Exp
-					{1}, // sign
-					{0}, // implicit bit
-					{0} // fraction
-				);
-		}
 };
 
 template <unsigned int N, template <unsigned int, bool> class Wrapper, bool isExact>
