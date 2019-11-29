@@ -311,7 +311,7 @@ template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wr
 class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<N, WES, Wrapper>
 {
 	//Storage :
-	// Guard Sticky isNar Exp Sign ImplicitBit Fraction
+	// isNar Exp Sign ImplicitBit Fraction
 	public:
 		typedef PositValSizedHint<N, WES, Wrapper> hint_type;
 		template<unsigned int W>
