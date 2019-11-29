@@ -89,7 +89,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 
 	auto roundingBit = guard.bitwise_and(sticky.bitwise_or(unroundedResult.template get<0>()));
 
-	//cerr << "rounding : " << to_string(roundingBit) << endl;
+	// cerr << "rounding : " << to_string(roundingBit) << endl;
 
 	auto roundedResult = unroundedResult.modularAdd(roundingBit.template leftpad<N-1>());
 

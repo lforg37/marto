@@ -200,7 +200,14 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	auto frac_bits_to_take = Wrapper<S_WF, false>::mux(must_add_1, rounded_frac_bits, masked_fraction);
 
 	auto frac = current_implicit_bit.concatenate(frac_bits_to_take);
-	auto adjusted_exp = current_exp.modularAdd((rounded_frac_overflowed.bitwise_and(must_add_1)).template leftpad<S_WE>());
+
+	auto sign_sequence_wes = Wrapper<S_WE, false>::generateSequence(toCount);
+	auto exp_2c = current_exp.bitwise_xor(sign_sequence_wes);
+
+
+
+	auto adjusted_exp = exp_2c.modularAdd(rounded_frac_overflowed.template leftpad<S_WE>());
+	auto exp_select = Wrapper<S_WE, false>::mux(must_add_1, adjusted_exp.bitwise_xor(sign_sequence_wes), current_exp);
 
 	// cerr << "guard :  " << to_string(guard) << endl;
 	// cerr << "sticky :  " << to_string(sticky) << endl;
@@ -230,7 +237,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	auto final_exp = Wrapper<S_WE, false>::mux(
 					is_zero,
 					{0},
-					adjusted_exp
+					exp_select
 				);
 
 	auto isResultNar = in1.getIsNaR().bitwise_or(in2.getIsNaR());

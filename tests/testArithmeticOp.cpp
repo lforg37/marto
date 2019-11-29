@@ -292,8 +292,8 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 {
 
 
-	// auto value1Encoding_single = StandardPositEncoding<16, Wrapper>{{32767}};
-	// auto value2Encoding_single = StandardPositEncoding<16, Wrapper>{{16384}};
+	// auto value1Encoding_single = StandardPositEncoding<16, Wrapper>{{6143}};
+	// auto value2Encoding_single = StandardPositEncoding<16, Wrapper>{{57344}};
 	// auto decoded1_single = posit_decoder(value1Encoding_single);
 	// auto decoded2_single = posit_decoder(value2Encoding_single);
 	// auto sum_in_place_single = posit_add_in_place(decoded1_single, decoded2_single);
