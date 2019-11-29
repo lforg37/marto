@@ -328,12 +328,12 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_add(positValue1, positValue2);
 			Wrapper<16, false> softpositSum {castUI(positSum)};
-			int32_t hard = encoded.unravel();
-			int32_t soft = softpositSum.unravel();
-			int32_t diff = ((hard-soft)<0) ? soft-hard : hard-soft;
+			// int32_t hard = encoded.unravel();
+			// int32_t soft = softpositSum.unravel();
+			// int32_t diff = ((hard-soft)<0) ? soft-hard : hard-soft;
 
-			// if(!(encoded == softpositSum).template isSet<0>()){
-			if(diff > 1){
+			if(!(encoded == softpositSum).template isSet<0>()){
+			// if(diff > 1){
 				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
 				printApUint(value1Encoding);

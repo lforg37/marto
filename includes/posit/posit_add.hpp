@@ -157,13 +157,63 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 
 
 	// Wrapper<S_WF+1, false> key_wrap{absK};
-	auto wrap = hint::one_then_zeros<K_SIZE-1, (1<<(K_SIZE-1)), Wrapper>(absK);
+	auto mask_top = hint::one_then_zeros<K_SIZE-1, (1<<(K_SIZE-1)), Wrapper>(absK).template slice<S_WF-1,0>();
 	// Shift wrap from one bit to not mask the implicit bit
 	auto current_implicit_bit = current_frac.template get<S_WF+1-1>();
 	auto current_frac_wo_implicit_bit = current_frac.template slice<S_WF+1-2, 0>();
-	auto frac = current_implicit_bit.concatenate(current_frac_wo_implicit_bit.bitwise_and(wrap.template slice<S_WF-1,0>()));
+	auto masked_fraction = current_frac_wo_implicit_bit.bitwise_and(mask_top);
+
+
+	auto mask_stickies = (Wrapper<1, false>{1}.concatenate(mask_top.template slice<S_WF-1,1>())).invert();
+	auto sticky_bits = current_frac_wo_implicit_bit.bitwise_and(mask_stickies);
+	auto sticky_from_mask = sticky_bits.or_reduction();
+
+	auto mask_round = hint::one_one<K_SIZE-1, (1<<(K_SIZE-1)), Wrapper>(absK).template slice<S_WF-1,0>();
+	auto round_bits = current_frac_wo_implicit_bit.bitwise_and(mask_round);
+	auto round = round_bits.or_reduction();
+
+	auto mask_guard = Wrapper<1, false>{0}.concatenate(mask_round.template slice<S_WF-1,1>());
+	auto guard_bits = current_frac_wo_implicit_bit.bitwise_and(mask_guard);
+	auto guard_from_mask = guard_bits.or_reduction();
+
+	auto guard_is_in_fraction = mask_guard.or_reduction();
+	auto guard_outside_fraction = lzoc_shifted.template get<2>();
+	auto guard = Wrapper<1, false>::mux(
+						guard_is_in_fraction,
+						guard_from_mask,
+						guard_outside_fraction
+					);
+	auto sticky_outside_fraction = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
+	auto sticky = Wrapper<1, false>::mux(
+						guard_is_in_fraction,
+						sticky_from_mask.bitwise_or(guard_outside_fraction).bitwise_or(sticky_outside_fraction),
+						sticky_outside_fraction
+					);
+
+	auto must_add_1 = guard.bitwise_and((sticky).bitwise_or(round));
+	
+	auto rounded_frac = masked_fraction.addWithCarry(mask_round, Wrapper<1, false>{0});
+	
+
+	auto rounded_frac_overflowed = rounded_frac.template get<S_WF>();
+	auto rounded_frac_bits = rounded_frac.template slice<S_WF-1,0>();
+	auto frac_bits_to_take = Wrapper<S_WF, false>::mux(must_add_1, rounded_frac_bits, masked_fraction);
+
+	auto frac = current_implicit_bit.concatenate(frac_bits_to_take);
+	auto adjusted_exp = current_exp.modularAdd((rounded_frac_overflowed.bitwise_and(must_add_1)).template leftpad<S_WE>());
+
+	// cerr << "guard :  " << to_string(guard) << endl;
+	// cerr << "sticky :  " << to_string(sticky) << endl;
+	// cerr << "round :  " << to_string(round) << endl;
+	// cerr << "must_add_1 :  " << to_string(must_add_1) << endl;
+
+	// cerr << "current_frac_wo_implicit_bit: " << to_string(current_frac_wo_implicit_bit) << endl;
+	// cerr << "mask_top                    : " << to_string(mask_top) << endl;
+	// cerr << "mask_stickies               : " << to_string(mask_stickies) << endl;
+	// cerr << "mask_guard                  : " << to_string(mask_guard) << endl;
+
+	// auto frac = .concatenate(masked_fraction);
 	// cerr << "nb_zero: " << to_string(absK) << endl;
-	// cerr << "current_frac_wo_implicit_bit:  " << to_string(current_frac_wo_implicit_bit) << endl;
 	// cerr << "wrap                        :  " << to_string(wrap.template slice<S_WF-1,0>()) << endl;
 	// cerr << "frac                        : " << to_string(frac) << endl;
 
@@ -171,8 +221,8 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 
 
 
-	auto round = lzoc_shifted.template get<2>();
-	auto sticky = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
+	// auto round = lzoc_shifted.template get<2>();
+	// auto sticky = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
 
 
 
@@ -180,7 +230,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	auto final_exp = Wrapper<S_WE, false>::mux(
 					is_zero,
 					{0},
-					current_exp
+					adjusted_exp
 				);
 
 	auto isResultNar = in1.getIsNaR().bitwise_or(in2.getIsNaR());
