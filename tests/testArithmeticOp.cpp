@@ -292,8 +292,8 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 {
 
 
-	// auto value1Encoding_single = StandardPositEncoding<16, Wrapper>{{6143}};
-	// auto value2Encoding_single = StandardPositEncoding<16, Wrapper>{{57344}};
+	// auto value1Encoding_single = StandardPositEncoding<16, Wrapper>{{32765}};
+	// auto value2Encoding_single = StandardPositEncoding<16, Wrapper>{{40960}};
 	// auto decoded1_single = posit_decoder(value1Encoding_single);
 	// auto decoded2_single = posit_decoder(value2Encoding_single);
 	// auto sum_in_place_single = posit_add_in_place(decoded1_single, decoded2_single);
@@ -310,7 +310,7 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 	// cerr << "encoded_in_place_single: " << to_string(encoded_in_place_single) << endl;
 	// cerr << "encoded_single: " << to_string(encoded_single) << endl;
 
-
+omp_set_num_threads(16);
 	uint64_t counter = 0;
 	uint64_t TOTAL_TESTS = uint64_t{1}<<32;
 	unsigned int error_counter = 0;

@@ -191,8 +191,15 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 					);
 
 	auto must_add_1 = guard.bitwise_and((sticky).bitwise_or(round));
+	// cerr << "must_add_1 :  " << to_string(must_add_1) << endl;
 	
 	auto rounded_frac = masked_fraction.addWithCarry(mask_round, Wrapper<1, false>{0});
+	// cerr << "current_frac_wo_implicit_bit: " << to_string(current_frac_wo_implicit_bit) << endl;
+	// cerr << "mask_top                    : " << to_string(mask_top) << endl;
+	// cerr << "mask_stickies               : " << to_string(mask_stickies) << endl;
+	// cerr << "mask_guard                  : " << to_string(mask_guard) << endl;
+	// cerr << "masked_fraction :  " << to_string(masked_fraction) << endl;
+	// cerr << "rounded_frac :  " << to_string(rounded_frac) << endl;
 	
 
 	auto rounded_frac_overflowed = rounded_frac.template get<S_WF>();
@@ -204,9 +211,10 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	auto sign_sequence_wes = Wrapper<S_WE, false>::generateSequence(toCount);
 	auto exp_2c = current_exp.bitwise_xor(sign_sequence_wes);
 
+	// cerr << "rounded_frac_overflowed :  " << to_string(rounded_frac_overflowed) << endl;
 
 
-	auto adjusted_exp = exp_2c.modularAdd(rounded_frac_overflowed.template leftpad<S_WE>());
+	auto adjusted_exp = exp_2c.modularAdd(rounded_frac_overflowed.bitwise_or(mask_round.or_reduction().invert()).template leftpad<S_WE>());
 	auto exp_select = Wrapper<S_WE, false>::mux(must_add_1, adjusted_exp.bitwise_xor(sign_sequence_wes), current_exp);
 
 	// cerr << "guard :  " << to_string(guard) << endl;
@@ -214,10 +222,6 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	// cerr << "round :  " << to_string(round) << endl;
 	// cerr << "must_add_1 :  " << to_string(must_add_1) << endl;
 
-	// cerr << "current_frac_wo_implicit_bit: " << to_string(current_frac_wo_implicit_bit) << endl;
-	// cerr << "mask_top                    : " << to_string(mask_top) << endl;
-	// cerr << "mask_stickies               : " << to_string(mask_stickies) << endl;
-	// cerr << "mask_guard                  : " << to_string(mask_guard) << endl;
 
 	// auto frac = .concatenate(masked_fraction);
 	// cerr << "nb_zero: " << to_string(absK) << endl;
