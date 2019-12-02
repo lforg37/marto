@@ -26,7 +26,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	// Compiler throws error: error: conversion from ‘ap_int_base<1, false>::RType<1, false>::logic’ {aka ‘ap_uint<1>’} to non-scalar type ‘hint<1>’ {aka ‘hint_base<1, false>’} requested
 	auto es = es_wo_xor.bitwise_xor(sign_sequence_wes);
 
-	//cerr << "ES : " << to_string(es) << endl;
+	// cerr << "ES : " << to_string(es) << endl;
 
 	//K_SIZE
 	auto k = expWoBias.template slice<S_WE-1, S_WES>();
@@ -64,7 +64,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	//N
 	auto reverseBitAndEsAndSignificandAndGuardBit = reverseBitAndEsAndSignificand.concatenate(positValue.getGuardBit());
 
-	//cerr << "Before shift : " << to_string(reverseBitAndEsAndSignificandAndGuardBit) << endl;
+	// cerr << "Before shift : " << to_string(reverseBitAndEsAndSignificandAndGuardBit) << endl;
 	// readyToShift.print();
 
 	//N+1
@@ -74,18 +74,18 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 				reverseBitAndEsAndSignificandAndGuardBit.template get<N-1>()
 		); //TODO rajouter le fillbit
 
-	//cerr << "Shifted : " << to_string(shifted) << endl;
+	// cerr << "Shifted : " << to_string(shifted) << endl;
 
 	//N-1
 	auto unroundedResult =  shifted.template slice<N, 2>();
 
-	//cerr << "Unrounded : " << to_string(unroundedResult) << endl;
+	// cerr << "Unrounded : " << to_string(unroundedResult) << endl;
 
 
 	auto guard = shifted.template get<1>();
 	auto sticky = shifted.template get<0>().bitwise_or(positValue.getStickyBit());
 
-	//cerr << "guard : " << to_string(guard) << endl << "sticky : " << to_string(sticky) << endl;
+	// cerr << "guard : " << to_string(guard) << endl << "sticky : " << to_string(sticky) << endl;
 
 	auto roundingBit = guard.bitwise_and(sticky.bitwise_or(unroundedResult.template get<0>()));
 
