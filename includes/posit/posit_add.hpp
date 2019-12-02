@@ -135,10 +135,10 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	auto addOp2 = lessSignifSign.concatenate(shiftedTop);
 
 	auto addRes = addOp1.modularAdd(addOp2);
-	auto toCount = addRes.template get<S_WF+2>();
+	auto res_sign = addRes.template get<S_WF+2>();
 	auto usefulRes = addRes.template slice<S_WF+1, 0>();
 
-	auto lzoc_shifted = LZOC_shift<S_WF+4, S_WF+4>(usefulRes.concatenate(guards), toCount);
+	auto lzoc_shifted = LZOC_shift<S_WF+4, S_WF+4>(usefulRes.concatenate(guards), res_sign);
 
 
 	auto lzoc = lzoc_shifted.template slice<S_WF + 3 + Static_Val<S_WF+4>::_storage, S_WF + 4>();
@@ -163,18 +163,16 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	Wrapper<2, false> zero_one{1};
 	Wrapper<2, false> one_zero{2};
 
-	// auto sign_sequence_we = Wrapper<S_WE, false>::generateSequence(toCount);
-	auto sign_sequence_wes = Wrapper<S_WES, false>::generateSequence(toCount);
-	// auto exp_2c = current_exp.bitwise_xor(sign_sequence_we);
-	// auto exp_high_bits = exp_2c.template slice<S_WE-1,S_WES>();
+
+	auto sign_sequence_wes = Wrapper<S_WES, false>::generateSequence(res_sign);
 	auto es = expWoBias.template slice<S_WES-1,0>().bitwise_xor(sign_sequence_wes);
-	auto isNegative = k.template get<K_SIZE-1>().bitwise_xor(toCount);
+
+	auto isNegative = k.template get<K_SIZE-1>().bitwise_xor(res_sign);
+
 	auto reverse_and_es = Wrapper<S_WES+2, false>::mux(isNegative,
 							zero_one.concatenate(es),
 							one_zero.concatenate(es)
 							);
-	// cerr << "es:                 " << to_string(es) << endl;
-
 
 	auto current_implicit_bit = current_frac.template get<S_WF+1-1>();
 	auto current_frac_wo_implicit_bit = current_frac.template slice<S_WF+1-2, 0>();
@@ -191,26 +189,18 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 
 	auto mask_round_bottom = hint::one_one<K_SIZE-1, (1<<(K_SIZE-1)), (S_WES+S_WF), Wrapper>(absK).template slice<S_WES+S_WF+1-1,0>();
 	auto mask_round = mask_top_zeros_short.concatenate(mask_round_bottom);
-
 	auto mask_guard = Wrapper<1, false>{0}.concatenate(mask_round.template slice<2+S_WES+S_WF-1,1>());
-
 	auto mask_stickies = (Wrapper<1, false>{1}.concatenate(mask_remove_rounded_bits.template slice<2+S_WES+S_WF-1,1>())).invert();
 
-	// cerr << "exp_2c: " << to_string(exp_2c) << endl;
-	// cerr << "current_frac_wo_implicit_bit: " << to_string(current_frac_wo_implicit_bit) << endl;
-	// cerr << "exp_and_frac:                 " << to_string(exp_and_frac) << endl;
-	// cerr << "mask_remove_rounded_bits:     " << to_string(mask_remove_rounded_bits) << endl;
-	// cerr << "mask_round:                   " << to_string(mask_round) << endl;
-	// cerr << "mask_guard:                   " << to_string(mask_guard) << endl;
-	// cerr << "mask_stickies:                " << to_string(mask_stickies) << endl;
 
 	auto masked_fraction = exp_and_frac.bitwise_and(mask_remove_rounded_bits);
 	
+	auto round_bits = exp_and_frac.bitwise_and(mask_round);
+	auto round = round_bits.or_reduction();
+
 	auto guard_bits = exp_and_frac.bitwise_and(mask_guard);
 	auto guard_from_mask = guard_bits.or_reduction();
 
-	auto round_bits = exp_and_frac.bitwise_and(mask_round);
-	auto round = round_bits.or_reduction();
 
 	auto sticky_bits = exp_and_frac.bitwise_and(mask_stickies);
 	auto sticky_from_mask = sticky_bits.or_reduction();
@@ -223,6 +213,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 						guard_from_mask,
 						guard_outside_fraction
 					);
+
 	auto sticky_outside_fraction = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
 	auto sticky = Wrapper<1, false>::mux(
 						guard_is_in_fraction,
@@ -231,43 +222,17 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 					);
 
 	auto must_add_1 = guard.bitwise_and((sticky).bitwise_or(round));
-	// cerr << "round :  " << to_string(round) << endl;
-	// cerr << "guard :  " << to_string(guard) << endl;
-	// cerr << "sticky :  " << to_string(sticky) << endl;
-	// cerr << "must_add_1 :  " << to_string(must_add_1) << endl;
-	
+
 	auto rounded_frac = masked_fraction.addWithCarry(mask_round, Wrapper<1, false>{0});
-	// cerr << "masked_fraction :   " << to_string(masked_fraction) << endl;
-	// cerr << "rounded_frac :     " << to_string(rounded_frac) << endl;
 
 	auto final_frac = Wrapper<S_WF, false>::mux(must_add_1, 
 								rounded_frac.template slice<S_WF-1,0>(),
 								current_frac_wo_implicit_bit
 								);
-	// cerr << "final_frac :           " << to_string(final_frac) << endl;
 
-	auto exp_increased = rounded_frac.template get<S_WF>().bitwise_xor(es);
-	// cerr << "es :  " << to_string(es) << endl;
-	// cerr << "exp_increased :  " << to_string(exp_increased) << endl;
+	auto exp_increased = rounded_frac.template get<S_WF>().bitwise_xor(es.template get<0>());
 
-	// auto high_bits_exp_plus_1 = exp_high_bits.modularAdd(Wrapper<S_WE-S_WES, false>{1});
-	// auto exp_must_add_1 = (isNegative.bitwise_and(rounded_frac.template get<S_WF+S_WES+2-1>())).bitwise_or(
-	// 						isNegative.invert().bitwise_and(rounded_frac.template get<S_WF+S_WES+2-2>())
-	// 						);
-
-
-	// cerr << "current_exp : " << to_string(current_exp) << endl;
-	// cerr << "isNegative : " << to_string(isNegative) << endl;
-	// cerr << "es : " << to_string(rounded_frac.template get<S_WF+S_WES+2-3>()) << endl;
-	// cerr << "rounded_frac.template get<S_WF+S_WES+2-1>() : " << to_string(rounded_frac.template get<S_WF+S_WES+2-1>()) << endl;
-	// cerr << "rounded_frac.template get<S_WF+S_WES+2-2>() : " << to_string(rounded_frac.template get<S_WF+S_WES+2-2>()) << endl;
-	// cerr << "exp_must_add_1 : " << to_string(exp_must_add_1) << endl;
-	// auto rounded_exp = Wrapper<S_WE, false>::mux(
-	// 							exp_must_add_1,
-	// 							high_bits_exp_plus_1.concatenate(rounded_frac.template slice<S_WF+S_WES-1,S_WF>()),
-	// 							exp_high_bits.concatenate(rounded_frac.template slice<S_WF+S_WES-1,S_WF>().bitwise_xor(sign_sequence_wes))
-	// 							);
-	auto to_add_to_exp = Wrapper<S_WE, false>::mux(toCount,
+	auto to_add_to_exp = Wrapper<S_WE, false>::mux(res_sign,
 								Wrapper<S_WE, false>::generateSequence(Wrapper<1, false>{1}),
 								Wrapper<S_WE, false>{1}
 								);
@@ -278,12 +243,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 								);
 
 
-
-	// auto round = lzoc_shifted.template get<2>();
-	// auto sticky = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
-
-
-	auto is_zero = toCount.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
+	auto is_zero = res_sign.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
 	auto final_exp_if_zero = Wrapper<S_WE, false>::mux(
 					is_zero,
 					{0},
@@ -295,7 +255,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	PositIntermediateFormat<N, WES, Wrapper, true> result {
 				isResultNar,
 				final_exp_if_zero,
-				toCount,
+				res_sign,
 				current_implicit_bit,
 				final_frac.template slice<S_WF-1, 0>()
 	};
