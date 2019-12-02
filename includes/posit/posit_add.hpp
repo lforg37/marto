@@ -160,8 +160,8 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 			);
 
 
-	Wrapper<2, false> zero_one{1};
-	Wrapper<2, false> one_zero{2};
+	Wrapper<1, false> zero_one{1};
+	Wrapper<1, false> one_zero{0};
 
 
 	auto sign_sequence_wes = Wrapper<S_WES, false>::generateSequence(res_sign);
@@ -169,7 +169,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 
 	auto isNegative = k.template get<K_SIZE-1>().bitwise_xor(res_sign);
 
-	auto reverse_and_es = Wrapper<S_WES+2, false>::mux(isNegative,
+	auto reverse_and_es = Wrapper<S_WES+1, false>::mux(isNegative,
 							zero_one.concatenate(es),
 							one_zero.concatenate(es)
 							);
@@ -180,17 +180,17 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	auto exp_and_frac = reverse_and_es.concatenate(current_frac_wo_implicit_bit); 
 
 
-	auto mask_top_ones = Wrapper<2, false>::generateSequence({1});
-	auto mask_top_zeros = Wrapper<2, false>::generateSequence({0});
-	auto mask_top_zeros_short = Wrapper<2-1, false>::generateSequence({0});
+	auto mask_top_ones = Wrapper<1, false>::generateSequence({1});
+	auto mask_top_zeros = Wrapper<1, false>::generateSequence({0});
+	// auto mask_top_zeros_short = Wrapper<2-1, false>::generateSequence({0});
 
 	auto mask_remove_rounded_bits_bottom = hint::one_then_zeros<K_SIZE-1, (1<<(K_SIZE-1)), Wrapper>(absK).template slice<S_WES+S_WF-1, 0>();
 	auto mask_remove_rounded_bits = mask_top_ones.concatenate(mask_remove_rounded_bits_bottom);
 
 	auto mask_round_bottom = hint::one_one<K_SIZE-1, (1<<(K_SIZE-1)), (S_WES+S_WF), Wrapper>(absK).template slice<S_WES+S_WF+1-1,0>();
-	auto mask_round = mask_top_zeros_short.concatenate(mask_round_bottom);
-	auto mask_guard = Wrapper<1, false>{0}.concatenate(mask_round.template slice<2+S_WES+S_WF-1,1>());
-	auto mask_stickies = (Wrapper<1, false>{1}.concatenate(mask_remove_rounded_bits.template slice<2+S_WES+S_WF-1,1>())).invert();
+	auto mask_round = mask_round_bottom;
+	auto mask_guard = Wrapper<1, false>{0}.concatenate(mask_round.template slice<1+S_WES+S_WF-1,1>());
+	auto mask_stickies = (Wrapper<1, false>{1}.concatenate(mask_remove_rounded_bits.template slice<1+S_WES+S_WF-1,1>())).invert();
 
 
 	auto masked_fraction = exp_and_frac.bitwise_and(mask_remove_rounded_bits);
