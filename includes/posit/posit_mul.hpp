@@ -60,13 +60,3 @@ inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrap
 		fin_significand
 	};
 }
-
-template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositIntermediateFormat<N, WES, Wrapper, true>  posit_mul_in_place(PositIntermediateFormat<N, WES, Wrapper, true> in1, PositIntermediateFormat<N, WES, Wrapper, true> in2)
-{
-
-    // TODO
-	cerr << "Use of empty function PositIntermediateFormat<N, WES, Wrapper, true>  posit_mul_in_place(PositIntermediateFormat<N, WES, Wrapper, true> in1, PositIntermediateFormat<N, WES, Wrapper, true> in2)" << endl;
-
-    return PositIntermediateFormat<N, WES, Wrapper, true>{{0}};
-}
