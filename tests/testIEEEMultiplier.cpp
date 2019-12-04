@@ -71,8 +71,9 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 	// omp_set_num_threads(16);
 	constexpr unsigned int FORMAT_SIZE = 1 + WE + WF;
 	constexpr uint32_t FORMAT_LIMIT = 1 << FORMAT_SIZE;
-
-	#pragma omp parallel for
+	uint32_t global_counter = 0;
+	uint32_t counter = 0;
+	#pragma omp parallel for private(counter)
 	for (uint32_t count1 = 0 ; count1 < FORMAT_LIMIT ; ++count1) {
 		SIEEE op1{0};
 		uint32_t op1_repr = count1;
@@ -111,5 +112,15 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 				}
 			}
 		}
+		counter++;
+		if(counter == 10){
+			#pragma omp critical 
+			global_counter += 10;
+			counter = 0;
+
+            fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
+		}
 	}
+    fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+
 }//*/
