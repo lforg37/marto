@@ -94,10 +94,12 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 			auto marto_prod = ieee_product(var1ieee, var2ieee);
 			if (prod.isNaN()){//result is NaN
 				bool marto_is_nan = (marto_prod.isNaN().unravel() == 1);
-				#pragma omp critical
-				BOOST_REQUIRE_MESSAGE(marto_is_nan, "NAN CASE Error for \t" <<
-										hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
-										" and " << hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var2ieee) ));
+				if(not marto_is_nan){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "NAN CASE Error for \t" <<
+											hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
+											" and " << hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var2ieee) ));
+				}
 			}
 			else{
 				bool must = (prod.getRepr()==marto_prod.unravel());
