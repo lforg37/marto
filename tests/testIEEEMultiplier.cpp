@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 
 		for (uint32_t count2=0 ; count2 < FORMAT_LIMIT ; count2++ ) {
 			SIEEE op2{0};
-			std::cerr << count1 << ", " << count2 << endl;
+			// std::cerr << count1 << ", " << count2 << endl;
 			uint32_t op2_repr = count2;
 			mpz_class var2gmp{op2_repr};
 			IEEENumber<WE, WF, hint::GMPWrapper> var2ieee{var2gmp};
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 			auto marto_prod = ieee_product(var1ieee, var2ieee);
 			if (prod.isNaN()){//result is NaN
 				bool marto_is_nan = (marto_prod.isNaN().unravel() == 1);
-				//#pragma omp critical
+				#pragma omp critical
 				BOOST_REQUIRE_MESSAGE(marto_is_nan, "NAN CASE Error for \t" <<
 										hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
 										" and " << hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var2ieee) ));
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 				bool must = (prod.getRepr()==marto_prod.unravel());
 				// bool must = ((marto_prod.unravel()-resgmp) <= 1) and ((resgmp-marto_prod.unravel()) <= 1);
 				if(not must){
-					//#pragma omp critical
+					#pragma omp critical
 					BOOST_REQUIRE_MESSAGE(false, "Error for " <<
 										  hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
 										  " and " << hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var2ieee) ) <<
