@@ -22,5 +22,5 @@ RUN apk add bash git g++ cmake make boost-dev mpfr-dev gmp-dev; \
     ./testIEEEAdderGMP_exe ; \
     ./testIEEEMultiplier_exe ; \
     ./testAritOps_exe -t @long ; \
-    ./testConvert_exe -t @long ; \
+    ./testConvert_exe ; \
     ./testKulisch_exe -t @long ; \
