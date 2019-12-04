@@ -354,11 +354,8 @@ BOOST_AUTO_TEST_CASE(TestRand2CK3_32, *utf::disabled() * utf::label("long"))
 		auto prod = exact_prod<N>(tab1_ap[i], tab2_ap[i]);
 		acc = add_2CK3<N, SEGMENT>(acc, prod);
 		acc2 = add_2CK1<N>(acc2, prod);
-		// acc.printContent();
 		KulischAcc<N> accprop = propagate_carries_2CK3(acc);
 		
-		// printApUint(accprop);
-		// printApUint(acc2);
 
 		mpfr_set_flt(current_mpfr_value1, tab1[i], GMP_RNDZ);
 		mpfr_set_flt(current_mpfr_value2, tab2[i], GMP_RNDZ);

@@ -73,8 +73,9 @@ ap_uint<bankSize+1> add_2CK3_acc_stage(acc_2CK3<N, bankSize> acc,
 	ap_uint<bankSize+1> op1 = bank;
 	ap_uint<bankSize+1> op2 = toAdd;
 	ap_uint<1> c = accCarry;
-	ap_uint<bankSize+1> sum = op1 + op2 + 1;
+	ap_uint<bankSize+1> sum = op1 + op2 + c;
 	#pragma HLS RESOURCE variable=sum core=AddSub
+
 	return sum;
 }
 

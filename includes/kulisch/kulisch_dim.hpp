@@ -210,16 +210,21 @@ class acc_2CK3
 			// return (*this)[getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1];
 		}
 
-		// void printContent(){
-		// 	fprintf(stderr, "Acc size: %d\n", getSegmentedAccSize<N, bankSize>());
-		// 	fprintf(stderr, "Nb stages: %d\n", getNbStages<N, bankSize>());
-		// 	ap_uint<getSegmentedAccSize<N, bankSize>() - FPDim<N>::ACC_SIZE> uselessbits = this->range(getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1,FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>());
-		// 	ap_uint<FPDim<N>::ACC_SIZE> tmp = this->range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>() -1, getNbStages<N, bankSize>());
-		// 	printApUint(uselessbits);
-		// 	printApUint(tmp);
-		// 	ap_uint<getNbStages<N, bankSize>()> c = this->range(getNbStages<N, bankSize>()-1,0);
-		// 	printApUint(c);
-		// }
+		void printContent(){
+			fprintf(stderr, "Acc size: %d\n", getSegmentedAccSize<N, bankSize>());
+			fprintf(stderr, "Nb stages: %d\n", getNbStages<N, bankSize>());
+			// ap_uint<getSegmentedAccSize<N, bankSize>() - FPDim<N>::ACC_SIZE> uselessbits = this->range(getSegmentedAccSize<N, bankSize>() + getNbStages<N, bankSize>()-1,FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>());
+			// ap_uint<FPDim<N>::ACC_SIZE> tmp = this->range(FPDim<N>::ACC_SIZE + getNbStages<N, bankSize>() -1, getNbStages<N, bankSize>());
+			for(int i=getNbStages<N, bankSize>()-1; i>=0; i--){
+				printApUint(getBank(i));
+			}
+				printApUint(this->getAcc());
+
+			// printApUint(uselessbits);
+			// printApUint(tmp);
+			// ap_uint<getNbStages<N, bankSize>()> c = this->range(getNbStages<N, bankSize>()-1,0);
+			// printApUint(c);
+		}
 };
 
 
