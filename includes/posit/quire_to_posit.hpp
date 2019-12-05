@@ -4,9 +4,9 @@
 
 #include "posit_dim.hpp"
 #include "primitives/lzoc_shifter.hpp"
-#include "tools/printing.hpp"
+//#include "tools/printing.hpp"
 
-using hint::to_string;
+//using hint::to_string;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
 inline PositIntermediateFormat<N, WES, Wrapper, false> quire_to_posit(Quire<N, WES, Wrapper, NB_CARRY> quire)

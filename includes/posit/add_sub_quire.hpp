@@ -2,9 +2,9 @@
 #include <cstdio>
 #include <utility>
 
-#include <tools/printing.hpp>
+//#include <tools/printing.hpp>
 
-using hint::to_string;
+//using hint::to_string;
 
 #include "posit_dim.hpp"
 #include "primitives/lzoc_shifter.hpp"

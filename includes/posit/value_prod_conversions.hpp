@@ -3,9 +3,9 @@
 #include <cstdio>
 #include <tools/printing.hpp>
 
-#include "posit_dim.hpp"
+//#include "posit_dim.hpp"
 
-using hint::to_string;
+//using hint::to_string;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositProd<N, WES, Wrapper> PositIF_to_PositProd(PositIntermediateFormat<N, WES, Wrapper, true> val)
@@ -114,7 +114,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_place_rounding(PositProd<N, WES, Wrapper> val)
 {
-    
+
 	constexpr unsigned int S_WF = PositDim<N, WES>::WF;
 	constexpr unsigned int S_WE = PositDim<N, WES>::WE;
 	constexpr unsigned int S_WES = PositDim<N, WES>::WES;
@@ -139,7 +139,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_pl
 	auto expt_no_bias = expt.template leftpad<PROD_WE + 1>().modularSub({PositDim<N, WES>::EXP_BIAS-1});
 
 ///// NEW
-	auto current_exp = expt_no_bias.template slice<PositDim<N, WES>::WE - 1, 0>(); 
+	auto current_exp = expt_no_bias.template slice<PositDim<N, WES>::WE - 1, 0>();
 	auto expWoBias = current_exp.modularSub(Wrapper<S_WE, false>{PositDim<N, WES>::EXP_BIAS});
 	auto k = expWoBias.template slice<S_WE-1, S_WES>();
 	// auto es = expWoBias.template slice<S_WES-1, 0>();
@@ -168,7 +168,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_pl
 	// auto current_implicit_bit = current_frac.template get<S_WF+1-1>();
 	auto current_frac_wo_implicit_bit = current_frac.template slice<S_WF+1-2, 0>();
 
-	auto exp_and_frac = reverse_and_es.concatenate(current_frac_wo_implicit_bit); 
+	auto exp_and_frac = reverse_and_es.concatenate(current_frac_wo_implicit_bit);
 
 
 	auto mask_top_ones = Wrapper<1, false>::generateSequence({1});
@@ -190,7 +190,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_pl
 	// cerr << "mask_stickies:            " << to_string(mask_stickies) << endl;
 
 	auto masked_fraction = exp_and_frac.bitwise_and(mask_remove_rounded_bits);
-	
+
 	auto round_bits = exp_and_frac.bitwise_and(mask_round);
 	auto round = round_bits.or_reduction();
 
@@ -221,7 +221,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_pl
 	// cerr << "must_add_1: " << to_string(must_add_1) << endl;
 	auto rounded_frac = masked_fraction.addWithCarry(mask_round, Wrapper<1, false>{0});
 
-	auto final_frac = Wrapper<S_WF, false>::mux(must_add_1, 
+	auto final_frac = Wrapper<S_WF, false>::mux(must_add_1,
 								rounded_frac.template slice<S_WF-1,0>(),
 								current_frac_wo_implicit_bit
 								);
@@ -232,9 +232,9 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_pl
 								Wrapper<S_WE, false>::generateSequence(Wrapper<1, false>{1}),
 								Wrapper<S_WE, false>{1}
 								);
-	auto final_exp = Wrapper<S_WE, false>::mux(exp_increased.bitwise_and(must_add_1), 
+	auto final_exp = Wrapper<S_WE, false>::mux(exp_increased.bitwise_and(must_add_1),
 								current_exp.modularAdd(to_add_to_exp),
-								//rounded_exp.bitwise_xor(sign_sequence_we), 
+								//rounded_exp.bitwise_xor(sign_sequence_we),
 								current_exp
 								);
 
@@ -313,5 +313,5 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_pl
 
 
 
-    return PositIntermediateFormat<N, WES, Wrapper, true>{{0}};
+	return PositIntermediateFormat<N, WES, Wrapper, true>{{0}};
 }
