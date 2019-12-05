@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdio>
-#include <tools/printing.hpp>
+//#include <tools/printing.hpp>
 
-//#include "posit_dim.hpp"
+#include "posit_dim.hpp"
 
 //using hint::to_string;
 
