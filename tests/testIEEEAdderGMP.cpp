@@ -34,11 +34,11 @@ BOOST_AUTO_TEST_CASE(TestIEEAddWE3WF4GMP)
 //	BOOST_REQUIRE_MESSAGE(!testfile.fail(), "The test file " << filepath << " cannot be opened.");
 	for (mpz_class op1_repr = 0 ; op1_repr < nbRepr ; ++op1_repr ) {
 		op1 = static_cast<uint32_t>(op1_repr.get_ui());
-		hint::IEEENumber<WE, WF, hint::GMPWrapper> op1_hint{op1_repr};
+		IEEENumber<WE, WF, hint::GMPWrapper> op1_hint{op1_repr};
 		for (mpz_class op2_repr = 0 ; op2_repr < nbRepr ; ++op2_repr ) {
 			//cerr << "Iter " << op1_repr.get_str(2)  << ", " << op2_repr.get_str(2) << endl;
 			op2 = static_cast<uint32_t>(op2_repr.get_ui());
-			hint::IEEENumber<WE, WF, hint::GMPWrapper> op2_hint{op2_repr};
+			IEEENumber<WE, WF, hint::GMPWrapper> op2_hint{op2_repr};
 
 			auto adder_res = ieee_add_sub_impl(op1_hint, op2_hint);
 			auto adder_res_gmp = adder_res.unravel();

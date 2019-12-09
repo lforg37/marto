@@ -1,8 +1,7 @@
 #ifndef IEEETYPE_HPP
 #define IEEETYPE_HPP
 
-namespace hint {
-	template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
+template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 	class IEEENumber : public Wrapper<WE + WF + 1, false>
 	{
 		private:
@@ -50,6 +49,5 @@ namespace hint {
 			template<unsigned int W>
 			using us_wrapper = Wrapper<W, false>;
 	};*/
-}
 
 #endif // IEEETYPE_HPP
