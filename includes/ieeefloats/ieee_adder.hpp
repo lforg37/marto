@@ -128,7 +128,7 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	//	<< "LZC  :" << lzc.unravel().get_str(2) << endl;
 	constexpr unsigned int lzcsize = hint::Static_Val<WF+3>::_storage;
 
-	static_assert (lzcsize<=WE, "The adder works only for wE > log2(WF).\nAre you sure you need subnormals ?\nIf yes, contact us wit hyour use case, we will be happy to make it work for you.");
+	static_assert (lzcsize<=WE, "The adder works only for wE > log2(WF).\nAre you sure you need subnormals ?\nIf yes, contact us with your use case, we will be happy to make it work for you.");
 	auto subnormalLimitVal = Wrapper<lzcsize, false>{WF+3};
 
 	auto maxExpIsOne = (maxExp == Wrapper<WE, false>{1});
