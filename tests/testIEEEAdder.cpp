@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNTE, *utf::disabled() * utf::label("lo
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
 }
 
-BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNDown, *utf::disabled() * utf::label("long"))
+BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNUp, *utf::disabled() * utf::label("long"))
 {
 	constexpr unsigned int WE = 5;
 	constexpr unsigned int WF = 10;
