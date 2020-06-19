@@ -1,6 +1,16 @@
 #ifndef IEEETYPE_HPP
 #define IEEETYPE_HPP
 
+#include <cstdint>
+
+enum struct IEEERoundingMode : uint8_t {
+	RoundTowardZero = (1 << 2),
+	RoundUp = (1 << 2) | (1 << 1),
+	RoundDown = 0,
+	RoundNearestTieEven = 1 << 1,
+	RoundNearestTieAway = (1 << 1) | 1
+};
+
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 	class IEEENumber : public Wrapper<WE + WF + 1, false>
 	{
@@ -11,6 +21,7 @@ template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wr
 		public:
 			static constexpr unsigned int _WE = WE;
 			static constexpr unsigned int _WF = WF;
+			using rounding_type_t = us_wrapper<3>;
 
 			IEEENumber(Wrapper<WE + WF + 1, false> const & val):Wrapper<WE+WF+1, false>{val}{}
 

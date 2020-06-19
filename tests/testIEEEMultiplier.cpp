@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(TestIEEEMul0)
 }
 
 
-BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
+BOOST_AUTO_TEST_CASE(TestIEEMul_4_7)
 {
 	constexpr unsigned int WE = 4;
 	constexpr unsigned int WF = 7;
@@ -53,17 +53,17 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 	// std::bitset<9> x1(var1_ui16);
 	// std::bitset<9> x2(var2_ui16);
 
-	// hint::GMPWrapper<9, false> resgmp{prod.getRepr()};
-	// IEEENumber<WE, WF, hint::GMPWrapper> ieee_res_gmp{resgmp};
+	// hint::VivadoWrapper<9, false> resgmp{prod.getRepr()};
+	// IEEENumber<WE, WF, hint::VivadoWrapper> ieee_res_gmp{resgmp};
 
-	// hint::GMPWrapper<9, false> var1gmp{var1_ui16};
-	// hint::GMPWrapper<9, false> var2gmp{var2_ui16};
-	// IEEENumber<WE, WF, hint::GMPWrapper> var1ieee{var1gmp};
-	// IEEENumber<WE, WF, hint::GMPWrapper> var2ieee{var2gmp};
+	// hint::VivadoWrapper<9, false> var1gmp{var1_ui16};
+	// hint::VivadoWrapper<9, false> var2gmp{var2_ui16};
+	// IEEENumber<WE, WF, hint::VivadoWrapper> var1ieee{var1gmp};
+	// IEEENumber<WE, WF, hint::VivadoWrapper> var2ieee{var2gmp};
 	// auto marto_prod = ieee_product(var1ieee, var2ieee);
 
-	// cerr << "SIEEE \t" << hint::to_string(static_cast<hint::GMPWrapper<9, false> >(ieee_res_gmp) ) << endl;
-	// cerr << "marto \t" << hint::to_string(static_cast<hint::GMPWrapper<9, false> >(marto_prod) ) << endl;
+	// cerr << "SIEEE \t" << hint::to_string(static_cast<hint::VivadoWrapper<9, false> >(ieee_res_gmp) ) << endl;
+	// cerr << "marto \t" << hint::to_string(static_cast<hint::VivadoWrapper<9, false> >(marto_prod) ) << endl;
 
 	// exit(0);
 
@@ -77,16 +77,14 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 	for (uint32_t count1 = 0 ; count1 < FORMAT_LIMIT ; ++count1) {
 		SIEEE op1{0};
 		uint32_t op1_repr = count1;
-		mpz_class var1gmp{op1_repr};
-		IEEENumber<WE, WF, hint::GMPWrapper> var1ieee{var1gmp};
+		IEEENumber<WE, WF, hint::VivadoWrapper> var1ieee{{op1_repr}};
 		op1 = op1_repr;
 
 		for (uint32_t count2=0 ; count2 < FORMAT_LIMIT ; count2++ ) {
 			SIEEE op2{0};
 			// std::cerr << count1 << ", " << count2 << endl;
 			uint32_t op2_repr = count2;
-			mpz_class var2gmp{op2_repr};
-			IEEENumber<WE, WF, hint::GMPWrapper> var2ieee{var2gmp};
+			IEEENumber<WE, WF, hint::VivadoWrapper> var2ieee{{op2_repr}};
 			op2 = op2_repr;
 			auto prod = op1 * op2;
 			auto prod_repr = prod.getRepr();
@@ -97,8 +95,8 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 				if(not marto_is_nan){
 					#pragma omp critical
 					BOOST_REQUIRE_MESSAGE(false, "NAN CASE Error for \t" <<
-											hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
-											" and " << hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var2ieee) ));
+											hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
+											" and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(var2ieee) ));
 				}
 			}
 			else{
@@ -107,22 +105,22 @@ BOOST_AUTO_TEST_CASE(TestIEEMul_3_4)
 				if(not must){
 					#pragma omp critical
 					BOOST_REQUIRE_MESSAGE(false, "Error for " <<
-										  hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
-										  " and " << hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(var2ieee) ) <<
-										  "\nexpecting\t" << hint::to_string(GMPWrapper<FORMAT_SIZE, false>{prod_repr} ) <<
-										  "\ngot  \t" << hint::to_string(static_cast<GMPWrapper<FORMAT_SIZE, false> >(marto_prod) ));
+										  hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(var1ieee) ) <<
+										  " and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(var2ieee) ) <<
+										  "\nexpecting\t" << hint::to_string(VivadoWrapper<FORMAT_SIZE, false>{prod_repr} ) <<
+										  "\ngot  \t" << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(marto_prod) ));
 				}
 			}
 		}
 		counter++;
 		if(counter == 10){
-			#pragma omp critical 
+			#pragma omp critical
 			global_counter += 10;
 			counter = 0;
 
-            fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
 		}
 	}
-    fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
 
 }//*/

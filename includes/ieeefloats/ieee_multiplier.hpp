@@ -14,7 +14,7 @@
 using namespace hint;
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-IEEENumber<WE, WF, Wrapper> ieee_product(IEEENumber<WE, WF, Wrapper> i0, IEEENumber<WE, WF, Wrapper> i1)
+inline IEEENumber<WE, WF, Wrapper> ieee_product(IEEENumber<WE, WF, Wrapper> i0, IEEENumber<WE, WF, Wrapper> i1)
 {
 	auto i0_frac_is_zero = i0.getFractionnalPart().or_reduction().invert();
 	auto i1_frac_is_zero = i1.getFractionnalPart().or_reduction().invert();
@@ -133,7 +133,7 @@ IEEENumber<WE, WF, Wrapper> ieee_product(IEEENumber<WE, WF, Wrapper> i0, IEEENum
 	cerr << "must_left_shift: \t\t\t" << to_string(must_left_shift) << endl;
 	cerr << "right_shift_value: \t\t\t" << to_string(right_shift_value) << endl;
 	cerr << "left_shift: \t\t\t" << to_string(left_shift) << endl;
-	cerr << "to sub to : \t\t\t" << to_string(Wrapper<WE+2, false>{2*WF+3-(WF+3)}) << endl;	
+	cerr << "to sub to : \t\t\t" << to_string(Wrapper<WE+2, false>{2*WF+3-(WF+3)}) << endl;
 #endif
 
 	auto shift_value = Wrapper<WE+2, false>{2*WF+3-(WF+3)}.modularAdd(right_shift);

@@ -2,6 +2,7 @@
 #define IEEE_ADDER_HPP
 
 #include "ieeefloats/ieeetype.hpp"
+#include "ieeefloats/ieee_rounding.hpp"
 #include "tools/static_math.hpp"
 #include "primitives/lzoc_shifter.hpp"
 #include "primitives/lzoc.hpp"
@@ -10,7 +11,8 @@
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	   IEEENumber<WE, WF, Wrapper> in0,
-	   IEEENumber<WE, WF, Wrapper> in1
+	   IEEENumber<WE, WF, Wrapper> in1,
+	   IEEERoundingMode roundingMode = IEEERoundingMode::RoundNearestTieEven
 	)
 {
 	auto exp0 = in0.getExponent();
@@ -199,7 +201,8 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto expSigPreRound = expPreRound.concatenate(significandPreRound);
 	//cerr << "expSigPreRound : " << expSigPreRound.unravel().get_str(2) << endl;
 
-	auto roundUpBit = roundBit & (sticky | lsb);
+	auto roundUpBit = ieee_getRoundBit(maxSign, lsb, roundBit, sticky, roundingMode);
+	//auto roundUpBit = roundBit & (sticky | lsb);
 	auto expSigRounded = expSigPreRound.modularAdd(roundUpBit.template leftpad<WE+WF>());
 	auto finalExp = expSigRounded.template slice<WF+WE-1, WF>();
 
