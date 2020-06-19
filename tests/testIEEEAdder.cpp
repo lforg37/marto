@@ -69,7 +69,7 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 		float16_t op1_sf{op1_repr};
 		MartoIEEE op1_marto{{op1_repr}};
 
-		for (uint32_t count2=0 ; count2 < FORMAT_LIMIT && keep_going < 0; count2++ ) {
+		for (uint32_t count2=count1 ; count2 < FORMAT_LIMIT && keep_going < 0; count2++ ) {
 			uint16_t op2_repr = count2;
 			float16_t op2_sf{op2_repr};
 			MartoIEEE op2_marto{{op2_repr}};
