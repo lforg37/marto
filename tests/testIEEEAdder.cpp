@@ -80,7 +80,7 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
 				if(not marto_is_nan){
 					if (keep_going < 0) {
-						#pragma omp critical
+						#pragma omp critical (res)
 						{
 							retval.op1 = op1_repr;
 							retval.op2 = op2_repr;
@@ -98,7 +98,7 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 
 				if(not must){
 					if (keep_going < 0) {
-						#pragma omp critical
+						#pragma omp critical (res)
 						{
 							retval.op1 = op1_repr;
 							retval.op2 = op2_repr;
@@ -113,9 +113,11 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 		}
 		counter++;
 		if((counter % PRINT_EVERY) == 0){
-			#pragma omp atomic
-			global_counter += PRINT_EVERY;
-			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(counter)/static_cast<double>(FORMAT_LIMIT)*100, counter,FORMAT_LIMIT);
+			#pragma omp critical (print)
+			{
+				global_counter += PRINT_EVERY;
+				fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(counter)/static_cast<double>(FORMAT_LIMIT)*100, counter,FORMAT_LIMIT);
+			}
 		}
 	}
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
