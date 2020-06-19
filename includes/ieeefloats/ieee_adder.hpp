@@ -8,6 +8,15 @@
 #include "primitives/lzoc.hpp"
 #include "primitives/shifter_sticky.hpp"
 
+/*
+#include <iostream>
+#include <tools/printing.hpp>
+
+using std::cout;
+using std::cerr;
+using hint::to_string;
+*/
+
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	   IEEENumber<WE, WF, Wrapper> in0,
@@ -199,9 +208,20 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto expPreRound = maxExp.addWithCarry(deltaExpBeforeCorrection, deltaExpCin).template slice<WE-1, 0>();
 	//cerr << "expPreRound : " << expPreRound.unravel().get_str(2) << endl;
 	auto expSigPreRound = expPreRound.concatenate(significandPreRound);
-	//cerr << "expSigPreRound : " << expSigPreRound.unravel().get_str(2) << endl;
+	//cerr << "expSigPreRound : " << to_string(expPreRound) << endl;
 
 	auto roundUpBit = ieee_getRoundBit(maxSign, lsb, roundBit, sticky, roundingMode);
+	//cerr << "rub : " << to_string(roundUpBit) << endl;
+
+	auto unroundedInf = expPreRound.and_reduction();
+	//cerr << "Infinity pre-round : " << to_string(unroundedInf) << endl;
+
+	Wrapper<3, false> roundingCode{static_cast<uint8_t>(roundingMode)};
+	auto b0 = roundingCode.template get<0>();
+	auto b1 = roundingCode.template get<1>();
+	auto b2 = roundingCode.template get<2>();
+	auto forbiddent_inf = ((b2 & b0 & (b1 == maxSign)) | (roundingCode.or_reduction().invert())) & unroundedInf & maxIsInfinity.invert();
+
 	//auto roundUpBit = roundBit & (sticky | lsb);
 	auto expSigRounded = expSigPreRound.modularAdd(roundUpBit.template leftpad<WE+WF>());
 	auto finalExp = expSigRounded.template slice<WF+WE-1, WF>();
@@ -214,14 +234,18 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 					finalExp.and_reduction()
 				);
 
-	auto constInfNan = Wrapper<WE, false>::generateSequence({1}).concatenate(Wrapper<WF, false>::generateSequence(resultIsNan));
+	auto constInfNanExp = Wrapper<WE-1, false>::generateSequence({1}).concatenate(forbiddent_inf.invert());
+	auto constInfNanSignif = Wrapper<WF, false>::generateSequence(resultIsNan | forbiddent_inf);
+
+	auto constInfNan = constInfNanExp.concatenate(constInfNanSignif);
+	//cerr << "Constinfnan : " << to_string(constInfNan) << endl;
 	auto finalRes = Wrapper<WE+WF, false>::mux(resultIsNan | resultIsInf, constInfNan, expSigRounded);
 
 	auto bothZeros = maxIsZero & minIsZero;
 	auto signBothZero = minSign & maxSign;
 
 	Wrapper<1, false> isRoundDown{roundingMode == IEEERoundingMode::RoundDown};
-	auto negZeroOp = bothZeros.invert() & resultIsZero & isRoundDown;
+	auto negZeroOp = resultIsZero & isRoundDown & (effsub | bothZeros.invert());
 	auto signR = resultIsNan.invert() & // NaN forces sign to be zero
 			((resultIsZero & (signBothZero | negZeroOp)) | // If summing two zeros of opposite sign, set result to zero
 			(resultIsZero.invert() & maxSign));

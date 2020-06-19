@@ -63,18 +63,23 @@ bool test_f16_sum(uint16_t op1_repr, uint16_t op2_repr, typeof(softfloat_roundin
 BOOST_AUTO_TEST_CASE(TestCaseRndUp) {
 	BOOST_REQUIRE(test_f16_sum(448, 1601, softfloat_round_max, IEEERoundingMode::RoundUp));
 	BOOST_REQUIRE(test_f16_sum(448, 40964, softfloat_round_max, IEEERoundingMode::RoundUp));
+
+	BOOST_REQUIRE(test_f16_sum(53696, 64511, softfloat_round_max, IEEERoundingMode::RoundUp));
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndDown) {
 	BOOST_REQUIRE(test_f16_sum(448, 33216, softfloat_round_min, IEEERoundingMode::RoundDown));
+	BOOST_REQUIRE(test_f16_sum(0, 32768, softfloat_round_min, IEEERoundingMode::RoundDown));
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndZero) {
 	BOOST_REQUIRE(test_f16_sum(448, 40965, softfloat_round_minMag, IEEERoundingMode::RoundTowardZero));
+	BOOST_REQUIRE(test_f16_sum(20928, 31743, softfloat_round_minMag, IEEERoundingMode::RoundTowardZero));
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndTieAway) {
 	BOOST_REQUIRE(test_f16_sum(448, 40964, softfloat_round_near_maxMag, IEEERoundingMode::RoundNearestTieAway));
+	BOOST_REQUIRE(test_f16_sum(448, 1601, softfloat_round_near_maxMag, IEEERoundingMode::RoundNearestTieAway));
 }
 
 void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMode marto_round_mode)
