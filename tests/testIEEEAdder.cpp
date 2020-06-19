@@ -109,7 +109,7 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 		counter++;
 		if((counter % PRINT_EVERY) == 0){
 			#pragma omp critical
-			global_counter += counter;
+			global_counter += PRINT_EVERY;
 			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(counter)/static_cast<double>(FORMAT_LIMIT)*100, counter,FORMAT_LIMIT);
 		}
 	}
