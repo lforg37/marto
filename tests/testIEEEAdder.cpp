@@ -79,36 +79,37 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 			if (isNan(sum_sf)) {//result is NaN
 				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
 				if(not marto_is_nan){
-					#pragma omp critical
 					if (keep_going < 0) {
+						#pragma omp critical {
 						retval.op1 = op1_repr;
 						retval.op2 = op2_repr;
 						retval.expected_result = sum_sf.v;
 						retval.result = sum_marto.unravel();
 						retval.err_code = SumError::Code::WaitingNaN;
-						keep_going = 1;
+						keep_going = 1;}
 					}
 				}
 			}
 			else{
 				bool must = (sum_sf.v == sum_marto.unravel());
 				// bool must = ((marto_prod.unravel()-resgmp) <= 1) and ((resgmp-marto_prod.unravel()) <= 1);
+
 				if(not must){
-					#pragma omp critical
 					if (keep_going < 0) {
+#pragma omp critical {
 						retval.op1 = op1_repr;
 						retval.op2 = op2_repr;
 						retval.expected_result = sum_sf.v;
 						retval.result = sum_marto.unravel();
 						retval.err_code = SumError::Code::ResDiffer;
-						keep_going = 1;
+						keep_going = 1;}
 					}
 				}
 			}
 		}
 		counter++;
 		if((counter % PRINT_EVERY) == 0){
-			#pragma omp critical
+			#pragma omp atomic
 			global_counter += PRINT_EVERY;
 			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(counter)/static_cast<double>(FORMAT_LIMIT)*100, counter,FORMAT_LIMIT);
 		}
