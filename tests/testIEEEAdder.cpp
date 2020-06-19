@@ -17,7 +17,7 @@
 using namespace std;
 using namespace hint;
 namespace utf = boost::unit_test;
-constexpr int PRINT_EVERY = 100;
+constexpr int PRINT_EVERY = 10;
 #include <bitset>
 
 #ifdef SOFTFLOAT
@@ -80,13 +80,15 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
 				if(not marto_is_nan){
 					if (keep_going < 0) {
-						#pragma omp critical {
-						retval.op1 = op1_repr;
-						retval.op2 = op2_repr;
-						retval.expected_result = sum_sf.v;
-						retval.result = sum_marto.unravel();
-						retval.err_code = SumError::Code::WaitingNaN;
-						keep_going = 1;}
+						#pragma omp critical
+						{
+							retval.op1 = op1_repr;
+							retval.op2 = op2_repr;
+							retval.expected_result = sum_sf.v;
+							retval.result = sum_marto.unravel();
+							retval.err_code = SumError::Code::WaitingNaN;
+							keep_going = 1;
+						}
 					}
 				}
 			}
@@ -96,13 +98,15 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 
 				if(not must){
 					if (keep_going < 0) {
-#pragma omp critical {
-						retval.op1 = op1_repr;
-						retval.op2 = op2_repr;
-						retval.expected_result = sum_sf.v;
-						retval.result = sum_marto.unravel();
-						retval.err_code = SumError::Code::ResDiffer;
-						keep_going = 1;}
+						#pragma omp critical
+						{
+							retval.op1 = op1_repr;
+							retval.op2 = op2_repr;
+							retval.expected_result = sum_sf.v;
+							retval.result = sum_marto.unravel();
+							retval.err_code = SumError::Code::ResDiffer;
+							keep_going = 1;
+						}
 					}
 				}
 			}
