@@ -90,6 +90,242 @@ BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNTE, *utf::disabled() * utf::label("lo
 	}
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
 }
+
+BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNDown, *utf::disabled() * utf::label("long"))
+{
+	constexpr unsigned int WE = 5;
+	constexpr unsigned int WF = 10;
+
+	using MartoIEEE = IEEENumber<WE, WF, hint::VivadoWrapper>;
+	constexpr uint64_t FORMAT_SIZE = 1 + WE + WF;
+	constexpr uint64_t FORMAT_LIMIT = 1 << FORMAT_SIZE;
+	uint64_t global_counter = 0;
+	uint64_t counter = 0;
+	softfloat_roundingMode = softfloat_round_max;
+	auto marto_roundingmode = IEEERoundingMode::RoundUp;
+	#pragma omp parallel for private(counter) 
+	for (uint64_t count1 = 0 ; count1 < FORMAT_LIMIT ; ++count1) {
+		uint16_t op1_repr = count1;
+		float16_t op1_sf{op1_repr};
+		MartoIEEE op1_marto{{op1_repr}};
+		
+		for (uint32_t count2=0 ; count2 < FORMAT_LIMIT ; count2++ ) {
+			uint16_t op2_repr = count2;
+			float16_t op2_sf{op2_repr};
+			MartoIEEE op2_marto{{op2_repr}};
+			auto sum_sf = f16_add(op1_sf, op2_sf);
+			auto sum_repr = sum_sf.v;
+			auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_roundingmode);
+			if (isNan(sum_sf)) {//result is NaN
+				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
+				if(not marto_is_nan){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "NAN CASE Error for \t" <<
+											hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+											" and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ));
+				}
+			}
+			else{
+				bool must = (sum_sf.v == sum_marto.unravel());
+				// bool must = ((marto_prod.unravel()-resgmp) <= 1) and ((resgmp-marto_prod.unravel()) <= 1);
+				if(not must){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "Error for " <<
+										  hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+										  " and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ) <<
+										  "\nexpecting\t" << hint::to_string(VivadoWrapper<FORMAT_SIZE, false>{sum_repr} ) <<
+										  "\ngot  \t" << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(sum_marto) ));
+				}
+			}
+		}
+		counter++;
+		if(counter == 10){
+			#pragma omp critical
+			global_counter += 10;
+			counter = 0;
+
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
+		}
+	}
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+}
+
+BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNDown, *utf::disabled() * utf::label("long"))
+{
+	constexpr unsigned int WE = 5;
+	constexpr unsigned int WF = 10;
+
+	using MartoIEEE = IEEENumber<WE, WF, hint::VivadoWrapper>;
+	constexpr uint64_t FORMAT_SIZE = 1 + WE + WF;
+	constexpr uint64_t FORMAT_LIMIT = 1 << FORMAT_SIZE;
+	uint64_t global_counter = 0;
+	uint64_t counter = 0;
+	softfloat_roundingMode = softfloat_round_min;
+	auto marto_roundingmode = IEEERoundingMode::RoundDown;
+	#pragma omp parallel for private(counter) 
+	for (uint64_t count1 = 0 ; count1 < FORMAT_LIMIT ; ++count1) {
+		uint16_t op1_repr = count1;
+		float16_t op1_sf{op1_repr};
+		MartoIEEE op1_marto{{op1_repr}};
+		
+		for (uint32_t count2=0 ; count2 < FORMAT_LIMIT ; count2++ ) {
+			uint16_t op2_repr = count2;
+			float16_t op2_sf{op2_repr};
+			MartoIEEE op2_marto{{op2_repr}};
+			auto sum_sf = f16_add(op1_sf, op2_sf);
+			auto sum_repr = sum_sf.v;
+			auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_roundingmode);
+			if (isNan(sum_sf)) {//result is NaN
+				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
+				if(not marto_is_nan){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "NAN CASE Error for \t" <<
+											hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+											" and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ));
+				}
+			}
+			else{
+				bool must = (sum_sf.v == sum_marto.unravel());
+				// bool must = ((marto_prod.unravel()-resgmp) <= 1) and ((resgmp-marto_prod.unravel()) <= 1);
+				if(not must){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "Error for " <<
+										  hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+										  " and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ) <<
+										  "\nexpecting\t" << hint::to_string(VivadoWrapper<FORMAT_SIZE, false>{sum_repr} ) <<
+										  "\ngot  \t" << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(sum_marto) ));
+				}
+			}
+		}
+		counter++;
+		if(counter == 10){
+			#pragma omp critical
+			global_counter += 10;
+			counter = 0;
+
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
+		}
+	}
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+}
+
+BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNDZero, *utf::disabled() * utf::label("long"))
+{
+	constexpr unsigned int WE = 5;
+	constexpr unsigned int WF = 10;
+
+	using MartoIEEE = IEEENumber<WE, WF, hint::VivadoWrapper>;
+	constexpr uint64_t FORMAT_SIZE = 1 + WE + WF;
+	constexpr uint64_t FORMAT_LIMIT = 1 << FORMAT_SIZE;
+	uint64_t global_counter = 0;
+	uint64_t counter = 0;
+	softfloat_roundingMode = softfloat_round_minMag;
+	auto marto_roundingmode = IEEERoundingMode::RoundTowardZero;
+	#pragma omp parallel for private(counter) 
+	for (uint64_t count1 = 0 ; count1 < FORMAT_LIMIT ; ++count1) {
+		uint16_t op1_repr = count1;
+		float16_t op1_sf{op1_repr};
+		MartoIEEE op1_marto{{op1_repr}};
+		
+		for (uint32_t count2=0 ; count2 < FORMAT_LIMIT ; count2++ ) {
+			uint16_t op2_repr = count2;
+			float16_t op2_sf{op2_repr};
+			MartoIEEE op2_marto{{op2_repr}};
+			auto sum_sf = f16_add(op1_sf, op2_sf);
+			auto sum_repr = sum_sf.v;
+			auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_roundingmode);
+			if (isNan(sum_sf)) {//result is NaN
+				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
+				if(not marto_is_nan){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "NAN CASE Error for \t" <<
+											hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+											" and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ));
+				}
+			}
+			else{
+				bool must = (sum_sf.v == sum_marto.unravel());
+				// bool must = ((marto_prod.unravel()-resgmp) <= 1) and ((resgmp-marto_prod.unravel()) <= 1);
+				if(not must){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "Error for " <<
+										  hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+										  " and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ) <<
+										  "\nexpecting\t" << hint::to_string(VivadoWrapper<FORMAT_SIZE, false>{sum_repr} ) <<
+										  "\ngot  \t" << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(sum_marto) ));
+				}
+			}
+		}
+		counter++;
+		if(counter == 10){
+			#pragma omp critical
+			global_counter += 10;
+			counter = 0;
+
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
+		}
+	}
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+}
+
+BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNTA, *utf::disabled() * utf::label("long"))
+{
+	constexpr unsigned int WE = 5;
+	constexpr unsigned int WF = 10;
+
+	using MartoIEEE = IEEENumber<WE, WF, hint::VivadoWrapper>;
+	constexpr uint64_t FORMAT_SIZE = 1 + WE + WF;
+	constexpr uint64_t FORMAT_LIMIT = 1 << FORMAT_SIZE;
+	uint64_t global_counter = 0;
+	uint64_t counter = 0;
+	softfloat_roundingMode = softfloat_round_near_maxMag;
+	auto marto_roundingmode = IEEERoundingMode::RoundNearestTieAway;
+	#pragma omp parallel for private(counter) 
+	for (uint64_t count1 = 0 ; count1 < FORMAT_LIMIT ; ++count1) {
+		uint16_t op1_repr = count1;
+		float16_t op1_sf{op1_repr};
+		MartoIEEE op1_marto{{op1_repr}};
+		
+		for (uint32_t count2=0 ; count2 < FORMAT_LIMIT ; count2++ ) {
+			uint16_t op2_repr = count2;
+			float16_t op2_sf{op2_repr};
+			MartoIEEE op2_marto{{op2_repr}};
+			auto sum_sf = f16_add(op1_sf, op2_sf);
+			auto sum_repr = sum_sf.v;
+			auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_roundingmode);
+			if (isNan(sum_sf)) {//result is NaN
+				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
+				if(not marto_is_nan){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "NAN CASE Error for \t" <<
+											hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+											" and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ));
+				}
+			}
+			else{
+				bool must = (sum_sf.v == sum_marto.unravel());
+				// bool must = ((marto_prod.unravel()-resgmp) <= 1) and ((resgmp-marto_prod.unravel()) <= 1);
+				if(not must){
+					#pragma omp critical
+					BOOST_REQUIRE_MESSAGE(false, "Error for " <<
+										  hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op1_marto) ) <<
+										  " and " << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(op2_marto) ) <<
+										  "\nexpecting\t" << hint::to_string(VivadoWrapper<FORMAT_SIZE, false>{sum_repr} ) <<
+										  "\ngot  \t" << hint::to_string(static_cast<VivadoWrapper<FORMAT_SIZE, false> >(sum_marto) ));
+				}
+			}
+		}
+		counter++;
+		if(counter == 10){
+			#pragma omp critical
+			global_counter += 10;
+			counter = 0;
+
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
+		}
+	}
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+}
 #endif
 
 BOOST_AUTO_TEST_CASE(TestIEEEAdd_4_7)
