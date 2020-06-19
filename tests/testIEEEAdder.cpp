@@ -63,7 +63,7 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 	int keep_going = -1;
 	SumError retval = {0, 0, 0, 0, SumError::Code::OK};
 
-	#pragma omp parallel for private(counter) shared(global_counter)
+	#pragma omp parallel for private(counter) shared(global_counter) schedule(static, 64)
 	for (uint64_t count1 = 0 ; count1 < FORMAT_LIMIT; ++count1) {
 		uint16_t op1_repr = count1;
 		float16_t op1_sf{op1_repr};
