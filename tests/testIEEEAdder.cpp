@@ -62,6 +62,7 @@ bool test_f16_sum(uint16_t op1_repr, uint16_t op2_repr, typeof(softfloat_roundin
 
 BOOST_AUTO_TEST_CASE(TestCaseRndUp) {
 	BOOST_REQUIRE(test_f16_sum(448, 1601, softfloat_round_max, IEEERoundingMode::RoundUp));
+	BOOST_REQUIRE(test_f16_sum(448, 40964, softfloat_round_max, IEEERoundingMode::RoundUp));
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndDown) {
