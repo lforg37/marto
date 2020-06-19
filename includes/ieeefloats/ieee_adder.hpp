@@ -220,9 +220,11 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto bothZeros = maxIsZero & minIsZero;
 	auto signBothZero = minSign & maxSign;
 
+	Wrapper<1, false> isRoundDown{roundingMode == IEEERoundingMode::RoundDown};
+	auto negZeroOp = bothZeros.invert() & resultIsZero & isRoundDown;
 	auto signR = resultIsNan.invert() & // NaN forces sign to be zero
-			(resultIsZero & signBothZero.invert()).invert() & // If summing two zeros of opposite sign, set result to zero
-			maxSign;
+			((resultIsZero & (signBothZero | negZeroOp)) | // If summing two zeros of opposite sign, set result to zero
+			(resultIsZero.invert() & maxSign));
 
 	return {signR.concatenate(finalRes)};
 }

@@ -4,11 +4,11 @@
 #include <cstdint>
 
 enum struct IEEERoundingMode : uint8_t {
-	RoundTowardZero = (1 << 2),
-	RoundUp = (1 << 2) | (1 << 1),
-	RoundDown = 0,
-	RoundNearestTieEven = 1 << 1,
-	RoundNearestTieAway = (1 << 1) | 1
+	RoundTowardZero = 0,
+	RoundUp = 7,
+	RoundDown = 5,
+	RoundNearestTieEven = 4,
+	RoundNearestTieAway = 6
 };
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>

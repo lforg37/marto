@@ -4,7 +4,7 @@
 #include "ieeetype.hpp"
 
 template<template<unsigned int, bool> class Wrapper>
-inline Wrapper<1, false> ieee_getRoundBit(
+Wrapper<1, false> ieee_getRoundBit(
 		Wrapper<1, false> sign,
 		Wrapper<1, false> lastFracBit,
 		Wrapper<1, false> roundBit,
@@ -17,12 +17,13 @@ inline Wrapper<1, false> ieee_getRoundBit(
 	auto b1 = roundingCode.template get<1>();
 	auto b2 = roundingCode.template get<2>();
 
-	auto any = b1 | (b2 & sign);
-	auto always = b2 & (b1 | sign.invert());
+	auto any = b2 & b0 & b1 ^ sign.invert();
 
-	auto tieBreak = Wrapper<1, false>::mux(b0, sign.invert(), lastFracBit);
+	auto always = b0 & (b1 ^ sign);
 
-	auto result = any & ((sticky & always) | (roundBit & (sticky | tieBreak)));
+	auto tieBreak = Wrapper<1, false>::mux(b1, sign, lastFracBit);
+
+	auto result = b2 & ((sticky & always) | (roundBit & (sticky | tieBreak | always)));
 	return result;
 }
 

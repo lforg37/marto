@@ -47,6 +47,35 @@ struct SumError {
 		Code err_code;
 };
 
+bool test_f16_sum(uint16_t op1_repr, uint16_t op2_repr, typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMode marto_round_mode)
+{
+	float16_t op1_sf{op1_repr}, op2_sf{op2_repr};
+	IEEENumber<5, 10, hint::VivadoWrapper> op1_marto{{op1_repr}}, op2_marto{{op2_repr}};
+	softfloat_roundingMode = sf_rnd_mode;
+	auto sum_sf = f16_add(op1_sf, op2_sf);
+	auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_round_mode);
+	uint16_t res_repr_sf = sum_sf.v;
+	uint16_t res_repr_marto = sum_marto.unravel();
+	cout << "SF: " << res_repr_sf << endl << "Marto :" << res_repr_marto;
+	return res_repr_sf == res_repr_marto;
+}
+
+BOOST_AUTO_TEST_CASE(TestCaseRndUp) {
+	BOOST_REQUIRE(test_f16_sum(448, 1601, softfloat_round_max, IEEERoundingMode::RoundUp));
+}
+
+BOOST_AUTO_TEST_CASE(TestCaseRndDown) {
+	BOOST_REQUIRE(test_f16_sum(448, 33216, softfloat_round_min, IEEERoundingMode::RoundDown));
+}
+
+BOOST_AUTO_TEST_CASE(TestCaseRndZero) {
+	BOOST_REQUIRE(test_f16_sum(448, 40965, softfloat_round_minMag, IEEERoundingMode::RoundTowardZero));
+}
+
+BOOST_AUTO_TEST_CASE(TestCaseRndTieAway) {
+	BOOST_REQUIRE(test_f16_sum(448, 40964, softfloat_round_near_maxMag, IEEERoundingMode::RoundNearestTieAway));
+}
+
 void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMode marto_round_mode)
 {
 	constexpr unsigned int WE = 5;
