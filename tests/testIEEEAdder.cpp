@@ -56,25 +56,27 @@ bool test_f16_sum(uint16_t op1_repr, uint16_t op2_repr, typeof(softfloat_roundin
 	auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_round_mode);
 	uint16_t res_repr_sf = sum_sf.v;
 	uint16_t res_repr_marto = sum_marto.unravel();
-	cout << "SF: " << res_repr_sf << endl << "Marto :" << res_repr_marto;
-	return res_repr_sf == res_repr_marto;
+	cout << "SF: " << res_repr_sf << endl << "Marto :" << res_repr_marto << endl;
+	return (isNan(sum_sf) and sum_marto.isNaN().unravel()) or (res_repr_sf == res_repr_marto);
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndUp) {
 	BOOST_REQUIRE(test_f16_sum(448, 1601, softfloat_round_max, IEEERoundingMode::RoundUp));
 	BOOST_REQUIRE(test_f16_sum(448, 40964, softfloat_round_max, IEEERoundingMode::RoundUp));
-
 	BOOST_REQUIRE(test_f16_sum(53696, 64511, softfloat_round_max, IEEERoundingMode::RoundUp));
+	BOOST_REQUIRE(test_f16_sum(448, 64513, softfloat_round_max, IEEERoundingMode::RoundUp));
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndDown) {
 	BOOST_REQUIRE(test_f16_sum(448, 33216, softfloat_round_min, IEEERoundingMode::RoundDown));
 	BOOST_REQUIRE(test_f16_sum(0, 32768, softfloat_round_min, IEEERoundingMode::RoundDown));
+	BOOST_REQUIRE(test_f16_sum(256, 31745, softfloat_round_min, IEEERoundingMode::RoundDown));
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndZero) {
 	BOOST_REQUIRE(test_f16_sum(448, 40965, softfloat_round_minMag, IEEERoundingMode::RoundTowardZero));
 	BOOST_REQUIRE(test_f16_sum(20928, 31743, softfloat_round_minMag, IEEERoundingMode::RoundTowardZero));
+	BOOST_REQUIRE(test_f16_sum(320, 31745, softfloat_round_minMag, IEEERoundingMode::RoundTowardZero));
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndTieAway) {

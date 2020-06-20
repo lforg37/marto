@@ -220,7 +220,7 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto b0 = roundingCode.template get<0>();
 	auto b1 = roundingCode.template get<1>();
 	auto b2 = roundingCode.template get<2>();
-	auto forbiddent_inf = ((b2 & b0 & (b1 == maxSign)) | (roundingCode.or_reduction().invert())) & unroundedInf & maxIsInfinity.invert();
+	auto forbiddent_inf = ((b2 & b0 & (b1 == maxSign)) | (roundingCode.or_reduction().invert())) & unroundedInf & maxIsInfinity.invert() & resultIsNan.invert();
 
 	//auto roundUpBit = roundBit & (sticky | lsb);
 	auto expSigRounded = expSigPreRound.modularAdd(roundUpBit.template leftpad<WE+WF>());
@@ -234,7 +234,7 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 					finalExp.and_reduction()
 				);
 
-	auto constInfNanExp = Wrapper<WE-1, false>::generateSequence({1}).concatenate(forbiddent_inf.invert());
+	auto constInfNanExp = Wrapper<WE-1, false>::generateSequence({1}).concatenate(resultIsNan | forbiddent_inf.invert());
 	auto constInfNanSignif = Wrapper<WF, false>::generateSequence(resultIsNan | forbiddent_inf);
 
 	auto constInfNan = constInfNanExp.concatenate(constInfNanSignif);

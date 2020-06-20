@@ -3,6 +3,7 @@
 
 #include "ieeetype.hpp"
 
+//#define DEBUG_IEEE_ROUNDING
 #ifdef DEBUG_IEEE_ROUNDING
 #include <iostream>
 #include "tools/printing.hpp"
