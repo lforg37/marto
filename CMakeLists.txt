@@ -33,7 +33,7 @@ if(BUILD_UNIT_TEST)
 
 	set(TESTDATAROOT ${CMAKE_CURRENT_SOURCE_DIR}/testdata)
 
-	add_executable(testConvert_exe tests/testConvert.cpp)
+	add_executable(testConvert_exe tests/testConvert.cpp  tests/testConversionPosit.cpp)
 	find_library(SOFTPOSIT_LIB softposit)
 	find_path(SOFTPOSIT_H softposit.h)
 	target_link_libraries(testConvert_exe ${LIBNAME} ${Boost_LIBRARIES})

@@ -25,11 +25,10 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 	constexpr auto S_WE = PositDim<N, WES>::WE;
 	constexpr auto S_WES = WES;
 	constexpr auto K_SIZE = S_WE - S_WES;
-	static constexpr int EXT_SUM_SIZE = Static_Val<S_WF+2 + S_WF +1>::_2pow;
-	static constexpr int LOG2_EXT_SUM_SIZE = Static_Val<EXT_SUM_SIZE>::_log2;
 
 	//Sort in order to have exponent of in1 greater than exponent of in2
-	auto in1IsGreater = in1.getExp() > in2.getExp();
+	auto minIsZero = in2.isZero();
+	auto in1IsGreater = (in1.getExp() > in2.getExp()) | minIsZero;
 
 	auto input2Significand = in2.getSignedSignificand();
 	auto input1Significand = in1.getSignedSignificand();
@@ -43,7 +42,8 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 	auto lessSignifSign = Wrapper<1, false>::mux(in1IsGreater, in2.getSignBit(), in1.getSignBit());
 
 	// Relative shift of exponents
-	auto shiftValue = subExpOp1.modularSub(subExpOp2);
+	auto zeromaskExp = Wrapper<S_WE, false>::generate_sequence(minIsZero.invert());
+	auto shiftValue = subExpOp1.modularSub(subExpOp2 & zeromaskExp);
 	auto shiftedSignificand = shifter_sticky(
 				lessSignificantSignificand.concatenate(Wrapper<2, false>{0}),
 				shiftValue,
@@ -70,7 +70,6 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 	auto sticky = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
 
 	auto is_zero = toCount.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
-
 	auto final_exp = Wrapper<S_WE, false>::mux(
 					is_zero,
 					{0},
@@ -177,7 +176,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 	auto current_implicit_bit = current_frac.template get<S_WF+1-1>();
 	auto current_frac_wo_implicit_bit = current_frac.template slice<S_WF+1-2, 0>();
 
-	auto exp_and_frac = reverse_and_es.concatenate(current_frac_wo_implicit_bit); 
+	auto exp_and_frac = reverse_and_es.concatenate(current_frac_wo_implicit_bit);
 
 
 	auto mask_top_ones = Wrapper<1, false>::generateSequence({1});
@@ -194,7 +193,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 
 
 	auto masked_fraction = exp_and_frac.bitwise_and(mask_remove_rounded_bits);
-	
+
 	auto round_bits = exp_and_frac.bitwise_and(mask_round);
 	auto round = round_bits.or_reduction();
 
@@ -225,7 +224,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 
 	auto rounded_frac = masked_fraction.addWithCarry(mask_round, Wrapper<1, false>{0});
 
-	auto final_frac = Wrapper<S_WF, false>::mux(must_add_1, 
+	auto final_frac = Wrapper<S_WF, false>::mux(must_add_1,
 								rounded_frac.template slice<S_WF-1,0>(),
 								current_frac_wo_implicit_bit
 								);
@@ -236,9 +235,9 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(
 								Wrapper<S_WE, false>::generateSequence(Wrapper<1, false>{1}),
 								Wrapper<S_WE, false>{1}
 								);
-	auto final_exp = Wrapper<S_WE, false>::mux(exp_increased.bitwise_and(must_add_1), 
+	auto final_exp = Wrapper<S_WE, false>::mux(exp_increased.bitwise_and(must_add_1),
 								current_exp.modularAdd(to_add_to_exp),
-								//rounded_exp.bitwise_xor(sign_sequence_we), 
+								//rounded_exp.bitwise_xor(sign_sequence_we),
 								current_exp
 								);
 

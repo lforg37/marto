@@ -372,13 +372,16 @@ class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<
 
 		inline wrapper_helper<1> isZero() const
 		{
+			/*
 			auto isExponentNull = getExp().or_reduction().invert();
 			return isExponentNull.bitwise_and(getSignBit().invert());
+			*/
+			return (getIsNaR() | getImplicitBit() | getSignBit()).invert();
 		}
 
-        operator PositEncoding<N, WES, Wrapper>() const;
-        operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
-        operator PositProd<N, WES, Wrapper>() const;
+		operator PositEncoding<N, WES, Wrapper>() const;
+		operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
+		operator PositProd<N, WES, Wrapper>() const;
 
 		static PositIntermediateFormat getMaxPos()
 		{ //isNar Exp Sign Implicit Frac
@@ -515,8 +518,8 @@ class PositIntermediateFormat<N, WES, Wrapper, false> : public PositValSizedHint
 			return isExponentNull.bitwise_and(getSignBit().invert());
 		}
 
-        operator PositEncoding<N, WES, Wrapper>() const;
-		
+		operator PositEncoding<N, WES, Wrapper>() const;
+
 };
 
 template <unsigned int N, template <unsigned int, bool> class Wrapper, bool isExact>
