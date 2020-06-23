@@ -5,7 +5,13 @@
 
 #include "posit_dim.hpp"
 
-//using hint::to_string;
+#ifdef POSIT_VALPROD_DEBUG
+#include <iostream>
+#include "tools/printing.hpp"
+using hint::to_string;
+using std::cerr;
+#endif
+
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositProd<N, WES, Wrapper> PositIF_to_PositProd(PositIntermediateFormat<N, WES, Wrapper, true> val)
@@ -16,17 +22,12 @@ inline PositProd<N, WES, Wrapper> PositIF_to_PositProd(PositIntermediateFormat<N
 		);
 
 
-	auto expt = val.getExp().template leftpad<PositDim<N, WES>::ProdExpSize>();
+	auto expt = val.getExp().as_signed().template leftpad<PositDim<N, WES>::ProdExpSize>().as_unsigned();
 
-	auto exponent = Wrapper<PositDim<N, WES>::ProdExpSize, false>::mux(
-					val.isZero(),
-					{0},
-					expt.modularAdd(Wrapper<PositDim<N, WES>::ProdExpSize, false>{PositDim<N, WES>::EXP_BIAS - 1})
-				);
-
-	return {val.getIsNaR(), exponent, val.getSignBit(), significand};
+	return {val.getIsNaR(), expt, val.getSignBit(), significand};
 }
 
+//TODO adapt exact
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(PositProd<N, WES, Wrapper> val)
 {
@@ -44,24 +45,26 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 	auto resultGuardBit = fraction.template get<PROD_WF-2-WF>();
 
 	auto resultStickyBit = fraction.template slice<PROD_WF-3 -WF, 0>().or_reduction();
-	auto expt = val.getExp();
+	auto exp = val.getExp();
 
 	// hint<1> isZero = not(((hint<4>) val.getSignificand().slice(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
-	auto isZero = sign.invert() & implicitBit.invert() & expt.or_reduction().invert();
+	auto isZero = sign.invert() & implicitBit.invert() & isNaR.invert();
 
-	auto exp = Wrapper<PROD_WE + 1, false>::mux(
-					isZero,
-					{0},
-					expt.template leftpad<PROD_WE + 1>().modularSub({PositDim<N, WES>::EXP_BIAS-1})
-				);
 	//cerr << to_string(isZero) << endl;
 	//cerr << to_string(exp) << endl;
 
 	// exp.print();
-	auto maxPosCheck = exp.modularSub({2*PositDim<N, WES>::EXP_BIAS})
-				.template get<PROD_WE>();
-	auto isMinPos = exp.template get<PositDim<N, WES>::ProdExpSize>() & isNaR.invert();
-	auto isMaxPos = maxPosCheck.invert() & isNaR.invert();
+	auto emax = Wrapper<PROD_WE, false>{PositDim<N, WES>::EMax};
+	auto exp_pos = exp.template get<PROD_WE - 1>().invert(); // Exponent sign bit
+	auto eabs_mask = Wrapper<PROD_WE, false>::generateSequence(exp_pos);
+	auto exp_aabs = exp ^ eabs_mask; // exp_aabs is either -|exp| or -|exp + 1|
+
+	// Get sign bit of Emax - |abs| to check if exponent overflow
+	auto expOverFlow = emax.addWithCarry(exp_aabs, exp_pos).template get<PROD_WE - 1>() & isNaR.invert();
+
+
+	auto isMinPos = expOverFlow & exp_pos.invert();
+	auto isMaxPos = expOverFlow & exp_pos;
 
 	//cerr << to_string(isMaxPos) << endl;
 	//cerr << to_string(isMinPos) << endl;
@@ -85,7 +88,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 			);
 
 	auto ret = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
-				isMaxPos.bitwise_or(isMinPos),
+				expOverFlow,
 				specialval,
 				PositIntermediateFormat<N, WES, Wrapper, false>(
 								resultGuardBit,
@@ -97,20 +100,37 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 								resultFraction
 							)
 			);
-	/*
-	cerr << to_string(resultGuardBit) << endl;
-	cerr << to_string(resultStickyBit) << endl;
-	cerr << to_string(isNaR) << endl;
-	cerr << to_string(exp) << endl;
-	cerr << to_string(val.getSignBit()) << endl;
-	cerr << to_string(implicitBit) << endl;
-	cerr << to_string(resultFraction) << endl;
-	cerr << to_string(ret) << endl;
-	*/
+
+#ifdef POSIT_VALPROD_DEBUG
+	cerr << "=== POSIT_PROD_TO_POSIT_IF" << endl;
+	cerr << "isNaR: " << to_string(isNaR) << endl;
+	cerr << "fraction: " << to_string(fraction) << endl;
+	cerr << "implicitBit: " << to_string(implicitBit) << endl;
+	cerr << "sign: " << to_string(sign) << endl;
+	cerr << "resultFraction: " << to_string(resultFraction) << endl;
+	cerr << "resultGuardBit: " << to_string(resultGuardBit) << endl;
+	cerr << "resultStickyBit: " << to_string(resultStickyBit) << endl;
+	cerr << "exp: " << to_string(exp) << endl;
+	cerr << "isZero: " << to_string(isZero) << endl;
+	cerr << "emax: " << to_string(emax) << endl;
+	cerr << "exp_pos: " << to_string(exp_pos) << endl;
+	cerr << "eabs_mask: " << to_string(eabs_mask) << endl;
+	cerr << "exp_aabs: " << to_string(exp_aabs) << endl;
+	cerr << "expOverFlow: " << to_string(expOverFlow) << endl;
+	cerr << "isMinPos: " << to_string(isMinPos) << endl;
+	cerr << "isMaxPos: " << to_string(isMaxPos) << endl;
+	cerr << "minposval: " << to_string(minposval) << endl;
+	cerr << "maxposval: " << to_string(maxposval) << endl;
+	cerr << "specialval: " << to_string(specialval) << endl;
+	cerr << "ret: " << to_string(ret) << endl;
+	cerr << "=========================" << endl;
+#endif
 	return ret;
 }
 
+#if 0
 
+/*
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_place_rounding(PositProd<N, WES, Wrapper> val)
 {
@@ -309,9 +329,10 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_pl
 	cerr << to_string(current_frac) << endl;
 	cerr << to_string(ret) << endl;
 	*/
-	return ret;
+	//return ret;
 
 
 
-	return PositIntermediateFormat<N, WES, Wrapper, true>{{0}};
-}
+	//return PositIntermediateFormat<N, WES, Wrapper, true>{{0}};
+//}
+#endif

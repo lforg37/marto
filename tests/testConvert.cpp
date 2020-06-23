@@ -21,6 +21,7 @@ using hint::to_string;
 #include "posit/posit_dim.hpp"
 #include "posit/add_sub_quire.hpp"
 #include "posit/quire_to_posit.hpp"
+#include "posit/posit_in_place_round.hpp"
 
 using namespace std;
 template<unsigned int N, bool is_signed>
@@ -110,7 +111,7 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 {
 	uint16_t value = 0;
 	constexpr unsigned int PROD_SIZE = StandardPositDim<16>::ProdSize;
-	StandardPIF<16, Wrapper, true> one({0}, {StandardPositDim<16>::EXP_BIAS}, {0}, {1}, {0});
+	StandardPIF<16, Wrapper, true> one({0}, {0}, {0}, {1}, {0});
 	do {
 		PositEncoding<16, 1, Wrapper> posit_encoding{{value}};
 		auto posit_val = static_cast<PositIntermediateFormat<16, 1, Wrapper, true> >(posit_encoding);
@@ -152,7 +153,7 @@ BOOST_AUTO_TEST_CASE(TestOppositeProd)
 {
 	StandardPIF<16, Wrapper, true> minus_one(
 			{0},
-			{28},
+			{(1 << 6) - 1},
 			{1},
 			{0},
 			{0}

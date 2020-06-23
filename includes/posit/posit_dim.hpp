@@ -32,7 +32,8 @@ class PositDim {
 
 	// The "2" is for the guard bit and the sticky
 	static constexpr unsigned int ValSize = 2 + 3 + WE + WF;
-	static constexpr unsigned int EMax = (N-2) * (1 << WES_Val);
+	static constexpr unsigned int EMax = (N-2) << WES_Val;
+	static constexpr unsigned int EMin_repr = (EMax ^ (((1) << WE)-1)) + 1;
 	static constexpr unsigned int ProdSignificandSize = 2*WF + 2;
 	//implicit bit twice
 
@@ -387,7 +388,7 @@ class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<
 		{ //isNar Exp Sign Implicit Frac
 			return PositIntermediateFormat(
 					{0}, //isNar
-					{2*PositDim<N, WES>::EXP_BIAS - 1}, //Biased Exp
+					{PositDim<N, WES>::EMax}, //Biased Exp
 					{0}, //sign
 					{1}, //implicit bit
 					{0} //fraction
@@ -398,7 +399,7 @@ class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<
 		{
 			return PositIntermediateFormat(
 					{0}, //isNar
-					{1}, // Biased exp
+					{PositDim<N, WES>::EMin_repr}, // Biased exp
 					{0}, // sign
 					{1}, // implicit bit
 					{0} // fraction
@@ -409,7 +410,7 @@ class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<
 		{
 			return PositIntermediateFormat(
 					{0},
-					{2*PositDim<N, WES>::EXP_BIAS - 2}, // Biased Exp
+					{PositDim<N, WES>::EMax -1}, // Biased Exp
 					{1}, //sign
 					{0}, //implicit bit
 					{0}  //fraction
@@ -420,7 +421,7 @@ class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<
 		{
 			return PositIntermediateFormat(
 					{0}, //isNar
-					{0}, // Biased Exp
+					{PositDim<N, WES>::EMin_repr - 1}, // Biased Exp
 					{1}, // sign
 					{0}, // implicit bit
 					{0} // fraction

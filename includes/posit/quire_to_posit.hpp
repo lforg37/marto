@@ -4,9 +4,13 @@
 
 #include "posit_dim.hpp"
 #include "primitives/lzoc_shifter.hpp"
-//#include "tools/printing.hpp"
 
-//using hint::to_string;
+#ifdef POSIT_QUIRETOPIF_DEBUG
+#include <iostream>
+#include "tools/printing.hpp"
+using hint::to_string;
+using std::cerr;
+#endif
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
 inline PositIntermediateFormat<N, WES, Wrapper, false> quire_to_posit(Quire<N, WES, Wrapper, NB_CARRY> quire)
@@ -70,9 +74,8 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> quire_to_posit(Quire<N, W
 		);
 
 	auto lzocshifted = hint::LZOC_shift<allsize, allsize-1, false, Wrapper>(padded_mid_bits, sign);
-	auto exp = lzocshifted.template slice<logSize + allsize - 1, allsize>();
+	auto exp = Wrapper<logSize, false>{{PositDim<N, WES>::EMax}}.modularSub(lzocshifted.template slice<logSize + allsize - 1, allsize>());
 
-	auto biased_exp = Wrapper<logSize, false>{quire.PositExpRange}.modularSub(exp) ;
 	auto frac = lzocshifted.template slice<
 			allsize - 2,
 			allsize - (PositDim<N, WES>::WF + 1)
@@ -94,38 +97,70 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> quire_to_posit(Quire<N, W
 	cerr << to_string(underflow) << endl;
 	*/
 
-	constexpr unsigned int overflow_neg = 2*PositDim<N, WES>::EXP_BIAS;
-	constexpr unsigned int overflow_pos = overflow_neg - 1;
-
+	constexpr unsigned int overflow_neg = PositDim<N, WES>::EMax-1;
 	Wrapper<logSize, false> overflow_neg_wrap{{ overflow_neg }};
-	Wrapper<logSize, false> overflow_pos_wrap{{ overflow_pos }};
 
-	auto overflow_exp_val = Wrapper<logSize, false>::mux(sign, overflow_neg_wrap, overflow_pos_wrap);
+	constexpr unsigned int underflow_neg = ((overflow_neg + 1)^ (((1) << PositDim<N, WES>::WE)-1)) ;
+	Wrapper<logSize, false> underflow_neg_wrap{{underflow_neg}};
 
-	auto fin_exp = Wrapper<logSize, false>::mux(
-				high_overflow,
-				overflow_exp_val,
-				Wrapper<logSize, false>::mux(
-					isZero,
-					{0},
-					Wrapper<logSize, false>::mux(
-						underflow,
-						sign.invert().template leftpad<logSize>(),
-						biased_exp
-					)
-				)
+
+	auto overflow_base = Wrapper<logSize, false>::mux(high_overflow, overflow_neg_wrap, underflow_neg_wrap);
+	auto over_flow_exp = overflow_base.modularAdd(sign.invert().template leftpad<logSize>());
+
+	auto overflow_fin_exp = Wrapper<logSize, false>::mux(
+				high_overflow | underflow,
+				over_flow_exp,
+				exp
 		);
 
+	auto isZeroMask = Wrapper<logSize, false>::generateSequence(isZero.invert());
+	auto fin_exp = overflow_fin_exp & isZeroMask;
+
+
 	auto implicit_bit = sign.invert() & isZero.invert();
-	auto fin_frac = Wrapper<PositDim<N, WES>::WF, false>::mux(isSpecial, {0}, frac);
-	/*
-	cerr << to_string(fin_guard) << endl;
-	cerr << to_string(fin_sticky) << endl;
-	cerr << to_string(fin_exp) << endl;
-	cerr << to_string(sign) << endl;
-	cerr << to_string(implicit_bit) << endl;
-	cerr << to_string(fin_frac) << endl;
-	*/
+	auto isSpecialMask = Wrapper<PositDim<N, WES>::WF, false>::generateSequence(isSpecial.invert());
+	auto fin_frac = frac & isSpecialMask;
+
+#ifdef POSIT_QUIRETOPIF_DEBUG
+	cerr << "=== QUIRE to PIF ===" << endl;
+	cerr << "sign: " << to_string(sign) << endl;
+	cerr << "upper_low_bits: " << to_string(upper_low_bits) << endl;
+	cerr << "lower_low_bits: " << to_string(lower_low_bits) << endl;
+	cerr << "lower_sticky: " << to_string(lower_sticky) << endl;
+	cerr << "upper_low_null: " << to_string(upper_low_null) << endl;
+	cerr << "low_bit_is_null: " << to_string(low_bit_is_null) << endl;
+	cerr << "middle_bits: " << to_string(middle_bits) << endl;
+	cerr << "middle_s_ext: " << to_string(middle_s_ext) << endl;
+	cerr << "underflow_base: " << to_string(underflow_base) << endl;
+	cerr << "middle_void_flag: " << to_string(middle_void_flag) << endl;
+	cerr << "middle_is_null: " << to_string(middle_is_null) << endl;
+	cerr << "uppercarry: " << to_string(uppercarry) << endl;
+	cerr << "upper_ext_sign: " << to_string(upper_ext_sign) << endl;
+	cerr << "overflow: " << to_string(overflow) << endl;
+	cerr << "high_overflow: " << to_string(high_overflow) << endl;
+	cerr << "fin_overflow: " << to_string(fin_overflow) << endl;
+	cerr << "isZero: " << to_string(isZero) << endl;
+	cerr << "underflow: " << to_string(underflow) << endl;
+	cerr << "lzocshifted: " << to_string(lzocshifted) << endl;
+	cerr << "exp: " << to_string(exp) << endl;
+	cerr << "frac: " << to_string(frac) << endl;
+	cerr << "guard: " << to_string(guard) << endl;
+	cerr << "stickycomp: " << to_string(stickycomp) << endl;
+	cerr << "sticky: " << to_string(sticky) << endl;
+	cerr << "isSpecial: " << to_string(isSpecial) << endl;
+	cerr << "fin_sticky: " << to_string(fin_sticky) << endl;
+	cerr << "fin_guard: " << to_string(fin_guard) << endl;
+	cerr << "overflow_base: " << to_string(overflow_base) << endl;
+	cerr << "over_flow_exp: " << to_string(over_flow_exp) << endl;
+	cerr << "overflow_fin_exp: " << to_string(overflow_fin_exp) << endl;
+	cerr << "isZeroMask: " << to_string(isZeroMask) << endl;
+	cerr << "fin_exp: " << to_string(fin_exp) << endl;
+	cerr << "implicit_bit: " << to_string(implicit_bit) << endl;
+	cerr << "isSpecialMask: " << to_string(isSpecialMask) << endl;
+	cerr << "fin_frac: " << to_string(fin_frac) << endl;
+	cerr << "===============================" << endl;
+#endif
+
 	return PositIntermediateFormat<N, WES, Wrapper, false>(
 			fin_guard,
 			fin_sticky,

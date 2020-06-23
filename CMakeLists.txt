@@ -22,6 +22,46 @@ add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
 target_link_libraries(${LIBNAME} INTERFACE hint)
 
+OPTION(DEBUG_POSIT_ADDER "Dump all posit_adder signals")
+if(DEBUG_POSIT_ADDER)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_ADDER_DEBUG)
+endif()
+
+OPTION(DEBUG_POSIT_DECODER "Dump all posit_decoder signals")
+if(DEBUG_POSIT_MUL)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_DECODER_DEBUG)
+endif()
+
+OPTION(DEBUG_POSIT_ENCODER "Dump all posit_encoder signals")
+if(DEBUG_POSIT_MUL)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_ENCODER_DEBUG)
+endif()
+
+OPTION(DEBUG_POSIT_MUL "Dump all posit_mul signals")
+if(DEBUG_POSIT_MUL)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_MUL_DEBUG)
+endif()
+
+OPTION(DEBUG_POSIT_QUIRE_ADD "Dump all posit  add_sub_quire signals")
+if(DEBUG_POSIT_VALPROD)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_QUIRE_ADD_DEBUG)
+endif()
+
+OPTION(DEBUG_POSIT_QUIRE_PIF "Dump all posit  quire_to_posit signals")
+if(DEBUG_POSIT_QUIRE_PIF)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_QUIRETOPIF_DEBUG)
+endif()
+
+OPTION(DEBUG_POSIT_ROUNDER "Dump all posit  posit_round_in_place signals")
+if(DEBUG_POSIT_ROUNDER)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_ROUNDER_DEBUG)
+endif()
+
+OPTION(DEBUG_POSIT_VALPROD "Dump all value_prod_conversion signals")
+if(DEBUG_POSIT_VALPROD)
+	target_compile_definitions(${LIBNAME} INTERFACE POSIT_VALPROD_DEBUG)
+endif()
+
 install(DIRECTORY ${INCLUDE_ROOT}/ DESTINATION include/marto FILES_MATCHING PATTERN "*.hpp" PATTERN "*.ipp")
 
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests")

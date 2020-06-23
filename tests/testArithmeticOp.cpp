@@ -35,6 +35,34 @@ namespace utf = boost::unit_test;
 template<unsigned int N, bool is_signed>
 using Wrapper = hint::VivadoWrapper<N, is_signed>;
 
+bool is_mul_ok_p16(uint16_t testval0, uint16_t testval1)
+{
+	StandardPositEncoding<16, Wrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
+	auto decoded0 = posit_decoder(marto_p_0);
+	auto decoded1 = posit_decoder(marto_p_1);
+	posit16_t positValue0 = castP16(testval0);
+	posit16_t positValue1 = castP16(testval1);
+	posit16_t positProd = p16_mul(positValue0, positValue1);
+	auto prod = posit_mul(decoded0, decoded1);
+	auto final = posit_encoder(PositProd_to_PositIF(prod));
+	bool res = final.unravel() == castUI(positProd);
+	if (!res) {
+		std::cerr << "Expecting " << castUI(positProd) << std::endl;
+	}
+	return res;
+}
+
+BOOST_AUTO_TEST_CASE(TestSomeMulPosit16) {
+	BOOST_REQUIRE(is_mul_ok_p16(1, 4096));
+	BOOST_REQUIRE(is_mul_ok_p16(2, 24576));
+	BOOST_REQUIRE(is_mul_ok_p16(1, 8192));
+	BOOST_REQUIRE(is_mul_ok_p16(1, 49152));
+	BOOST_REQUIRE(is_mul_ok_p16(5, 57344));
+	BOOST_REQUIRE(is_mul_ok_p16(5, 40960));
+	BOOST_REQUIRE(is_mul_ok_p16(49152, 47104));
+	BOOST_REQUIRE(is_mul_ok_p16(32769, 57344));
+}
+
 BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 {
 	// ap_uint<16> value10 = 0b1000000000000001;
@@ -155,6 +183,24 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 		error_counter = 0;
 	}
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%%  (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
+}
+
+bool is_sum_ok_p16(uint16_t testval0, uint16_t testval1)
+{
+	StandardPositEncoding<16, Wrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
+	auto decoded0 = posit_decoder(marto_p_0);
+	auto decoded1 = posit_decoder(marto_p_1);
+	posit16_t positValue0 = castP16(testval0);
+	posit16_t positValue1 = castP16(testval1);
+	posit16_t positSum = p16_add(positValue0, positValue1);
+	auto sum = posit_add(decoded0, decoded1);
+	auto final = posit_encoder(sum);
+	return final.unravel() == castUI(positSum);
+}
+
+BOOST_AUTO_TEST_CASE(TestSomeSumP16)
+{
+	BOOST_REQUIRE(is_sum_ok_p16(0, 1));
 }
 
 BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
@@ -361,7 +407,7 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%%  (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
 }
 
-
+#if 0
 BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf::label("long"))
 {
 	// auto value1Encoding_single = StandardPositEncoding<16, Wrapper>{{1}};
@@ -429,3 +475,4 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf
 	}
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
 }
+#endif

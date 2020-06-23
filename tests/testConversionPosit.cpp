@@ -9,6 +9,7 @@
 
 #include "posit/posit_decoder.hpp"
 #include "posit/posit_encoder.hpp"
+#include "posit/posit_in_place_round.hpp"
 
 using namespace std;
 using hint::to_string;

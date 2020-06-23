@@ -2,12 +2,15 @@
 #include <cstdio>
 #include <utility>
 
-//#include <tools/printing.hpp>
-
-//using hint::to_string;
-
 #include "posit_dim.hpp"
 #include "primitives/lzoc_shifter.hpp"
+
+#ifdef POSIT_QUIRE_ADD_DEBUG
+#include <iostream>
+#include "tools/printing.hpp"
+using hint::to_string;
+using std::cerr;
+#endif
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
 inline Quire<N, WES, Wrapper, NB_CARRY> add_sub_quire(
@@ -24,7 +27,7 @@ inline Quire<N, WES, Wrapper, NB_CARRY> add_sub_quire(
 	auto replicated_sign = Wrapper<PROD_SIGNIFICAND_SIZE + 1, false>::generateSequence(isSub);
 	auto complementedInputIfIsSub = replicated_sign ^ inputSignificand;
 
-	auto shiftValue = input.getExp();
+	auto shiftValue = input.getExp().modularAdd({{2*PositDim<N, WES>::EMax + 1}});
 	constexpr unsigned int SHIFT_SIZE  = 1<<LOG2_EXT_SUM_SIZE;
 	auto ext = complementedInputIfIsSub.as_signed().template leftpad<SHIFT_SIZE>().as_unsigned();
 
@@ -41,6 +44,22 @@ inline Quire<N, WES, Wrapper, NB_CARRY> add_sub_quire(
 		).template slice<quire.Size-2, 0>();
 
 	auto resultIsNaR = quire.getIsNaR() | input.getIsNaR();
+
+#ifdef POSIT_QUIRE_ADD_DEBUG
+	cerr << "=== Add Sub Quire ===" << endl;
+	cerr << "inputSignificand: " << to_string(inputSignificand) << endl;
+	cerr << "sign: " << to_string(sign) << endl;
+	cerr << "replicated_sign: " << to_string(replicated_sign) << endl;
+	cerr << "complementedInputIfIsSub: " << to_string(complementedInputIfIsSub) << endl;
+	cerr << "shiftValue: " << to_string(shiftValue) << endl;
+	cerr << "ext: " << to_string(ext) << endl;
+	cerr << "shiftedInput: " << to_string(shiftedInput) << endl;
+	cerr << "shiftedInputShrinked: " << to_string(shiftedInputShrinked) << endl;
+	cerr << "quireWithoutSignAndNARBit: " << to_string(quireWithoutSignAndNARBit) << endl;
+	cerr << "sumResult: " << to_string(sumResult) << endl;
+	cerr << "resultIsNaR: " << to_string(resultIsNaR) << endl;
+	cerr << "==============================" << endl;
+#endif
 
 	return Quire<N, WES, Wrapper, NB_CARRY>{resultIsNaR.concatenate(sumResult)};
 }
@@ -242,7 +261,7 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> segmented_add_sub_qui
 	constexpr unsigned int PADDING = bankSize*BANKS_FOR_USELESS_BITS - PROD_SIGIFICAND_SIZE;
 	constexpr unsigned int EXT_PROD_EXP_SIZE = PROD_EXP_SIZE + BANKS_FOR_USELESS_BITS;
 
-	Wrapper<EXT_PROD_EXP_SIZE, false> padding{{PADDING}};
+	Wrapper<EXT_PROD_EXP_SIZE, false> padding{{PADDING + 2*PositDim<N, WES>::EMax + 1}};
 	auto prod_exp = input.getExp()
 						.as_signed()
 						.template leftpad<EXT_PROD_EXP_SIZE>()
