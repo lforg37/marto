@@ -28,15 +28,14 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 	auto current_frac_wo_implicit_bit = to_round.getSignificand().template slice<S_WF-1, 0>();
 	auto current_implicit_bit = to_round.getImplicitBit();
 
-	auto current_exp = to_round.getExp();
-	auto expWoBias = current_exp.modularSub({{PositDim<N, WES>::EXP_BIAS}});
-	auto k = expWoBias.template slice<S_WE-1, S_WES>(); // Take the exponent bits which should be encoded by the range
+	auto exp = to_round.getExp();
+	auto k = exp.template slice<S_WE-1, S_WES>(); // Take the exponent bits which should be encoded by the range
 	auto low_k = k.template slice<K_SIZE-2, 0>();  //Ignore K sign bit
 	auto k_sign = k.template get<K_SIZE - 1>();
 	auto absK = Wrapper<K_SIZE-1, false>::mux(k_sign, low_k.invert(), low_k);
 
-	auto expWoBias_low = expWoBias.template slice<S_WES-1, 0>();
-	auto es = Wrapper<S_WES, false>::mux(sign, expWoBias_low.invert(), expWoBias_low);
+	auto smask = Wrapper<WES, false>::generateSequence(sign);
+	auto es = exp.template slice<S_WES-1, 0>() ^ smask;
 
 	auto isNeg = k_sign ^ sign;
 	auto reverse_and_es = isNeg.concatenate(es);
@@ -44,14 +43,14 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 	auto exp_and_frac = reverse_and_es.concatenate(current_frac_wo_implicit_bit);
 
 
-	Wrapper<1, false> mask_top_ones{1}, mask_top_zeros{1};
+	Wrapper<1, false> mask_top_ones{1};
 
 	auto mask_remove_rounded_bits_bottom = hint::one_then_zeros<K_SIZE-1, (1<<(K_SIZE-1)), Wrapper>(absK).template slice<S_WES+S_WF-1, 0>();
 	auto mask_remove_rounded_bits = mask_top_ones.concatenate(mask_remove_rounded_bits_bottom);
 
-	auto mask_round = hint::one_one<K_SIZE-1, (1<<(K_SIZE-1)), (S_WES+S_WF), Wrapper>(absK).template slice<S_WES+S_WF+1-1,0>();
-	auto mask_guard = Wrapper<1, false>{0}.concatenate(mask_round.template slice<1+S_WES+S_WF-1,1>());
-	auto mask_stickies = (Wrapper<1, false>{1}.concatenate(mask_remove_rounded_bits.template slice<1+S_WES+S_WF-1,1>())).invert();
+	auto mask_round = hint::one_one<K_SIZE-1, (1<<(K_SIZE-1)), (S_WES+S_WF), Wrapper>(absK).template slice<S_WES+S_WF,0>();
+	auto mask_guard = Wrapper<1, false>{0}.concatenate(mask_round.template slice<S_WES+S_WF,1>());
+	auto mask_stickies = (Wrapper<1, false>{1}.concatenate(mask_remove_rounded_bits.template slice<S_WES+S_WF,1>())).invert();
 
 	auto masked_fraction = exp_and_frac.bitwise_and(mask_remove_rounded_bits);
 
@@ -86,15 +85,19 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 								masked_fraction.template slice<S_WF - 1, 0>()
 								);
 
-	auto exp_increased = rounded_frac.template get<S_WF>().bitwise_xor(es.template get<0>());
+	auto final_es = Wrapper<S_WES, false>::mux(must_add_1,
+						rounded_frac.template slice<S_WF+S_WES-1,S_WF>(),
+						masked_fraction.template slice<S_WF+S_WES-1,S_WF>()
+					) ^ smask;
 
-	auto to_add_to_exp = Wrapper<S_WE-1, false>::generateSequence(sign).concatenate(Wrapper<1, false>{1});
+	auto es_overflow = must_add_1 & (rounded_frac.template get<S_WES + S_WF>() ^ masked_fraction.template get<S_WES + S_WF>());
 
-	auto final_exp = Wrapper<S_WE, false>::mux(exp_increased.bitwise_and(must_add_1),
-								current_exp.modularAdd(to_add_to_exp),
-								//rounded_exp.bitwise_xor(sign_sequence_we),
-								current_exp
-								);
+	auto to_add_high_bit = sign & es_overflow;
+
+	auto to_add_k = Wrapper<K_SIZE - 1, false>::generateSequence(to_add_high_bit).concatenate(es_overflow);
+	auto final_k = k.modularAdd(to_add_k);
+
+	auto final_exp = final_k.concatenate(final_es);
 
 	auto is_zero = to_round.isZero();
 	auto final_exp_if_zero = Wrapper<S_WE, false>::mux(
@@ -113,32 +116,50 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 				final_frac.template slice<S_WF-1, 0>()
 	};
 #ifdef POSIT_ROUNDER_DEBUG
-	cout << "sign: " << to_string(sign) << endl;
-	cout << "current_implicit_bit: " << to_string(current_implicit_bit) << endl;
-	cout << "frac_wo_imp_bit: " << to_string(current_frac_wo_implicit_bit) << endl;
-	cout << "current_exp: " << to_string(current_exp) << endl;
-	cout << "exp_wo_bias: " << to_string(expWoBias) << endl;
-	cout << "k: " << to_string(k) << endl;
-	cout << "abs_k: " << to_string(absK) << endl;
-	cout << "es: " << to_string(es) << endl;
-	cout << "isNeg: " << to_string(isNeg) << endl;
-	cout << "reverse_and_es: " << to_string(reverse_and_es) << endl;
-	cout << "exp_and_frac:" << to_string(exp_and_frac) << endl;
-	cout << "mask_remove_rb: " << to_string(mask_remove_rounded_bits) << endl;
-	cout << "mask_round: " << to_string(mask_round) << endl;
-	cout << "mask_guard: " << to_string(mask_guard) << endl;
-	cout << "mask_stickies: " << to_string(mask_stickies) << endl;
-	cout << "masked_fraction :" << to_string(masked_fraction) << endl;
-	cout << "round: " << to_string(round) << endl;
-	cout << "guard_from_mask: " << to_string(guard_from_mask) << endl;
-	cout << "sticky_from_mask: " << to_string(sticky_from_mask) << endl;
-	cout << "guard_is_in_fraction: " << to_string(guard_is_in_fraction) << endl;
-	cout << "guard: " << to_string(guard) << endl;
-	cout << "sticky: " << to_string(sticky) << endl;
-	cout << "must_add1:" << to_string(must_add_1) << endl;
-	cout << "rounded_frac: " << to_string(rounded_frac) << endl;
-	cout << "final_frac: " << to_string(final_frac) << endl;
-
+	cerr << "=== Posit round in place ===" << endl;
+	cerr << "Input: " << to_string(to_round) << endl;
+	cerr << "sign: " << to_string(sign) << endl;
+	cerr << "current_frac_wo_implicit_bit: " << to_string(current_frac_wo_implicit_bit) << endl;
+	cerr << "current_implicit_bit: " << to_string(current_implicit_bit) << endl;
+	cerr << "exp: " << to_string(exp) << endl;
+	cerr << "k: " << to_string(k) << endl;
+	cerr << "low_k: " << to_string(low_k) << endl;
+	cerr << "k_sign: " << to_string(k_sign) << endl;
+	cerr << "absK: " << to_string(absK) << endl;
+	cerr << "es: " << to_string(es) << endl;
+	cerr << "isNeg: " << to_string(isNeg) << endl;
+	cerr << "reverse_and_es: " << to_string(reverse_and_es) << endl;
+	cerr << "exp_and_frac: " << to_string(exp_and_frac) << endl;
+	cerr << "mask_remove_rounded_bits_bottom: " << to_string(mask_remove_rounded_bits_bottom) << endl;
+	cerr << "mask_remove_rounded_bits: " << to_string(mask_remove_rounded_bits) << endl;
+	cerr << "mask_round: " << to_string(mask_round) << endl;
+	cerr << "mask_guard: " << to_string(mask_guard) << endl;
+	cerr << "mask_stickies: " << to_string(mask_stickies) << endl;
+	cerr << "masked_fraction: " << to_string(masked_fraction) << endl;
+	cerr << "round_bits: " << to_string(round_bits) << endl;
+	cerr << "round: " << to_string(round) << endl;
+	cerr << "guard_bits: " << to_string(guard_bits) << endl;
+	cerr << "guard_from_mask: " << to_string(guard_from_mask) << endl;
+	cerr << "sticky_bits: " << to_string(sticky_bits) << endl;
+	cerr << "sticky_from_mask: " << to_string(sticky_from_mask) << endl;
+	cerr << "guard_is_in_fraction: " << to_string(guard_is_in_fraction) << endl;
+	cerr << "guard_outside_fraction: " << to_string(guard_outside_fraction) << endl;
+	cerr << "guard: " << to_string(guard) << endl;
+	cerr << "sticky_outside_fraction: " << to_string(sticky_outside_fraction) << endl;
+	cerr << "sticky: " << to_string(sticky) << endl;
+	cerr << "must_add_1: " << to_string(must_add_1) << endl;
+	cerr << "rounded_frac: " << to_string(rounded_frac) << endl;
+	cerr << "final_frac: " << to_string(final_frac) << endl;
+	cerr << "final_es: " << to_string(final_es) << endl;
+	cerr << "es_overflow: " << to_string(es_overflow) << endl;
+	cerr << "to_add_high_bit: " << to_string(to_add_high_bit) << endl;
+	cerr << "to_add_k: " << to_string(to_add_k) << endl;
+	cerr << "final_k: " << to_string(final_k) << endl;
+	cerr << "final_exp: " << to_string(final_exp) << endl;
+	cerr << "is_zero: " << to_string(is_zero) << endl;
+	cerr << "final_exp_if_zero: " << to_string(final_exp_if_zero) << endl;
+	cerr << "isResultNar: " << to_string(isResultNar) << endl;
+	cerr << "=============================" << endl;
 #endif
 
 	return result;
