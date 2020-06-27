@@ -408,31 +408,8 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%%  (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
 }
 
-#if 0
 BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf::label("long"))
 {
-	// auto value1Encoding_single = StandardPositEncoding<16, Wrapper>{{1}};
-	// auto value2Encoding_single = StandardPositEncoding<16, Wrapper>{{1}};
-	// auto decoded1_single = posit_decoder(value1Encoding_single);
-	// auto decoded2_single = posit_decoder(value2Encoding_single);
-	// auto prod = posit_mul(decoded1_single, decoded2_single);
-	// auto mul_in_place = PositProd_to_PositIF_in_place_rounding(prod);
-	// auto prod_single = posit_mul(decoded1_single, decoded2_single);
-	// auto mul_single = PositProd_to_PositIF(prod_single);
-	// auto encoded_in_place_single = posit_encoder(mul_in_place);
-	// auto encoded_single = posit_encoder(mul_single);
-	// auto decoded_mul_single = posit_decoder(encoded_single);
-
-	// cerr << "value1Encoding_single: " << to_string(value1Encoding_single) << endl;
-	// cerr << "value2Encoding_single: " << to_string(value2Encoding_single) << endl;
-	// cerr << "decoded1_single: " << to_string(decoded1_single) << endl;
-	// cerr << "decoded2_single: " << to_string(decoded2_single) << endl;
-	// cerr << "mul_in_place:        " << to_string(mul_in_place) << endl;
-	// cerr << "mul_single:          " << to_string(mul_single) << endl;
-	// cerr << "decoded_mul_single:  " << to_string(decoded_mul_single) << endl;
-	// cerr << "encoded_in_place_single: " << to_string(encoded_in_place_single) << endl;
-	// cerr << "encoded_single:          " << to_string(encoded_single) << endl;
-
 	uint64_t counter = 0;
 	uint64_t TOTAL_TESTS = uint64_t{1}<<32;
 	unsigned int error_counter = 0;
@@ -476,4 +453,3 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf
 	}
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
 }
-#endif

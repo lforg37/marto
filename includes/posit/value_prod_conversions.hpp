@@ -4,6 +4,7 @@
 //#include <tools/printing.hpp>
 
 #include "posit_dim.hpp"
+#include "posit_in_place_round.hpp"
 
 #ifdef POSIT_VALPROD_DEBUG
 #include <iostream>
@@ -128,3 +129,10 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 	return ret;
 }
 
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_place_rounding(PositProd<N, WES, Wrapper> val)
+{
+	auto prod_inexact = PositProd_to_PositIF(val);
+	auto ret = in_place_rounder(prod_inexact);
+	return ret;
+}
