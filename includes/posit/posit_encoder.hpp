@@ -79,8 +79,8 @@ inline Wrapper<1, false> round_would_overflow(
 {
 	constexpr auto WE = PositDim<N, WES>::WE;
 	Wrapper<WE, false> emax{PositDim<N, WES>::EMax}, emin{PositDim<N, WES>::EMin_repr};
-	auto isEmin = (exp == emin);
-	auto isEmax = (exp == emax);
+	auto isEmin = (exp.as_signed() <= emin.as_signed());
+	auto isEmax = (exp.as_signed() >= emax.as_signed());
 	auto res = (isEmin & sign) | (isEmax & sign.invert());
 	#ifdef POSIT_ENCODER_DEBUG
 		cerr << "=== round_would_overflow (WES != 0) ===" << endl;
