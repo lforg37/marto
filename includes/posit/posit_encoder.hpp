@@ -16,7 +16,7 @@ using namespace hint;
 using namespace std;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline Wrapper<PositDim<N, WES>::WF + WES, true> buildEsSignifSequence(
+inline Wrapper<PositDim<N, WES>::WF + WES, false> buildEsSignifSequence(
 		Wrapper<1, false> sign,
 		Wrapper<PositDim<N, WES>::WF, false> significand,
 		Wrapper<PositDim<N, WES>::WE, false> exponent,
@@ -27,7 +27,7 @@ inline Wrapper<PositDim<N, WES>::WF + WES, true> buildEsSignifSequence(
 
 	auto es_wo_xor = exponent.template slice<WES-1, 0>();
 	auto es = es_wo_xor.bitwise_xor(sign_sequence_wes);
-	auto ret = es.conatenate(significand);
+	auto ret = es.concatenate(significand);
 #ifdef POSIT_ENCODER_DEBUG
 	cerr << "=== buildEsSignif (WES!=0) ===" << endl;
 	cerr << "sign_sequence_wes: " << to_string(sign_sequence_wes) << endl;
@@ -40,7 +40,7 @@ inline Wrapper<PositDim<N, WES>::WF + WES, true> buildEsSignifSequence(
 }
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline Wrapper<PositDim<N, WES>::WF + WES, true> buildEsSignifSequence(
+inline Wrapper<PositDim<N, WES>::WF, false> buildEsSignifSequence(
 		Wrapper<1, false>,
 		Wrapper<PositDim<N, WES>::WF, false> significand,
 		Wrapper<PositDim<N, WES>::WE, false>,
