@@ -198,9 +198,27 @@ bool is_sum_ok_p16(uint16_t testval0, uint16_t testval1)
 	return final.unravel() == castUI(positSum);
 }
 
+bool is_sum_ok_p8(uint8_t testval0, uint8_t testval1)
+{
+	StandardPositEncoding<8, Wrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
+	auto decoded0 = posit_decoder(marto_p_0);
+	auto decoded1 = posit_decoder(marto_p_1);
+	posit8_t positValue0 = castP8(testval0);
+	posit8_t positValue1 = castP8(testval1);
+	posit8_t positSum = p8_add(positValue0, positValue1);
+	auto sum = posit_add(decoded0, decoded1);
+	auto final = posit_encoder(sum);
+	return final.unravel() == castUI(positSum);
+}
+
 BOOST_AUTO_TEST_CASE(TestSomeSumP16)
 {
 	BOOST_REQUIRE(is_sum_ok_p16(0, 1));
+}
+
+BOOST_AUTO_TEST_CASE(TestSomeSumP8)
+{
+	BOOST_REQUIRE(is_sum_ok_p8(127, 127));
 }
 
 BOOST_AUTO_TEST_CASE(TestAllSumPosit8)
