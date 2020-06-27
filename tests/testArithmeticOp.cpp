@@ -203,6 +203,26 @@ BOOST_AUTO_TEST_CASE(TestSomeSumP16)
 	BOOST_REQUIRE(is_sum_ok_p16(0, 1));
 }
 
+BOOST_AUTO_TEST_CASE(TestAllSumPosit8)
+{
+	for(uint32_t value2 = 0; value2 < (1<<8); value2++){
+		auto value2Encoding = StandardPositEncoding<8, Wrapper>{{value2}};
+		auto decoded2 = posit_decoder(value2Encoding);
+		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
+			auto value1Encoding = StandardPositEncoding<8, Wrapper>{{value1}};
+			auto decoded1 = posit_decoder(value1Encoding);
+			auto sum = posit_add(decoded1, decoded2);
+			auto encoded = posit_encoder(sum);
+			posit8_t positValue1 = castP8(value1);
+			posit8_t positValue2 = castP8(value2);
+			posit8_t positSum = p8_add(positValue1, positValue2);
+			Wrapper<8, false> softpositSum {castUI(positSum)};
+			BOOST_REQUIRE_MESSAGE((encoded == softpositSum).template isSet<0>(),
+								  "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned " << to_string(softpositSum));
+		}
+	}
+}
+
 BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 {
 	uint64_t counter = 0;
