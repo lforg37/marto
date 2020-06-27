@@ -206,9 +206,6 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	cerr << "=== POSIT_ENCODER_EXACT ===" << endl;
 	cerr << "expWoBias: " << to_string(exp) << endl;
 	cerr << "sign: " << to_string(sign) << endl;
-	cerr << "sign_sequence_wes: " << to_string(sign_sequence_wes) << endl;
-	cerr << "es_wo_xor: " << to_string(es_wo_xor) << endl;
-	cerr << "es: " << to_string(es) << endl;
 	cerr << "k: " << to_string(k) << endl;
 	cerr << "significand: " << to_string(significand) << endl;
 	cerr << "esAndSignificand: " << to_string(esAndSignificand) << endl;
