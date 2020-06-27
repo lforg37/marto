@@ -113,7 +113,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	Wrapper<2, false> zero_one{1};
 	Wrapper<2, false> one_zero{2};
 
-	auto isNegative = k.template get<K_SIZE-1>().bitwise_xor(sign);
+	auto isNegative = k.template get<K_SIZE-1>() ^ sign;
 	auto leading = Wrapper<2, false>::mux(isNegative, zero_one, one_zero);
 
 	//N-1
@@ -145,8 +145,8 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	auto sticky = shifted.template get<0>().bitwise_or(positValue.getStickyBit());
 
 	auto roundOverflow = exp_overflow<N, WES, Wrapper>(exp);
-	auto forbidRound = leading & roundOverflow;
-	auto forceRound = leading.invert() & roundOverflow;
+	auto forbidRound = isNegative.invert() & roundOverflow;
+	auto forceRound = isNegative & roundOverflow;
 	auto roundingBit = (forceRound | guard & (sticky | unroundedResult.template get<0>())) & forbidRound.invert();
 
 	auto roundedResult = unroundedResult.modularAdd(roundingBit.template leftpad<N-1>());
