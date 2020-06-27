@@ -1,9 +1,12 @@
 #ifndef POSIT_IN_PLACE_ROUND_HPP
 #define POSIT_IN_PLACE_ROUND_HPP
 
+#include <type_traits>
+
 #include "posit_dim.hpp"
 #include "primitives/shifter_sticky.hpp"
 #include "primitives/shifter.hpp"
+#include "posit_encoder.hpp"
 
 #ifdef POSIT_ROUNDER_DEBUG
 #include <iostream>
@@ -16,6 +19,119 @@ using namespace hint;
 using namespace std;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<1+WES+PositDim<N, WES>::WF, false> _get_exp_and_frac(
+		Wrapper<1, false> valSign,
+		Wrapper<1, false> isRangeNeg,
+		Wrapper<PositDim<N, WES>::WE, false> exp,
+		Wrapper<PositDim<N, WES>::WF, false> frac,
+		typename enable_if<PositDim<N, WES>::HAS_ES>::type* = 0
+		)
+{
+	auto smask = Wrapper<WES, false>::generateSequence(valSign);
+	auto es = exp.template slice<WES-1, 0>() ^ smask;
+	auto reverse_and_es = isRangeNeg.concatenate(es);
+	auto exp_and_frac = reverse_and_es.concatenate(frac);
+#ifdef POSIT_ROUNDER_DEBUG
+	cerr << "=== _get_reverse_and_es (WES != 0) ===" << endl;
+	cerr << "smask: " << to_string(smask) << endl;
+	cerr << "es: " << to_string(es) << endl;
+	cerr << "reverse_and_es: " << to_string(reverse_and_es) << endl;
+	cerr << "exp_and_frac: " << to_string(exp_and_frac) << endl;
+	cerr << "======================================" << endl;
+#endif
+	return exp_and_frac;
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<1+WES+PositDim<N, WES>::WF, false> _get_exp_and_frac(
+		Wrapper<1, false> ,
+		Wrapper<1, false> isRangeNeg,
+		Wrapper<PositDim<N, WES>::WE, false> ,
+		Wrapper<PositDim<N, WES>::WF, false> frac,
+		typename enable_if<not PositDim<N, WES>::HAS_ES>::type* = 0
+		)
+{
+	auto exp_and_frac = isRangeNeg.concatenate(frac);
+#ifdef POSIT_ROUNDER_DEBUG
+	cerr << "=== _get_reverse_and_es (WES == 0) ===" << endl;
+	cerr << "exp_and_frac: " << to_string(exp_and_frac) << endl;
+	cerr << "======================================" << endl;
+#endif
+	return exp_and_frac;
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<PositDim<N, WES>::WE, false> _get_exp(
+			Wrapper<1, false> sign,
+			Wrapper<1, false> should_round_up,
+			Wrapper<PositDim<N, WES>::WE - WES, false> k,
+			Wrapper<1+WES+PositDim<N, WES>::WF, false> truncated_frac,
+			Wrapper<1+WES+PositDim<N, WES>::WF, false> ceiled_frac,
+			typename enable_if<PositDim<N, WES>::HAS_ES>::type* = 0
+		)
+{
+	constexpr auto WF = PositDim<N, WES>::WF;
+	constexpr auto K_SIZE = PositDim<N, WES>::WE - WES;
+
+	auto smask = Wrapper<WES, false>::generateSequence(sign);
+	auto final_es = Wrapper<WES, false>::mux(should_round_up,
+						ceiled_frac.template slice<WF+WES-1,WF>(),
+						truncated_frac.template slice<WF+WES-1,WF>()
+					) ^ smask;
+	auto es_overflow = should_round_up & (ceiled_frac.template get<WES + WF>() ^ truncated_frac.template get<WES + WF>());
+
+	auto to_add_high_bit = sign & es_overflow;
+
+	auto to_add_k = Wrapper<K_SIZE - 1, false>::generateSequence(to_add_high_bit).concatenate(es_overflow);
+	auto final_k = k.modularAdd(to_add_k);
+
+	auto final_exp = final_k.concatenate(final_es);
+#ifdef POSIT_ROUNDER_DEBUG
+	cerr << "=== _get_final_exp (WES != 0) ===" << endl;
+	cerr << "smask: " << to_string(smask) << endl;
+	cerr << "final_es: " << to_string(final_es) << endl;
+	cerr << "es_overflow: " << to_string(es_overflow) << endl;
+	cerr << "to_add_high_bit: " << to_string(to_add_high_bit) << endl;
+	cerr << "to_add_k: " << to_string(to_add_k) << endl;
+	cerr << "final_k: " << to_string(final_k) << endl;
+	cerr << "final_exp: " << to_string(final_exp) << endl;
+	cerr << "======================================" << endl;
+#endif
+	return final_exp;
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<PositDim<N, 0>::WE, false> _get_exp(
+			Wrapper<1, false> sign,
+			Wrapper<1, false> should_round_up,
+			Wrapper<PositDim<N, 0>::WE, false> k,
+			Wrapper<1+PositDim<N, 0>::WF, false> truncated_frac,
+			Wrapper<1+PositDim<N, 0>::WF, false> ceiled_frac,
+			typename enable_if<! PositDim<N, WES>::HAS_ES>::type* = 0
+		)
+{
+	constexpr auto WF = PositDim<N, 0>::WF;
+	constexpr auto K_SIZE = PositDim<N, 0>::WE;
+
+	auto fracOverflow = should_round_up & (ceiled_frac.template get<WF>() ^ truncated_frac.template get<WF>());
+
+	auto to_add_high_bit = sign & fracOverflow;
+
+	auto to_add_k = Wrapper<K_SIZE - 1, false>::generateSequence(to_add_high_bit).concatenate(fracOverflow);
+	auto final_k = k.modularAdd(to_add_k);
+#ifdef POSIT_ROUNDER_DEBUG
+	cerr << "=== _get_final_exp (WES == 0) ===" << endl;
+	cerr << "fracOverflow: " << to_string(fracOverflow) << endl;
+	cerr << "to_add_high_bit: " << to_string(to_add_high_bit) << endl;
+	cerr << "to_add_k: " << to_string(to_add_k) << endl;
+	cerr << "final_k: " << to_string(final_k) << endl;
+
+	cerr << "======================================" << endl;
+#endif
+	return final_k;
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositIntermediateFormat<N, WES, Wrapper, true>
 in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 {
@@ -25,8 +141,9 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 	constexpr auto K_SIZE = S_WE - S_WES;
 
 	auto sign = to_round.getSignBit();
-	auto current_frac_wo_implicit_bit = to_round.getSignificand().template slice<S_WF-1, 0>();
-	auto current_implicit_bit = to_round.getImplicitBit();
+	auto current_frac = to_round.getSignificand();
+	auto current_frac_wo_implicit_bit = current_frac.template slice<S_WF-1, 0>();
+	auto current_implicit_bit = current_frac.template get<S_WF>();
 
 	auto exp = to_round.getExp();
 	auto k = exp.template slice<S_WE-1, S_WES>(); // Take the exponent bits which should be encoded by the range
@@ -34,14 +151,9 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 	auto k_sign = k.template get<K_SIZE - 1>();
 	auto absK = Wrapper<K_SIZE-1, false>::mux(k_sign, low_k.invert(), low_k);
 
-	auto smask = Wrapper<WES, false>::generateSequence(sign);
-	auto es = exp.template slice<S_WES-1, 0>() ^ smask;
-
 	auto isNeg = k_sign ^ sign;
-	auto reverse_and_es = isNeg.concatenate(es);
 
-	auto exp_and_frac = reverse_and_es.concatenate(current_frac_wo_implicit_bit);
-
+	auto exp_and_frac = _get_exp_and_frac<N, WES, Wrapper>(sign, isNeg, exp, current_frac_wo_implicit_bit);
 
 	Wrapper<1, false> mask_top_ones{1};
 
@@ -77,27 +189,20 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 										 sticky_outside_fraction
 										 );
 
-	auto must_add_1 = guard.bitwise_and((sticky).bitwise_or(round));
-	auto rounded_frac = masked_fraction.addWithCarry(mask_round, Wrapper<1, false>{0});
+	auto roundOverflow = exp_overflow<N, WES, Wrapper>(exp);
+	auto forbidRound = isNeg.invert() & roundOverflow;
+	auto forceRound = isNeg & roundOverflow;
+	auto must_add_1 = (forceRound | guard & (sticky | round)) & forbidRound.invert();
+	auto rounded_frac = masked_fraction.modularAdd(mask_round);
 
 	auto final_frac = Wrapper<S_WF, false>::mux(must_add_1,
 								rounded_frac.template slice<S_WF-1,0>(),
 								masked_fraction.template slice<S_WF - 1, 0>()
 								);
 
-	auto final_es = Wrapper<S_WES, false>::mux(must_add_1,
-						rounded_frac.template slice<S_WF+S_WES-1,S_WF>(),
-						masked_fraction.template slice<S_WF+S_WES-1,S_WF>()
-					) ^ smask;
 
-	auto es_overflow = must_add_1 & (rounded_frac.template get<S_WES + S_WF>() ^ masked_fraction.template get<S_WES + S_WF>());
 
-	auto to_add_high_bit = sign & es_overflow;
-
-	auto to_add_k = Wrapper<K_SIZE - 1, false>::generateSequence(to_add_high_bit).concatenate(es_overflow);
-	auto final_k = k.modularAdd(to_add_k);
-
-	auto final_exp = final_k.concatenate(final_es);
+	auto final_exp = _get_exp<N, WES, Wrapper>(sign, must_add_1, k, masked_fraction, rounded_frac);
 
 	auto is_zero = to_round.isZero();
 	auto final_exp_if_zero = Wrapper<S_WE, false>::mux(
@@ -119,6 +224,7 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 	cerr << "=== Posit round in place ===" << endl;
 	cerr << "Input: " << to_string(to_round) << endl;
 	cerr << "sign: " << to_string(sign) << endl;
+	cerr << "current_frac: " << to_string(current_frac) << endl;
 	cerr << "current_frac_wo_implicit_bit: " << to_string(current_frac_wo_implicit_bit) << endl;
 	cerr << "current_implicit_bit: " << to_string(current_implicit_bit) << endl;
 	cerr << "exp: " << to_string(exp) << endl;
@@ -126,9 +232,7 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 	cerr << "low_k: " << to_string(low_k) << endl;
 	cerr << "k_sign: " << to_string(k_sign) << endl;
 	cerr << "absK: " << to_string(absK) << endl;
-	cerr << "es: " << to_string(es) << endl;
 	cerr << "isNeg: " << to_string(isNeg) << endl;
-	cerr << "reverse_and_es: " << to_string(reverse_and_es) << endl;
 	cerr << "exp_and_frac: " << to_string(exp_and_frac) << endl;
 	cerr << "mask_remove_rounded_bits_bottom: " << to_string(mask_remove_rounded_bits_bottom) << endl;
 	cerr << "mask_remove_rounded_bits: " << to_string(mask_remove_rounded_bits) << endl;
@@ -150,11 +254,6 @@ in_place_rounder(PositIntermediateFormat<N, WES, Wrapper, false> to_round)
 	cerr << "must_add_1: " << to_string(must_add_1) << endl;
 	cerr << "rounded_frac: " << to_string(rounded_frac) << endl;
 	cerr << "final_frac: " << to_string(final_frac) << endl;
-	cerr << "final_es: " << to_string(final_es) << endl;
-	cerr << "es_overflow: " << to_string(es_overflow) << endl;
-	cerr << "to_add_high_bit: " << to_string(to_add_high_bit) << endl;
-	cerr << "to_add_k: " << to_string(to_add_k) << endl;
-	cerr << "final_k: " << to_string(final_k) << endl;
 	cerr << "final_exp: " << to_string(final_exp) << endl;
 	cerr << "is_zero: " << to_string(is_zero) << endl;
 	cerr << "final_exp_if_zero: " << to_string(final_exp_if_zero) << endl;
