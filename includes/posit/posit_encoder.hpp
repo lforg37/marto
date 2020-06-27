@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include "posit_dim.hpp"
 #include "primitives/shifter_sticky.hpp"
 #include "primitives/shifter.hpp"
@@ -15,6 +16,46 @@ using namespace hint;
 using namespace std;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<PositDim<N, WES>::WF + WES, true> buildEsSignifSequence(
+		Wrapper<1, false> sign,
+		Wrapper<PositDim<N, WES>::WF, false> significand,
+		Wrapper<PositDim<N, WES>::WE, false> exponent,
+		typename enable_if<PositDim<N, WES>::HAS_ES>::type* = 0
+	)
+{
+	auto sign_sequence_wes = Wrapper<WES, false>::generateSequence(sign);
+
+	auto es_wo_xor = exponent.template slice<WES-1, 0>();
+	auto es = es_wo_xor.bitwise_xor(sign_sequence_wes);
+	auto ret = es.conatenate(significand);
+#ifdef POSIT_ENCODER_DEBUG
+	cerr << "=== buildEsSignif (WES!=0) ===" << endl;
+	cerr << "sign_sequence_wes: " << to_string(sign_sequence_wes) << endl;
+	cerr << "es_wo_xor: " << to_string(es_wo_xor) << endl;
+	cerr << "es: " << to_string(es) << endl;
+	cerr << "ret: " << to_string(ret) << endl;
+	cerr << "==============================" << endl;
+#endif
+	return ret;
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<PositDim<N, WES>::WF + WES, true> buildEsSignifSequence(
+		Wrapper<1, false>,
+		Wrapper<PositDim<N, WES>::WF, false> significand,
+		Wrapper<PositDim<N, WES>::WE, false>,
+		typename enable_if<not PositDim<N, WES>::HAS_ES>::type* = 0
+	)
+{
+#ifdef POSIT_ENCODER_DEBUG
+	cerr << "=== buildEsSignif (WES==0) ===" << endl;
+	cerr << "ret: " << to_string(significand) << endl;
+	cerr << "==============================" << endl;
+#endif
+	return significand;
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper, false> positValue)
 {
 	constexpr auto S_WF = PositDim<N, WES>::WF;
@@ -22,23 +63,15 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	constexpr auto S_WES = WES;
 	constexpr auto K_SIZE = S_WE - S_WES;
 
-	auto expWoBias = positValue.getExp();
+	auto exp = positValue.getExp();
 	auto sign = positValue.getSignBit();
-	auto sign_sequence_wes = Wrapper<S_WES, false>::generateSequence(sign);
-
-	auto es_wo_xor = expWoBias.template slice<S_WES-1, 0>();
-	auto es = es_wo_xor.bitwise_xor(sign_sequence_wes);
-
-
-	//K_SIZE
-	auto k = expWoBias.template slice<S_WE-1, S_WES>();
-
-	// N - (3 + WES)
 	auto significand = positValue.getFraction();
 
+	//K_SIZE
+	auto k = exp.template slice<S_WE-1, S_WES>();
 
 	// N-3
-	auto esAndSignificand = es.concatenate(significand);
+	auto esAndSignificand = buildEsSignifSequence(sign, significand, exp);
 
 	Wrapper<2, false> zero_one{1};
 	Wrapper<2, false> one_zero{2};
@@ -88,11 +121,8 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	auto ret = Wrapper<N, false>::mux(isSpecial, specialCasesValue, normalOutput);
 #ifdef POSIT_ENCODER_DEBUG
 	cerr << "=== POSIT_ENCODER_INEXACT ===" << endl;
-	cerr << "expWoBias: " << to_string(expWoBias) << endl;
+	cerr << "exp: " << to_string(exp) << endl;
 	cerr << "sign: " << to_string(sign) << endl;
-	cerr << "sign_sequence_wes: " << to_string(sign_sequence_wes) << endl;
-	cerr << "es_wo_xor: " << to_string(es_wo_xor) << endl;
-	cerr << "es: " << to_string(es) << endl;
 	cerr << "k: " << to_string(k) << endl;
 	cerr << "significand: " << to_string(significand) << endl;
 	cerr << "esAndSignificand: " << to_string(esAndSignificand) << endl;
@@ -128,23 +158,18 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	constexpr auto S_WES = WES;
 	constexpr auto K_SIZE = S_WE - S_WES;
 
-	auto expWoBias = positValue.getExp();
-
+	auto exp = positValue.getExp();
+	auto significand = positValue.getFraction();
 	auto sign = positValue.getSignBit();
-	auto sign_sequence_wes = Wrapper<S_WES, false>::generateSequence(sign);
-
-	auto es_wo_xor = expWoBias.template slice<S_WES-1, 0>();
-	auto es = es_wo_xor.bitwise_xor(sign_sequence_wes);
 
 	//K_SIZE
-	auto k = expWoBias.template slice<S_WE-1, S_WES>();
+	auto k = exp.template slice<S_WE-1, S_WES>();
 
 	// N - (3 + WES)
-	auto significand = positValue.getFraction();
 
 
 	// N-3
-	auto esAndSignificand = es.concatenate(significand);
+	auto esAndSignificand = buildEsSignifSequence(sign, significand, exp);
 
 	Wrapper<2, false> zero_one{1};
 	Wrapper<2, false> one_zero{2};
@@ -179,7 +204,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	auto ret = Wrapper<N, false>::mux(isSpecial, specialCasesValue, normalOutput);
 #ifdef POSIT_ENCODER_DEBUG
 	cerr << "=== POSIT_ENCODER_EXACT ===" << endl;
-	cerr << "expWoBias: " << to_string(expWoBias) << endl;
+	cerr << "expWoBias: " << to_string(exp) << endl;
 	cerr << "sign: " << to_string(sign) << endl;
 	cerr << "sign_sequence_wes: " << to_string(sign_sequence_wes) << endl;
 	cerr << "es_wo_xor: " << to_string(es_wo_xor) << endl;
