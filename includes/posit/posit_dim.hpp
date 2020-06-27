@@ -515,8 +515,7 @@ class PositIntermediateFormat<N, WES, Wrapper, false> : public PositValSizedHint
 
 		inline wrapper_helper<1> isZero() const
 		{
-			auto isExponentNull = getExp().or_reduction().invert();
-			return isExponentNull.bitwise_and(getSignBit().invert());
+			return (getIsNaR() | getImplicitBit() | getSignBit()).invert();
 		}
 
 		operator PositEncoding<N, WES, Wrapper>() const;

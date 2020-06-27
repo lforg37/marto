@@ -28,12 +28,12 @@ if(DEBUG_POSIT_ADDER)
 endif()
 
 OPTION(DEBUG_POSIT_DECODER "Dump all posit_decoder signals")
-if(DEBUG_POSIT_MUL)
+if(DEBUG_POSIT_DECODER)
 	target_compile_definitions(${LIBNAME} INTERFACE POSIT_DECODER_DEBUG)
 endif()
 
 OPTION(DEBUG_POSIT_ENCODER "Dump all posit_encoder signals")
-if(DEBUG_POSIT_MUL)
+if(DEBUG_POSIT_ENCODER)
 	target_compile_definitions(${LIBNAME} INTERFACE POSIT_ENCODER_DEBUG)
 endif()
 
@@ -43,7 +43,7 @@ if(DEBUG_POSIT_MUL)
 endif()
 
 OPTION(DEBUG_POSIT_QUIRE_ADD "Dump all posit  add_sub_quire signals")
-if(DEBUG_POSIT_VALPROD)
+if(DEBUG_POSIT_QUIRE_ADD)
 	target_compile_definitions(${LIBNAME} INTERFACE POSIT_QUIRE_ADD_DEBUG)
 endif()
 

@@ -128,15 +128,13 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	constexpr auto S_WES = WES;
 	constexpr auto K_SIZE = S_WE - S_WES;
 
-	//TODO
-	auto expWoBias = positValue.getExp();//.modularSub(Wrapper<S_WE, false>{PositDim<N, WES>::EXP_BIAS});
+	auto expWoBias = positValue.getExp();
 
 	auto sign = positValue.getSignBit();
 	auto sign_sequence_wes = Wrapper<S_WES, false>::generateSequence(sign);
 
 	auto es_wo_xor = expWoBias.template slice<S_WES-1, 0>();
 	auto es = es_wo_xor.bitwise_xor(sign_sequence_wes);
-
 
 	//K_SIZE
 	auto k = expWoBias.template slice<S_WE-1, S_WES>();
@@ -151,7 +149,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	Wrapper<2, false> zero_one{1};
 	Wrapper<2, false> one_zero{2};
 
-	auto isNegative = k.template get<K_SIZE-1>().bitwise_xor(sign);
+	auto isNegative = k.template get<K_SIZE-1>() ^ sign;
 	auto leading = Wrapper<2, false>::mux(isNegative, zero_one, one_zero);
 
 	//N-1
@@ -170,7 +168,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 				reverseBitAndEsAndSignificand,
 				absK,
 				reverseBitAndEsAndSignificand.template get<N-1-1>()
-		); //TODO rajouter le fillbit
+		);
 
 	auto normalOutput = sign.concatenate(shifted);
 	auto zero = Wrapper<N-1, false>::generateSequence({0});
@@ -178,21 +176,30 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	auto specialCasesValue = isNaRBit.concatenate(zero);
 
 	auto isSpecial = positValue.getSignBit().invert().bitwise_and(positValue.getImplicitBit().invert()).bitwise_or(isNaRBit);
-	return Wrapper<N, false>::mux(isSpecial, specialCasesValue, normalOutput);
-
+	auto ret = Wrapper<N, false>::mux(isSpecial, specialCasesValue, normalOutput);
 #ifdef POSIT_ENCODER_DEBUG
 	cerr << "=== POSIT_ENCODER_EXACT ===" << endl;
-	cerr << "Use of empty function PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper, true> positValue)" << endl;
-	cerr << to_string(positValue) << endl;
-	cerr << "expwobias : " << to_string(expWoBias) << endl;
-	cerr << "ES : " << to_string(es) << endl;
-	cerr << "range : " << to_string(k) << endl;
-	cerr << "significand : " << to_string(significand) << endl;
-	cerr << "Leading : " << to_string(leading) << endl;
-	cerr << "AbsK : " << to_string(absK) << endl;
-	cerr << "Shifted : " << to_string(shifted) << endl;
+	cerr << "expWoBias: " << to_string(expWoBias) << endl;
+	cerr << "sign: " << to_string(sign) << endl;
+	cerr << "sign_sequence_wes: " << to_string(sign_sequence_wes) << endl;
+	cerr << "es_wo_xor: " << to_string(es_wo_xor) << endl;
+	cerr << "es: " << to_string(es) << endl;
+	cerr << "k: " << to_string(k) << endl;
+	cerr << "significand: " << to_string(significand) << endl;
+	cerr << "esAndSignificand: " << to_string(esAndSignificand) << endl;
+	cerr << "isNegative: " << to_string(isNegative) << endl;
+	cerr << "leading: " << to_string(leading) << endl;
+	cerr << "reverseBitAndEsAndSignificand: " << to_string(reverseBitAndEsAndSignificand) << endl;
+	cerr << "low_k: " << to_string(low_k) << endl;
+	cerr << "absK: " << to_string(absK) << endl;
+	cerr << "shifted: " << to_string(shifted) << endl;
+	cerr << "normalOutput: " << to_string(normalOutput) << endl;
+	cerr << "zero: " << to_string(zero) << endl;
+	cerr << "isNaRBit: " << to_string(isNaRBit) << endl;
+	cerr << "specialCasesValue: " << to_string(specialCasesValue) << endl;
+	cerr << "isSpecial: " << to_string(isSpecial) << endl;
+	cerr << "ret: " << to_string(ret) << endl;
 	cerr << "==========================" << endl;
 #endif
-
-	return PositEncoding<N, WES, Wrapper>{{0}};
+	return ret;
 }
