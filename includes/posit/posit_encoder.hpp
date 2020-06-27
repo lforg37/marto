@@ -56,6 +56,43 @@ inline Wrapper<PositDim<N, WES>::WF, false> buildEsSignifSequence(
 }
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<1, false> round_would_overflow(
+			Wrapper<1, false>,
+			Wrapper<PositDim<N, WES>::WE, false>,
+			typename enable_if<PositDim<N, WES>::HAS_ES>::type* = 0
+		)
+{
+	#ifdef POSIT_ENCODER_DEBUG
+		cerr << "=== round_would_overflow (WES != 0) ===" << endl;
+		cerr << "ret: 0" << endl;
+		cerr << "=======================================" << endl;
+	#endif
+		return {0};
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
+inline Wrapper<1, false> round_would_overflow(
+			Wrapper<1, false> sign,
+			Wrapper<PositDim<N, WES>::WE, false> exp,
+			typename enable_if<not PositDim<N, WES>::HAS_ES>::type* = 0
+		)
+{
+	constexpr auto WE = PositDim<N, WES>::WE;
+	Wrapper<WE, false> emax{PositDim<N, WES>::EMax}, emin{PositDim<N, WES>::EMin_repr};
+	auto isEmin = (exp == emin);
+	auto isEmax = (exp == emax);
+	auto res = (isEmin & sign) | (isEmax & sign.invert());
+	#ifdef POSIT_ENCODER_DEBUG
+		cerr << "=== round_would_overflow (WES != 0) ===" << endl;
+		cerr << "isEmin: " << to_string(isEmin) << endl;
+		cerr << "isEmax: " << to_string(isEmax) << endl;
+		cerr << "res: " << to_string(res) << endl;
+		cerr << "=======================================" << endl;
+	#endif
+	return res;
+}
+
+template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, WES, Wrapper, false> positValue)
 {
 	constexpr auto S_WF = PositDim<N, WES>::WF;
@@ -107,7 +144,8 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	auto guard = shifted.template get<1>();
 	auto sticky = shifted.template get<0>().bitwise_or(positValue.getStickyBit());
 
-	auto roundingBit = guard.bitwise_and(sticky.bitwise_or(unroundedResult.template get<0>()));
+	auto roundOverflow = round_would_overflow<N, WES, Wrapper>(sign, exp);
+	auto roundingBit = guard & (sticky | unroundedResult.template get<0>()) & roundOverflow.invert();
 
 	auto roundedResult = unroundedResult.modularAdd(roundingBit.template leftpad<N-1>());
 
@@ -136,6 +174,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	cerr << "unroundedResult: " << to_string(unroundedResult) << endl;
 	cerr << "guard: " << to_string(guard) << endl;
 	cerr << "sticky: " << to_string(sticky) << endl;
+	cerr << "roundOverflow: " << to_string(roundOverflow) << endl;
 	cerr << "roundingBit: " << to_string(roundingBit) << endl;
 	cerr << "roundedResult: " << to_string(roundedResult) << endl;
 	cerr << "normalOutput: " << to_string(normalOutput) << endl;
