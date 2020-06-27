@@ -71,7 +71,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	auto k = exp.template slice<S_WE-1, S_WES>();
 
 	// N-3
-	auto esAndSignificand = buildEsSignifSequence(sign, significand, exp);
+	auto esAndSignificand = buildEsSignifSequence<N, WES, Wrapper>(sign, significand, exp);
 
 	Wrapper<2, false> zero_one{1};
 	Wrapper<2, false> one_zero{2};
@@ -169,7 +169,7 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 
 
 	// N-3
-	auto esAndSignificand = buildEsSignifSequence(sign, significand, exp);
+	auto esAndSignificand = buildEsSignifSequence<N, WES, Wrapper>(sign, significand, exp);
 
 	Wrapper<2, false> zero_one{1};
 	Wrapper<2, false> one_zero{2};
