@@ -84,6 +84,8 @@ inline Wrapper<1, false> round_would_overflow(
 	auto res = (isEmin & sign) | (isEmax & sign.invert());
 	#ifdef POSIT_ENCODER_DEBUG
 		cerr << "=== round_would_overflow (WES != 0) ===" << endl;
+		cerr << "emax: " << to_string(emax) << endl;
+		cerr << "emin: " << to_string(emin) << endl;
 		cerr << "isEmin: " << to_string(isEmin) << endl;
 		cerr << "isEmax: " << to_string(isEmax) << endl;
 		cerr << "res: " << to_string(res) << endl;
