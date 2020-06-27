@@ -76,15 +76,12 @@ inline Wrapper<1, false> exp_overflow(
 		)
 {
 	constexpr auto WE = PositDim<N, WES>::WE;
-	Wrapper<WE, false> emax{PositDim<N, WES>::EMax}, emin{PositDim<N, WES>::EMin_repr};
-	auto smallerEmin = (exp.as_signed() < emin.as_signed());
-	auto biggerEmax = (exp.as_signed() > emax.as_signed());
-	auto res = smallerEmin | biggerEmax;
+	Wrapper<WE, false> emax{PositDim<N, WES>::EMax};//, emin{PositDim<N, WES>::EMin_repr};
+	auto biggerEmax = (exp.as_signed() >= emax.as_signed());
+	auto res = biggerEmax;
 	#ifdef POSIT_ENCODER_DEBUG
 		cerr << "=== round_would_overflow (WES != 0) ===" << endl;
 		cerr << "emax: " << to_string(emax) << endl;
-		cerr << "emin: " << to_string(emin) << endl;
-		cerr << "smallerEmin: " << to_string(smallerEmin) << endl;
 		cerr << "biggerEmax: " << to_string(biggerEmax) << endl;
 		cerr << "res: " << to_string(res) << endl;
 		cerr << "=======================================" << endl;
