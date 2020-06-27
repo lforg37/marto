@@ -140,6 +140,26 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
 }
 
+BOOST_AUTO_TEST_CASE(TestAllMulPosit8)
+{
+	for(uint32_t value2 = 0; value2 < (1<<8); value2++){
+		auto value2Encoding = StandardPositEncoding<8, Wrapper>{{value2}};
+		auto decoded2 = StandardPIF<8, Wrapper, true>{value2Encoding};
+
+		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
+			auto value1Encoding = StandardPositEncoding<8, Wrapper>{{value1}};
+			auto prod = value1Encoding * value2Encoding;
+			//cerr << to_string(static_cast<Wrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
+			StandardPositEncoding<8, Wrapper> encoded{prod};
+			posit8_t positValue1 = castP8(value1);
+			posit8_t positValue2 = castP8(value2);
+			posit8_t positMul = p8_mul(positValue1, positValue2);
+			Wrapper<8, false> softpositMul{castUI(positMul)};
+			BOOST_REQUIRE_MESSAGE((encoded == softpositMul).unravel(), "Mul of " << value1 << " and " << value2 << " returned a problematic value while it should have returned " << to_string(softpositMul));
+		}
+	}
+}
+
 BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long"))
 {
 	uint64_t counter = 0;
@@ -511,4 +531,26 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf
 		error_counter = 0;
 	}
 	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(TOTAL_TESTS)/static_cast<double>(TOTAL_TESTS)*100, TOTAL_TESTS,TOTAL_TESTS);
+}
+
+
+BOOST_AUTO_TEST_CASE(TestAllMulPosit8_in_place_rounding)
+{
+	for(uint32_t value2 = 0; value2 < (1<<8); value2++){
+		auto value2Encoding = StandardPositEncoding<8, Wrapper>{{value2}};
+		auto decoded2 = StandardPIF<8, Wrapper, true>{value2Encoding};
+
+		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
+			auto value1Encoding = StandardPositEncoding<8, Wrapper>{{value1}};
+			auto decoded1 = StandardPIF<8, Wrapper, true>{value1Encoding};
+			auto prod = posit_mul(decoded1, decoded2);
+			auto pif = PositProd_to_PositIF_in_place_rounding(prod);
+			StandardPositEncoding<8, Wrapper> encoded{pif};
+			posit8_t positValue1 = castP8(value1);
+			posit8_t positValue2 = castP8(value2);
+			posit8_t positMul = p8_mul(positValue1, positValue2);
+			Wrapper<8, false> softpositMul{castUI(positMul)};
+			BOOST_REQUIRE_MESSAGE((encoded == softpositMul).unravel(), "Mul of " << value1 << " and " << value2 << " returned " << to_string(encoded) << " while it should have returned " << to_string(softpositMul));
+		}
+	}
 }
