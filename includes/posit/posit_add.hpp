@@ -56,8 +56,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 
 	// Relative shift of exponents
 
-	auto min_is_zero_mask = Wrapper<S_WE, false>::generateSequence(oneIsZero.invert());
-	auto shiftValue = subExpOp1.modularSub(subExpOp2).as_unsigned() & min_is_zero_mask;
+	auto shiftValue = subExpOp1.modularSub(subExpOp2).as_unsigned(); 
 	auto shiftedSignificand = shifter_sticky(
 				lessSignificantSignificand.concatenate(Wrapper<2, false>{0}),
 				shiftValue,
