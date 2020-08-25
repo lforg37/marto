@@ -1,6 +1,6 @@
 #pragma once
 #include "posit_dim.hpp"
-#include "primitives/lzoc_shifter.hpp"
+#include "primitives/lzoc.hpp"
 
 #ifdef POSIT_DECODER_DEBUG
 #include <iostream>
@@ -70,15 +70,16 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_decoder(PositEncodin
 		);*/
 
 	constexpr int rangeCountSize = hint::Static_Val<N-2>::_storage;
-	auto lzoc_shifted = hint::LZOC_shift<N-2, N-2, false, Wrapper>(input_shift, count_type);
+    auto lzoc = hint::lzoc_wrapper(input_shift, count_type);
+    auto shifted = input_shift << lzoc;
 
-	auto rangeCount = lzoc_shifted.template slice<N-3+rangeCountSize, N-2>().template leftpad<rangeCountSize+1>();
-	auto usefulBits = lzoc_shifted.template slice<N-4, 0>();
+    auto rangeCount = lzoc.template leftpad<rangeCountSize+1>();
+    auto usefulBits = shifted.template slice<N-4, 0>();
 	auto fraction = usefulBits.template slice<N-4-WES, 0>();
 
 	auto neg_count = s.bitwise_xor(count_type).invert();
 	auto extended_neg_count = Wrapper<rangeCountSize + 1, false>::generateSequence(neg_count);
-	auto comp2_range_count = rangeCount.bitwise_xor(extended_neg_count);
+    auto comp2_range_count = rangeCount.bitwise_xor(extended_neg_count);
 
 	auto exponent = getExponent<N, WES>(
 				comp2_range_count,
