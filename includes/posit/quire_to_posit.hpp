@@ -74,14 +74,14 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> quire_to_posit(Quire<N, W
 		);
 
 	auto lzocshifted = hint::LZOC_shift<allsize, allsize-1, false, Wrapper>(padded_mid_bits, sign);
-	auto exp = Wrapper<logSize, false>{{PositDim<N, WES>::EMax}}.modularSub(lzocshifted.template slice<logSize + allsize - 1, allsize>());
+	auto exp = Wrapper<logSize, false>{{PositDim<N, WES>::EMax}}.modularSub(lzocshifted.lzoc);
 
-	auto frac = lzocshifted.template slice<
+	auto frac = lzocshifted.shifted.template slice<
 			allsize - 2,
 			allsize - (PositDim<N, WES>::WF + 1)
 		>();
-	auto guard = lzocshifted.template get<allsize - PositDim<N, WES>::WF - 2>();
-	auto stickycomp = lzocshifted.template slice<
+	auto guard = lzocshifted.shifted.template get<allsize - PositDim<N, WES>::WF - 2>();
+	auto stickycomp = lzocshifted.shifted.template slice<
 			allsize - PositDim<N, WES>::WF - 3,
 			0
 		>();

@@ -56,7 +56,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 
 	// Relative shift of exponents
 
-	auto shiftValue = subExpOp1.modularSub(subExpOp2).as_unsigned(); 
+	auto shiftValue = subExpOp1.modularSub(subExpOp2).as_unsigned();
 	auto shiftedSignificand = shifter_sticky(
 				lessSignificantSignificand.concatenate(Wrapper<2, false>{0}),
 				shiftValue,
@@ -77,10 +77,10 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 	auto lzoc_shifted = LZOC_shift<S_WF+4, S_WF+4>(usefulRes.concatenate(guards), toCount);
 
 
-	auto lzoc = lzoc_shifted.template slice<S_WF + 3 + Static_Val<S_WF+4>::_storage, S_WF + 4>();
-	auto frac = lzoc_shifted.template slice<S_WF+3, 3>();
-	auto round = lzoc_shifted.template get<2>();
-	auto sticky = sticky_low.bitwise_or(lzoc_shifted.template get<1>().bitwise_or(lzoc_shifted.template get<0>()));
+	auto lzoc = lzoc_shifted.lzoc;
+	auto frac = lzoc_shifted.shifted.template slice<S_WF+3, 3>();
+	auto round = lzoc_shifted.shifted.template get<2>();
+	auto sticky = sticky_low.bitwise_or(lzoc_shifted.shifted.template get<1>().bitwise_or(lzoc_shifted.shifted.template get<0>()));
 
 	auto is_zero = toCount.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
 	auto non_zero_exp = subExpOp1.subWithCarry(lzoc.template leftpad<S_WE>().as_signed(), {1}).template slice<S_WE-1, 0>();
@@ -127,7 +127,8 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 	cerr << "addRes: " << to_string(addRes) << endl;
 	cerr << "toCount: " << to_string(toCount) << endl;
 	cerr << "usefulRes: " << to_string(usefulRes) << endl;
-	cerr << "lzoc_shifted: " << to_string(lzoc_shifted) << endl;
+	cerr << "lzoc: " << to_string(lzoc_shifted.lzoc) << endl;
+	cerr << "shifted: " << to_string(lzoc_shifted.shifted) << endl;
 	cerr << "lzoc: " << to_string(lzoc) << endl;
 	cerr << "frac: " << to_string(frac) << endl;
 	cerr << "round: " << to_string(round) << endl;
@@ -140,7 +141,6 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 #endif
 	return result;
 }
-
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline PositIntermediateFormat<N, WES, Wrapper, true> posit_add_in_place(

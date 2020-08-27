@@ -1,6 +1,6 @@
 #pragma once
 #include "posit_dim.hpp"
-#include "primitives/lzoc.hpp"
+#include "primitives/lzoc_shifter.hpp"
 
 #ifdef POSIT_DECODER_DEBUG
 #include <iostream>
@@ -70,22 +70,21 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_decoder(PositEncodin
 		);*/
 
 	constexpr int rangeCountSize = hint::Static_Val<N-2>::_storage;
-    auto lzoc = hint::lzoc_wrapper(input_shift, count_type);
-    auto shifted = input_shift << lzoc;
+	auto lzoc_shifted = hint::LZOC_shift<N-2, N-2>(input_shift, count_type);
 
-    auto rangeCount = lzoc.template leftpad<rangeCountSize+1>();
-    auto usefulBits = shifted.template slice<N-4, 0>();
+	auto rangeCount = lzoc_shifted.lzoc.template leftpad<rangeCountSize+1>();
+	auto usefulBits = lzoc_shifted.shifted.template slice<N-4, 0>();
 	auto fraction = usefulBits.template slice<N-4-WES, 0>();
 
 	auto neg_count = s.bitwise_xor(count_type).invert();
 	auto extended_neg_count = Wrapper<rangeCountSize + 1, false>::generateSequence(neg_count);
-    auto comp2_range_count = rangeCount.bitwise_xor(extended_neg_count);
+	auto comp2_range_count = rangeCount.bitwise_xor(extended_neg_count);
 
 	auto exponent = getExponent<N, WES>(
 				comp2_range_count,
 				usefulBits,
 				s
-				);
+			);
 
 	//auto biased_exp = exponent.modularAdd({PositDim<N, WES>::EXP_BIAS});
 
@@ -104,8 +103,8 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_decoder(PositEncodin
 	cerr << "is_NAR: " << to_string(is_NAR) << endl;
 	cerr << "is_zero: " << to_string(is_zero) << endl;
 	cerr << "implicit_bit: " << to_string(implicit_bit) << endl;
-	cerr << "lzoc_shifted: " << to_string(lzoc_shifted) << endl;
-	cerr << "lzoc_shifted: " << to_string(lzoc_shifted) << endl;
+	cerr << "lzoc: " << to_string(lzoc_shifted.lzoc) << endl;
+	cerr << "shifted: " << to_string(lzoc_shifted.shifted) << endl;
 	cerr << "rangeCount: " << to_string(rangeCount) << endl;
 	cerr << "usefulBits: " << to_string(usefulBits) << endl;
 	cerr << "fraction: " << to_string(fraction) << endl;
