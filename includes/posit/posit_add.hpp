@@ -77,10 +77,11 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 	auto lzoc_shifted = LZOC_shift<S_WF+4, S_WF+4>(usefulRes.concatenate(guards), toCount);
 
 
-	auto lzoc = lzoc_shifted.lzoc;
-	auto frac = lzoc_shifted.shifted.template slice<S_WF+3, 3>();
-	auto round = lzoc_shifted.shifted.template get<2>();
-	auto sticky = sticky_low.bitwise_or(lzoc_shifted.shifted.template get<1>().bitwise_or(lzoc_shifted.shifted.template get<0>()));
+	auto & lzoc = lzoc_shifted.lzoc;
+	auto & shifted = lzoc_shifted.shifted;
+	auto frac = shifted.template slice<S_WF+3, 3>();
+	auto round = shifted.template get<2>();
+	auto sticky = sticky_low.bitwise_or(shifted.template get<1>().bitwise_or(shifted.template get<0>()));
 
 	auto is_zero = toCount.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
 	auto non_zero_exp = subExpOp1.subWithCarry(lzoc.template leftpad<S_WE>().as_signed(), {1}).template slice<S_WE-1, 0>();
