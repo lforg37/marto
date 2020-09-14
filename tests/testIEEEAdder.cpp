@@ -47,7 +47,7 @@ struct SumError {
 		Code err_code;
 };
 
-bool test_f16_sum(uint16_t op1_repr, uint16_t op2_repr, typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMode marto_round_mode)
+bool test_f16_sum(uint16_t op1_repr, uint16_t op2_repr, decltype(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMode marto_round_mode)
 {
 	float16_t op1_sf{op1_repr}, op2_sf{op2_repr};
 	IEEENumber<5, 10, hint::VivadoWrapper> op1_marto{{op1_repr}}, op2_marto{{op2_repr}};
@@ -80,11 +80,16 @@ BOOST_AUTO_TEST_CASE(TestCaseRndZero) {
 }
 
 BOOST_AUTO_TEST_CASE(TestCaseRndTieAway) {
+	BOOST_REQUIRE(test_f16_sum(0, 1, softfloat_round_near_maxMag, IEEERoundingMode::RoundNearestTieAway));
 	BOOST_REQUIRE(test_f16_sum(448, 40964, softfloat_round_near_maxMag, IEEERoundingMode::RoundNearestTieAway));
 	BOOST_REQUIRE(test_f16_sum(448, 1601, softfloat_round_near_maxMag, IEEERoundingMode::RoundNearestTieAway));
 }
 
-void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMode marto_round_mode)
+BOOST_AUTO_TEST_CASE(TestCaseRndTieEven) {
+	BOOST_REQUIRE(test_f16_sum(128, 32768, softfloat_round_near_even, IEEERoundingMode::RoundNearestTieEven));
+}
+
+void compute_ieee_sum(decltype(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMode marto_round_mode)
 {
 	constexpr unsigned int WE = 5;
 	constexpr unsigned int WF = 10;
@@ -111,7 +116,6 @@ void compute_ieee_sum(typeof(softfloat_roundingMode) sf_rnd_mode, IEEERoundingMo
 			float16_t op2_sf{op2_repr};
 			MartoIEEE op2_marto{{op2_repr}};
 			auto sum_sf = f16_add(op1_sf, op2_sf);
-			auto sum_repr = sum_sf.v;
 			auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_round_mode);
 			if (isNan(sum_sf)) {//result is NaN
 				bool marto_is_nan = (sum_marto.isNaN().unravel() == 1);
@@ -186,6 +190,36 @@ BOOST_AUTO_TEST_CASE(TestIEEEAdd_5_10_SP_RNTA, *utf::disabled() * utf::label("lo
 	compute_ieee_sum(softfloat_round_near_maxMag, IEEERoundingMode::RoundNearestTieAway);
 }
 #endif
+
+bool test_ieee_4_7_val(u_int32_t in0, uint32_t in1)
+{
+	constexpr unsigned int WE = 4;
+	constexpr unsigned int WF = 7;
+	using SIEEE = libnumform::SmallIEEENumber<WE, WF>;
+
+	IEEENumber<WE, WF, hint::VivadoWrapper> var0ieee{{in0}};
+	IEEENumber<WE, WF, hint::VivadoWrapper> var1ieee{{in1}};
+
+	SIEEE op0{in0}, op1{in1};
+	auto sum = op0 + op1;
+	auto sum_repr = sum.getRepr();
+
+	auto marto_sum = ieee_add_sub_impl(var0ieee, var1ieee);
+	bool res;
+	if (marto_sum.isNaN().unravel() == 1){
+		res = sum.isNaN();
+	} else {
+		res = marto_sum.unravel() == sum_repr;
+	}
+	if (!res)
+		cerr << "Expecting " << sum_repr << " got " << marto_sum.unravel() << endl;
+	return res;
+}
+
+BOOST_AUTO_TEST_CASE(TestSomeAdd4_7)
+{
+	BOOST_REQUIRE(test_ieee_4_7_val(255, 2304));
+}
 
 BOOST_AUTO_TEST_CASE(TestIEEEAdd_4_7)
 {

@@ -63,7 +63,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 				lessSignifSign
 			);
 
-	Wrapper<S_WF + 2, false> shiftedTop = shiftedSignificand.template slice<S_WF+2+2, 3>();
+	auto shiftedTop = shiftedSignificand.template slice<S_WF+2+2, 3>();
 	auto guards = shiftedSignificand.template slice<2, 1>();
 	auto sticky_low = shiftedSignificand.template get<0>();
 

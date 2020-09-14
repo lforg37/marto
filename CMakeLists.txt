@@ -3,6 +3,7 @@ project(Marto CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(LIBNAME marto)
 set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/includes)
@@ -21,6 +22,11 @@ target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
 add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
 target_link_libraries(${LIBNAME} INTERFACE hint)
+
+OPTION(DEBUG_IEEE_ADDER "Dump all posit_adder signals")
+if(DEBUG_IEEE_ADDER)
+	target_compile_definitions(${LIBNAME} INTERFACE IEEE_ADDER_DEBUG)
+endif()
 
 OPTION(DEBUG_POSIT_ADDER "Dump all posit_adder signals")
 if(DEBUG_POSIT_ADDER)
@@ -131,6 +137,10 @@ if(BUILD_UNIT_TEST)
 	add_executable(testLibNumForm_exe tests/testLibNumForm.cpp)
 	target_link_libraries(testLibNumForm_exe PRIVATE libnumform ${Boost_LIBRARIES})
 	add_test(testLibNumForm testLibNumForm_exe)
+
+	add_executable(ieee_adder_exe tests/ieee_adder.cpp)
+	target_link_libraries(ieee_adder_exe PRIVATE VIVADO_AP_INT ${LIBNAME})
+	target_compile_definitions(ieee_adder_exe PRIVATE -DIEEE_WE=8 -DIEEE_WF=23)
 
 	add_executable(testIEEElibnum_exe tests/testIEEEMultiplier.cpp tests/testIEEEAdder.cpp)
 	target_compile_definitions(testIEEElibnum_exe PRIVATE VIVADO_BACKEND)
