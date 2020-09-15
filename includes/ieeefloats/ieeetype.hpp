@@ -25,27 +25,27 @@ template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wr
 
 			IEEENumber(Wrapper<WE + WF + 1, false> const & val):Wrapper<WE+WF+1, false>{val}{}
 
-			us_wrapper<1> getSign() {
+			us_wrapper<1> getSign() const{
 				return basetype::template get<WE+WF>();
 			}
 
-			us_wrapper<WE> getExponent() {
+			us_wrapper<WE> getExponent() const {
 				return basetype::template slice<WF + WE - 1, WF>();
 			}
 
-			us_wrapper<WF> getFractionnalPart() {
+			us_wrapper<WF> getFractionnalPart() const {
 				return basetype::template slice<WF - 1, 0>();
 			}
 
-			us_wrapper<1> getLeadBitVal() {
+			us_wrapper<1> getLeadBitVal() const {
 				return getExponent().or_reduction();
 			}
 
-			us_wrapper<1> isInfinity() {
+			us_wrapper<1> isInfinity() const {
 				return getExponent().and_reduction().bitwise_and(getFractionnalPart().or_reduction().invert());
 			}
 
-			us_wrapper<1> isNaN() {
+			us_wrapper<1> isNaN() const {
 				return getExponent().and_reduction().bitwise_and(getFractionnalPart().or_reduction());
 			}
 	};
