@@ -4,6 +4,7 @@
 #include "ieeefloats/ieeetype.hpp"
 #include "ieeefloats/ieee_rounding.hpp"
 #include "tools/static_math.hpp"
+#include "primitives/lzoc_shifter.hpp"
 #include "primitives/lzoc.hpp"
 #include "primitives/shifter_sticky.hpp"
 
@@ -14,21 +15,16 @@ using hint::to_string;
 using std::cerr;
 #endif
 
-
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
-	   IEEENumber<WE, WF, Wrapper> in0,
-	   IEEENumber<WE, WF, Wrapper> in1,
-	   IEEERoundingMode roundingMode = IEEERoundingMode::RoundNearestTieEven
+	   IEEENumber<WE, WF, Wrapper> const & in0,
+	   IEEENumber<WE, WF, Wrapper> const & in1,
+	   IEEERoundingMode const roundingMode = IEEERoundingMode::RoundNearestTieEven
 	)
 {
 	auto exp0 = in0.getExponent();
 	auto exp1 = in1.getExponent();
 
-	auto exp0IsZero = (exp0 == Wrapper<WE, false>{0});
-	auto exp1IsZero = (exp1 == Wrapper<WE, false>{0});
-	auto exp0IsAllOne = (exp0 == Wrapper<WE, false>{(1<<WE)-1});
-	auto exp1IsAllOne = (exp1 == Wrapper<WE, false>{(1<<WE)-1});
 
 	auto sign0 = in0.getSign();
 	auto sign1 = in1.getSign();
@@ -36,38 +32,47 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto frac0 = in0.getFractionnalPart();
 	auto frac1 = in1.getFractionnalPart();
 
-	auto frac0IsZero = (frac0 == Wrapper<WF, false>{0});
-	auto frac1IsZero = (frac1 == Wrapper<WF, false>{0});
+
+	auto exp0IsZero = exp0.nor_reduction();
+	auto exp1IsZero = exp1.nor_reduction();
+	auto exp0AllOne = exp0.and_reduction();
+	auto exp1AllOne = exp1.and_reduction();
+	auto frac0IsZero = frac0.nor_reduction();
+	auto frac1IsZero = frac1.nor_reduction();
+
+	auto expfrac0 = exp0.concatenate(frac0);
+	//cerr << "expfrac0 : " << expfrac0.unravel().get_str(2) << endl;
+	auto expfrac1 = exp1.concatenate(frac1);
+	//cerr << "expfrac1 : " << expfrac1.unravel().get_str(2) << endl;
 
 	auto diff0 = exp0.modularSub(exp1);
 	auto diff1 = exp1.modularSub(exp0);
 
-	auto aligned = (exp0 == exp1);
-	auto unaligned = aligned.invert();
-
 	// Sorting according to exp
-	auto swap = exp1 > exp0;
-	auto keep = swap.invert();
+	auto swap = expfrac1 > expfrac0;
+	//cerr << "swap : " << swap.unravel().get_str(2) << endl;
 
 	auto maxExp = Wrapper<WE, false>::mux(swap, exp1, exp0);
 	auto minExp = Wrapper<WE, false>::mux(swap, exp0, exp1);
 	auto expdiff = Wrapper<WE, false>::mux(swap, diff1, diff0);
 
+	//cerr << "Expdiff : " << expdiff.unravel().get_str(2) << endl;
+
 	auto effsub = sign0 ^ sign1;
 
-	auto tmpMaxSign = Wrapper<1, false>::mux(swap, sign1, sign0);
-	auto tmpMinSign = Wrapper<1, false>::mux(swap, sign0, sign1);
+	auto maxSign = Wrapper<1, false>::mux(swap, sign1, sign0);
+	auto minSign = Wrapper<1, false>::mux(swap, sign0, sign1);
 
 	auto maxFrac = Wrapper<WF, false>::mux(swap, frac1, frac0);
 	auto minFrac = Wrapper<WF, false>::mux(swap, frac0, frac1);
 
-	auto maxExpIsZero = (swap & exp1IsZero) | (keep & exp0IsZero);
-	auto minExpIsZero = (swap & exp0IsZero) | (keep & exp1IsZero);
-	auto maxExpAllOne = (swap & exp1IsAllOne) | (keep & exp0IsAllOne);
-	auto minExpAllOne = (swap & exp0IsAllOne) | (keep & exp1IsAllOne);
-	auto maxFracIsZero = (swap & frac1IsZero) | (keep & frac0IsZero);
-	auto minFracIsZero = (swap & frac0IsZero) | (keep & frac1IsZero);
-	auto maxExpIsOne = (maxExp == Wrapper<WE, false>{1});
+	// Special case detection
+	auto maxExpIsZero = Wrapper<1, false>::mux(swap, exp1IsZero, exp0IsZero);
+	auto minExpIsZero = Wrapper<1, false>::mux(swap, exp0IsZero, exp1IsZero);
+	auto maxExpAllOne = Wrapper<1, false>::mux(swap, exp1AllOne, exp0AllOne);
+	auto minExpAllOne = Wrapper<1, false>::mux(swap, exp0AllOne, exp1AllOne);
+	auto maxFracIsZero = Wrapper<1, false>::mux(swap, frac1IsZero, frac0IsZero);
+	auto minFracIsZero = Wrapper<1, false>::mux(swap, frac0IsZero, frac1IsZero);
 
 	//Special case logic
 	auto maxIsInfinity = maxExpAllOne & maxFracIsZero;
@@ -76,91 +81,92 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto minIsInfinity = minExpAllOne & minFracIsZero;
 	auto minIsNaN = minExpAllOne & minFracIsZero.invert();
 	auto minIsZero = minExpIsZero & minFracIsZero;
-	auto oneIsZero = maxIsZero | minIsZero;
 
-	auto bothSubNormals = exp0IsZero & exp1IsZero;
+	auto bothSubNormals = maxExpIsZero;
+	//cerr << "Both subnormals : " << bothSubNormals.unravel().get_str(2) << endl;
 	auto maxIsNormal = maxExpIsZero.invert();
 	auto minIsNormal = minExpIsZero.invert();
 
 	auto infinitySub = maxIsInfinity & minIsInfinity & effsub;
 	auto resultIsNan = maxIsNaN | minIsNaN |infinitySub;
-	auto onlyOneSubnormal = minExpIsZero & maxIsNormal;
+	auto onlyOneSubnormal = minExpIsZero & maxExpIsZero.invert();
+	//cerr << "Only One  subnormal :" << onlyOneSubnormal.unravel().get_str(2) << endl;
 
 	// Reconstruct full fraction
 	auto explicitedMaxFrac = maxIsNormal.concatenate(maxFrac);
 	auto explicitedMinFrac = minIsNormal.concatenate(minFrac);
 
+	//cerr << "explicit fracs : \nMax : " << explicitedMaxFrac.unravel().get_str(2) << endl <<
+	//		"Min : " << explicitedMinFrac.unravel().get_str(2) << endl;
+
 	//alignment
 	auto maxShiftVal = Wrapper<WE, false>{WF+3};
 	auto allShiftedOut = expdiff > maxShiftVal;
+	//cerr << "All shifted out : " << allShiftedOut.unravel().get_str(2) << endl;
 
 	auto shiftValue = Wrapper<WE, false>::mux(
 					allShiftedOut,
 					maxShiftVal,
 					expdiff
 				).modularSub(onlyOneSubnormal.template leftpad<WE>());
+	//cerr << "Shift value : " << shiftValue.unravel().get_str(2) << endl;
 
-	//////// WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP ///////////////////////
-	auto extendedMinFrac = explicitedMinFrac.concatenate(Wrapper<2, false>{0});
+	Wrapper<WF+3, false> extendedMinFrac = explicitedMinFrac.concatenate(Wrapper<2, false>{0});
+	//cerr << "extminfrac : " << extendedMinFrac.unravel().get_str(2) << endl;
+
 	auto shiftedMinFracSticky = shifter_sticky(extendedMinFrac, shiftValue);
+	auto beforeComp = Wrapper<1, false>{0}.concatenate(shiftedMinFracSticky.template slice<WF + 3, 1>());
+	//cerr << "beforeComp : " << beforeComp.unravel().get_str(2) << endl;
+	auto shiftedMinFrac = beforeComp ^ Wrapper<WF+4, false>::generateSequence(effsub);
+	//cerr << "shiftedMinFrac : " << shiftedMinFrac.unravel().get_str(2) << endl;
 
-	////////////////////////////////////////////////////////////////////////////
-	/// Branche min +- max (max soustrait seulement si eff sub et alignement)///
-	///   01.xxxxxxxxxx  OR    01.xxxxxxxxxx  OR   1x.xxxxxxxxxxxx           ///
-	/// + 01.xxxxxxxxxx  --  + 0.000xxxxxxxx  -- + 01.xxxxxxxxxxxx           ///
-	////////////////////////////////////////////////////////////////////////////
-	constexpr unsigned int AdderWidth = WF+3;
-	auto shiftedMinPBranch = shiftedMinFracSticky.template slice<WF+3, 3>().template leftpad<AdderWidth>();
-	auto adderShoulSub = effsub & aligned & oneIsZero.invert();
-	auto adderNegMask = Wrapper<AdderWidth, false>::generateSequence(adderShoulSub);
-	auto adderMaxIn = explicitedMaxFrac.template leftpad<AdderWidth>().bitwise_xor(adderNegMask);
-	auto adderRes = adderMaxIn.addWithCarry(shiftedMinPBranch, adderShoulSub);
-	auto adderResNeg = adderRes.template get<AdderWidth-1>();
-	auto fracAdd = adderRes.template slice<WF+1, 0>().concatenate(shiftedMinFracSticky.template slice<2, 1>());
-	////////////////////////////////////////////////////////////////////////////
+	auto stickyMinFrac = shiftedMinFracSticky.template get<0>();
+	//cerr << "stickyMinFrac : " << stickyMinFrac.unravel().get_str(2) << endl;
 
-	////////////////////////////////////////////////////////////////////////////
-	/// Branche max - min                                                    ///
-	///   1.xxxxxxxxxxx00  OR    1.xxxxxxxxxxx00                             ///
-	/// - 1.xxxxxxxxxxx00  --  - 0.0000xxxxxxxgs                             ///
-	////////////////////////////////////////////////////////////////////////////
-	constexpr unsigned int SubWidth = WF+4;
-	auto shiftedMinSBranch = shiftedMinFracSticky;
-	auto SubMaxIn = explicitedMaxFrac.concatenate(Wrapper<3, false>{0});
-	auto subRes = SubMaxIn.modularSub(shiftedMinSBranch);
-	auto fracSub = subRes.template slice<SubWidth - 1, 1>().template leftpad<WF+4>();
-	////////////////////////////////////////////////////////////////////////////
+	// Addition
+	auto carryIn = effsub & stickyMinFrac.invert();
+	//cerr << "carryIn : " << carryIn.unravel().get_str(2) << endl;
+	auto extendedMaxFrac = explicitedMaxFrac.concatenate(Wrapper<1, false>{0}).concatenate(carryIn).template leftpad<WF+4>();
+	//cerr << "extMaxfrac : " << extendedMaxFrac.unravel().get_str(2) << endl;
 
-	auto resIsSub = effsub & (adderResNeg | unaligned);
-	auto resIsAdd = resIsSub.invert();
-	auto stickyRes = shiftedMinFracSticky.template get<0>();
-	auto fracRes = Wrapper<WF+4, false>::mux(resIsSub, fracSub, fracAdd);
-	auto maxSign = Wrapper<1, false>::mux(effsub & aligned & adderResNeg.invert() & minIsZero.invert(), tmpMinSign, tmpMaxSign);
+	auto signifcandResult = extendedMaxFrac + shiftedMinFrac;
+	//cerr << "Signif result : " << signifcandResult.unravel().get_str(2) << endl;
+	// Renormalization
 
-	auto z1 = fracRes.template get<WF+3>();
-	auto z0 = fracRes.template get<WF+2>();
+	auto isNeg = signifcandResult.template get<WF + 4>();
+	auto z1 = signifcandResult.template get<WF+3>();
+	auto z0 = signifcandResult.template get<WF+2>();
+	//cerr << "Z1 :" << z1.unravel().get_str(2) << endl
+	//	<< "Z0  :" << z0.unravel().get_str(2) << endl;
 
-	auto lzc = lzoc_wrapper(fracRes, {0});
+	auto lzcInput = signifcandResult.template slice<WF+3, 1>();
+	auto lzc = lzoc_wrapper(lzcInput, {0});
 
-	constexpr unsigned int lzcsize = hint::Static_Val<WF+2>::_storage;
+	//cerr << "LZC Input :" << lzcInput.unravel().get_str(2) << endl
+	//	<< "LZC  :" << lzc.unravel().get_str(2) << endl;
+	constexpr unsigned int lzcsize = hint::Static_Val<WF+3>::_storage;
 
 	static_assert (lzcsize<=WE, "The adder works only for wE > log2(WF).\nAre you sure you need subnormals ?\nIf yes, contact us with your use case, we will be happy to make it work for you.");
 	auto subnormalLimitVal = Wrapper<lzcsize, false>{WF+3};
 
+	auto maxExpIsOne = (maxExp == Wrapper<WE, false>{1});
 
 	auto lzcGreaterEqExp = (lzc.template leftpad<WE>() >= maxExp);
 	auto lzcSmallerEqExp = (lzc.template leftpad<WE>() <= maxExp);
 	auto lzcSmallerMaxVal = lzc < subnormalLimitVal;
 	auto fullCancellation = lzcSmallerMaxVal.invert();
+	//cerr << "Fulll cancel : " << fullCancellation.unravel().get_str(2) << endl;
+
+	//cerr << "lzcsmaller" << lzcSmallerMaxVal.unravel().get_str(2) << endl;
 
 	auto normalOverflow = z1;
+	//cerr << "Normal overflow : " << normalOverflow.unravel().get_str(2) << endl;
 	auto lzcOne = z1.invert() & z0;
 	auto subnormalOverflow = lzcOne & maxExpIsZero;
+	//cerr << "Subnormal overflow : " << subnormalOverflow.unravel().get_str(2) << endl;
 	auto cancellation = z1.invert() & z0.invert();
 
 	auto overflow = normalOverflow | subnormalOverflow;
-
-	//////// WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP WIP ///////////////////
 
 	auto isLeftShiftLZC = overflow |
 			(lzcSmallerMaxVal.invert() & bothSubNormals) |
@@ -171,15 +177,24 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto shiftFirstStage = Wrapper<lzcsize, false>::mux(isLeftShiftLZC, lzc, Wrapper<lzcsize, false>{1});
 	auto normalisationShiftVal = Wrapper<lzcsize, false>::mux(isLeftShiftExp, maxExp.template slice<lzcsize-1, 0>(), shiftFirstStage);
 
-	auto normalisedSignif = fracRes << normalisationShiftVal;
+	//cerr << "Normalisation shift : " << normalisationShiftVal.unravel().get_str(2) << endl;
+	auto normalisedSignif = signifcandResult << normalisationShiftVal;
+	//cerr << "Normalised signif : " << normalisedSignif.unravel().get_str(2) << endl;
 	auto significandPreRound = normalisedSignif.template slice<WF+2, 3>();
+	//cerr << "Preround signif : " << significandPreRound.unravel().get_str(2) << endl;
 	auto lsb = normalisedSignif.template get<3>();
+	//cerr << "lsb : " << lsb.unravel().get_str(2) << endl;
 	auto roundBit = normalisedSignif.template get<2>();
-	auto sticky = stickyRes| normalisedSignif.template slice <1, 0>().or_reduction();
+	//cerr << "roundBit : " << roundBit.unravel().get_str(2) << endl;
+	auto sticky = stickyMinFrac | normalisedSignif.template slice <1, 0>().or_reduction();
+	//cerr << "sticky : " << sticky.unravel().get_str(2) << endl;
 
 	auto deltaExpIsZero = z1.invert() & (z0 ^ bothSubNormals);
+	//cerr << "DeltaExpIsZero : " << deltaExpIsZero.unravel().get_str(2) << endl;
 	auto deltaExpIsMinusOne = z1 | (z0 & bothSubNormals);
+	//cerr << "deltaExpIsMinusOne : " << deltaExpIsMinusOne.unravel().get_str(2) << endl;
 	auto deltaExpIsLZC = (z1 | z0 | bothSubNormals).invert() & lzcSmallerEqExp & lzcSmallerMaxVal;
+	//cerr << "deltaExpIsLZC : " << deltaExpIsLZC.unravel().get_str(2) << endl;
 	auto deltaExpExp = (deltaExpIsLZC | deltaExpIsZero | deltaExpIsMinusOne).invert();
 
 	auto deltaExpCin = deltaExpExp | deltaExpIsMinusOne | deltaExpIsLZC;
@@ -193,12 +208,20 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 
 	auto maskSequence = Wrapper<WE, false>::generateSequence(deltaBigPartIsZero.invert());
 	auto deltaExpBeforeCorrection = deltaExpUnmasked & maskSequence;
+
+	//cerr << "DeltaExp : " << deltaExpBeforeCorrection.unravel().get_str(2) << endl;
+	//cerr << "DeltaEXP cin : " << deltaExpCin.unravel().get_str(2) <<endl;
+
 	auto expPreRound = maxExp.addWithCarry(deltaExpBeforeCorrection, deltaExpCin).template slice<WE-1, 0>();
+	//cerr << "expPreRound : " << expPreRound.unravel().get_str(2) << endl;
 	auto expSigPreRound = expPreRound.concatenate(significandPreRound);
+	//cerr << "expSigPreRound : " << to_string(expPreRound) << endl;
 
 	auto roundUpBit = ieee_getRoundBit(maxSign, lsb, roundBit, sticky, roundingMode);
+	//cerr << "rub : " << to_string(roundUpBit) << endl;
 
 	auto unroundedInf = expPreRound.and_reduction();
+	//cerr << "Infinity pre-round : " << to_string(unroundedInf) << endl;
 
 	Wrapper<3, false> roundingCode{static_cast<uint8_t>(roundingMode)};
 	auto b0 = roundingCode.template get<0>();
@@ -206,10 +229,12 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto b2 = roundingCode.template get<2>();
 	auto forbiddent_inf = ((b2 & b0 & (b1 == maxSign)) | (roundingCode.or_reduction().invert())) & unroundedInf & maxIsInfinity.invert() & resultIsNan.invert();
 
+	//auto roundUpBit = roundBit & (sticky | lsb);
 	auto expSigRounded = expSigPreRound.modularAdd(roundUpBit.template leftpad<WE+WF>());
 	auto finalExp = expSigRounded.template slice<WF+WE-1, WF>();
 
 	auto resultIsZero = fullCancellation & finalExp.or_reduction().invert();
+	//cerr << "ResIsZero : " << resultIsZero.unravel().get_str(2) << endl;
 	auto resultIsInf = resultIsNan.invert() & (
 					(maxIsInfinity & minIsInfinity & effsub.invert()) |
 					(maxIsInfinity ^ minIsInfinity) |
@@ -220,10 +245,11 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto constInfNanSignif = Wrapper<WF, false>::generateSequence(resultIsNan | forbiddent_inf);
 
 	auto constInfNan = constInfNanExp.concatenate(constInfNanSignif);
+	//cerr << "Constinfnan : " << to_string(constInfNan) << endl;
 	auto finalRes = Wrapper<WE+WF, false>::mux(resultIsNan | resultIsInf, constInfNan, expSigRounded);
 
 	auto bothZeros = maxIsZero & minIsZero;
-	auto signBothZero = tmpMinSign & tmpMaxSign;
+	auto signBothZero = minSign & maxSign;
 
 	Wrapper<1, false> isRoundDown{roundingMode == IEEERoundingMode::RoundDown};
 	auto negZeroOp = resultIsZero & isRoundDown & (effsub | bothZeros.invert());
@@ -232,33 +258,30 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 			(resultIsZero.invert() & maxSign));
 
 #ifdef IEEE_ADDER_DEBUG
-	cerr << "===== IEEE ADD =====" << endl;
-	cerr << "in0: " << to_string(in0) << endl;
-	cerr << "in1: " << to_string(in1) << endl;
+	cerr << "====== IEEE_ADD (cmp frac) ======" << endl;
 	cerr << "exp0: " << to_string(exp0) << endl;
 	cerr << "exp1: " << to_string(exp1) << endl;
-	cerr << "exp0IsZero: " << to_string(exp0IsZero) << endl;
-	cerr << "exp1IsZero: " << to_string(exp1IsZero) << endl;
-	cerr << "exp0IsAllOne: " << to_string(exp0IsAllOne) << endl;
-	cerr << "exp1IsAllOne: " << to_string(exp1IsAllOne) << endl;
 	cerr << "sign0: " << to_string(sign0) << endl;
 	cerr << "sign1: " << to_string(sign1) << endl;
 	cerr << "frac0: " << to_string(frac0) << endl;
 	cerr << "frac1: " << to_string(frac1) << endl;
+	cerr << "exp0IsZero: " << to_string(exp0IsZero) << endl;
+	cerr << "exp1IsZero: " << to_string(exp1IsZero) << endl;
+	cerr << "exp0AllOne: " << to_string(exp0AllOne) << endl;
+	cerr << "exp1AllOne: " << to_string(exp1AllOne) << endl;
 	cerr << "frac0IsZero: " << to_string(frac0IsZero) << endl;
 	cerr << "frac1IsZero: " << to_string(frac1IsZero) << endl;
+	cerr << "expfrac0: " << to_string(expfrac0) << endl;
+	cerr << "expfrac1: " << to_string(expfrac1) << endl;
 	cerr << "diff0: " << to_string(diff0) << endl;
 	cerr << "diff1: " << to_string(diff1) << endl;
-	cerr << "aligned: " << to_string(aligned) << endl;
 	cerr << "swap: " << to_string(swap) << endl;
-	cerr << "keep: " << to_string(keep) << endl;
 	cerr << "maxExp: " << to_string(maxExp) << endl;
 	cerr << "minExp: " << to_string(minExp) << endl;
 	cerr << "expdiff: " << to_string(expdiff) << endl;
 	cerr << "effsub: " << to_string(effsub) << endl;
-	cerr << "tmpMinSign: " << to_string(tmpMinSign) << endl;
-	cerr << "tmpMaxSign: " << to_string(tmpMaxSign) << endl;
 	cerr << "maxSign: " << to_string(maxSign) << endl;
+	cerr << "minSign: " << to_string(minSign) << endl;
 	cerr << "maxFrac: " << to_string(maxFrac) << endl;
 	cerr << "minFrac: " << to_string(minFrac) << endl;
 	cerr << "maxExpIsZero: " << to_string(maxExpIsZero) << endl;
@@ -267,7 +290,6 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	cerr << "minExpAllOne: " << to_string(minExpAllOne) << endl;
 	cerr << "maxFracIsZero: " << to_string(maxFracIsZero) << endl;
 	cerr << "minFracIsZero: " << to_string(minFracIsZero) << endl;
-	cerr << "maxExpIsOne: " << to_string(maxExpIsOne) << endl;
 	cerr << "maxIsInfinity: " << to_string(maxIsInfinity) << endl;
 	cerr << "maxIsNaN: " << to_string(maxIsNaN) << endl;
 	cerr << "maxIsZero: " << to_string(maxIsZero) << endl;
@@ -285,27 +307,20 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	cerr << "maxShiftVal: " << to_string(maxShiftVal) << endl;
 	cerr << "allShiftedOut: " << to_string(allShiftedOut) << endl;
 	cerr << "shiftValue: " << to_string(shiftValue) << endl;
-	cerr << "extendedMinFrac: " << to_string(extendedMinFrac) << endl;
 	cerr << "shiftedMinFracSticky: " << to_string(shiftedMinFracSticky) << endl;
-	cerr << "shiftedMinPBranch: " << to_string(shiftedMinPBranch) << endl;
-	cerr << "adderShoulSub: " << to_string(adderShoulSub) << endl;
-	cerr << "adderNegMask: " << to_string(adderNegMask) << endl;
-	cerr << "adderMaxIn: " << to_string(adderMaxIn) << endl;
-	cerr << "adderRes: " << to_string(adderRes) << endl;
-	cerr << "adderResNeg: " << to_string(adderResNeg) << endl;
-	cerr << "fracAdd: " << to_string(fracAdd) << endl;
-	cerr << "shiftedMinSBranch: " << to_string(shiftedMinSBranch) << endl;
-	cerr << "SubMaxIn: " << to_string(SubMaxIn) << endl;
-	cerr << "subRes: " << to_string(subRes) << endl;
-	cerr << "fracSub: " << to_string(fracSub) << endl;
-	cerr << "resIsSub: " << to_string(resIsSub) << endl;
-	cerr << "resIsAdd: " << to_string(resIsAdd) << endl;
-	cerr << "fracRes: " << to_string(fracRes) << endl;
-	cerr << "stickyRes: " << to_string(stickyRes) << endl;
+	cerr << "beforeComp: " << to_string(beforeComp) << endl;
+	cerr << "shiftedMinFrac: " << to_string(shiftedMinFrac) << endl;
+	cerr << "stickyMinFrac: " << to_string(stickyMinFrac) << endl;
+	cerr << "carryIn: " << to_string(carryIn) << endl;
+	cerr << "extendedMaxFrac: " << to_string(extendedMaxFrac) << endl;
+	cerr << "signifcandResult: " << to_string(signifcandResult) << endl;
+	cerr << "isNeg: " << to_string(isNeg) << endl;
 	cerr << "z1: " << to_string(z1) << endl;
 	cerr << "z0: " << to_string(z0) << endl;
+	cerr << "lzcInput: " << to_string(lzcInput) << endl;
 	cerr << "lzc: " << to_string(lzc) << endl;
 	cerr << "subnormalLimitVal: " << to_string(subnormalLimitVal) << endl;
+	cerr << "maxExpIsOne: " << to_string(maxExpIsOne) << endl;
 	cerr << "lzcGreaterEqExp: " << to_string(lzcGreaterEqExp) << endl;
 	cerr << "lzcSmallerEqExp: " << to_string(lzcSmallerEqExp) << endl;
 	cerr << "lzcSmallerMaxVal: " << to_string(lzcSmallerMaxVal) << endl;
@@ -341,6 +356,7 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	cerr << "b1: " << to_string(b1) << endl;
 	cerr << "b2: " << to_string(b2) << endl;
 	cerr << "forbiddent_inf: " << to_string(forbiddent_inf) << endl;
+	cerr << "roundUpBit: " << to_string(roundUpBit) << endl;
 	cerr << "expSigRounded: " << to_string(expSigRounded) << endl;
 	cerr << "finalExp: " << to_string(finalExp) << endl;
 	cerr << "resultIsZero: " << to_string(resultIsZero) << endl;
@@ -353,8 +369,8 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	cerr << "signBothZero: " << to_string(signBothZero) << endl;
 	cerr << "negZeroOp: " << to_string(negZeroOp) << endl;
 	cerr << "signR: " << to_string(signR) << endl;
+	cerr << "=================================" << endl;
 #endif
-
 	return {signR.concatenate(finalRes)};
 }
 #endif // IEEE_ADDER_HPP
