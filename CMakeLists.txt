@@ -23,9 +23,14 @@ add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
 target_link_libraries(${LIBNAME} INTERFACE hint)
 
-OPTION(DEBUG_IEEE_ADDER "Dump all posit_adder signals")
+OPTION(DEBUG_IEEE_ADDER "Dump all ieee_adder signals")
 if(DEBUG_IEEE_ADDER)
 	target_compile_definitions(${LIBNAME} INTERFACE IEEE_ADDER_DEBUG)
+endif()
+
+OPTION(DEBUG_IEEE_ADDER_SORTEXP "Dump all ieee_adder_sortexp signals")
+if(DEBUG_IEEE_ADDER_SORTEXP)
+	target_compile_definitions(${LIBNAME} INTERFACE IEEE_ADDER_SORTEXP_DEBUG)
 endif()
 
 OPTION(DEBUG_POSIT_ADDER "Dump all posit_adder signals")
