@@ -39,26 +39,22 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto exp1AllOne = exp1.and_reduction();
 	auto frac0IsZero = frac0.nor_reduction();
 	auto frac1IsZero = frac1.nor_reduction();
+	auto exp0IsNotZero = exp0.or_reduction();
+	auto exp1IsNotZero = exp1.or_reduction();
 
-	auto expfrac0 = exp0.concatenate(frac0);
-	//cerr << "expfrac0 : " << expfrac0.unravel().get_str(2) << endl;
-	auto expfrac1 = exp1.concatenate(frac1);
-	//cerr << "expfrac1 : " << expfrac1.unravel().get_str(2) << endl;
+	auto expfrac0 = in0.getExpFrac();
+	auto expfrac1 = in1.getExpFrac();
 
 	auto diff0 = exp0.modularSub(exp1);
 	auto diff1 = exp1.modularSub(exp0);
 
-	// Sorting according to exp
+	auto effsub = sign0 ^ sign1;
+
 	auto swap = expfrac1 > expfrac0;
-	//cerr << "swap : " << swap.unravel().get_str(2) << endl;
 
 	auto maxExp = Wrapper<WE, false>::mux(swap, exp1, exp0);
 	auto minExp = Wrapper<WE, false>::mux(swap, exp0, exp1);
 	auto expdiff = Wrapper<WE, false>::mux(swap, diff1, diff0);
-
-	//cerr << "Expdiff : " << expdiff.unravel().get_str(2) << endl;
-
-	auto effsub = sign0 ^ sign1;
 
 	auto maxSign = Wrapper<1, false>::mux(swap, sign1, sign0);
 	auto minSign = Wrapper<1, false>::mux(swap, sign0, sign1);
@@ -83,67 +79,47 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto minIsZero = minExpIsZero & minFracIsZero;
 
 	auto bothSubNormals = maxExpIsZero;
-	//cerr << "Both subnormals : " << bothSubNormals.unravel().get_str(2) << endl;
-	auto maxIsNormal = maxExpIsZero.invert();
-	auto minIsNormal = minExpIsZero.invert();
+	auto maxIsNormal = Wrapper<1, false>::mux(swap, exp1IsNotZero, exp0IsNotZero);
+	auto minIsNormal = Wrapper<1, false>::mux(swap, exp0IsNotZero, exp1IsNotZero);
 
-	auto infinitySub = maxIsInfinity & minIsInfinity & effsub;
-	auto resultIsNan = maxIsNaN | minIsNaN |infinitySub;
+	auto infinitySub = exp0AllOne.concatenate(exp1AllOne).concatenate(frac0IsZero).concatenate(frac1IsZero).concatenate(effsub).and_reduction();
+	auto resultIsNan = maxIsNaN.concatnate(minIsNaN).concatenate(infinitySub).or_reduction();
 	auto onlyOneSubnormal = minExpIsZero & maxExpIsZero.invert();
-	//cerr << "Only One  subnormal :" << onlyOneSubnormal.unravel().get_str(2) << endl;
-
-	// Reconstruct full fraction
 	auto explicitedMaxFrac = maxIsNormal.concatenate(maxFrac);
 	auto explicitedMinFrac = minIsNormal.concatenate(minFrac);
-
-	//cerr << "explicit fracs : \nMax : " << explicitedMaxFrac.unravel().get_str(2) << endl <<
-	//		"Min : " << explicitedMinFrac.unravel().get_str(2) << endl;
 
 	//alignment
 	auto maxShiftVal = Wrapper<WE, false>{WF+3};
 	auto allShiftedOut = expdiff > maxShiftVal;
-	//cerr << "All shifted out : " << allShiftedOut.unravel().get_str(2) << endl;
 
 	auto shiftValue = Wrapper<WE, false>::mux(
 					allShiftedOut,
 					maxShiftVal,
 					expdiff
 				).modularSub(onlyOneSubnormal.template leftpad<WE>());
-	//cerr << "Shift value : " << shiftValue.unravel().get_str(2) << endl;
 
 	Wrapper<WF+3, false> extendedMinFrac = explicitedMinFrac.concatenate(Wrapper<2, false>{0});
-	//cerr << "extminfrac : " << extendedMinFrac.unravel().get_str(2) << endl;
 
 	auto shiftedMinFracSticky = shifter_sticky(extendedMinFrac, shiftValue);
 	auto beforeComp = Wrapper<1, false>{0}.concatenate(shiftedMinFracSticky.template slice<WF + 3, 1>());
-	//cerr << "beforeComp : " << beforeComp.unravel().get_str(2) << endl;
 	auto shiftedMinFrac = beforeComp ^ Wrapper<WF+4, false>::generateSequence(effsub);
-	//cerr << "shiftedMinFrac : " << shiftedMinFrac.unravel().get_str(2) << endl;
 
 	auto stickyMinFrac = shiftedMinFracSticky.template get<0>();
-	//cerr << "stickyMinFrac : " << stickyMinFrac.unravel().get_str(2) << endl;
 
 	// Addition
 	auto carryIn = effsub & stickyMinFrac.invert();
-	//cerr << "carryIn : " << carryIn.unravel().get_str(2) << endl;
 	auto extendedMaxFrac = explicitedMaxFrac.concatenate(Wrapper<1, false>{0}).concatenate(carryIn).template leftpad<WF+4>();
-	//cerr << "extMaxfrac : " << extendedMaxFrac.unravel().get_str(2) << endl;
 
 	auto signifcandResult = extendedMaxFrac + shiftedMinFrac;
-	//cerr << "Signif result : " << signifcandResult.unravel().get_str(2) << endl;
-	// Renormalization
 
+	// Renormalization
 	auto isNeg = signifcandResult.template get<WF + 4>();
 	auto z1 = signifcandResult.template get<WF+3>();
 	auto z0 = signifcandResult.template get<WF+2>();
-	//cerr << "Z1 :" << z1.unravel().get_str(2) << endl
-	//	<< "Z0  :" << z0.unravel().get_str(2) << endl;
 
 	auto lzcInput = signifcandResult.template slice<WF+3, 1>();
 	auto lzc = lzoc_wrapper(lzcInput, {0});
 
-	//cerr << "LZC Input :" << lzcInput.unravel().get_str(2) << endl
-	//	<< "LZC  :" << lzc.unravel().get_str(2) << endl;
 	constexpr unsigned int lzcsize = hint::Static_Val<WF+3>::_storage;
 
 	static_assert (lzcsize<=WE, "The adder works only for wE > log2(WF).\nAre you sure you need subnormals ?\nIf yes, contact us with your use case, we will be happy to make it work for you.");
@@ -153,17 +129,12 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 
 	auto lzcGreaterEqExp = (lzc.template leftpad<WE>() >= maxExp);
 	auto lzcSmallerEqExp = (lzc.template leftpad<WE>() <= maxExp);
-	auto lzcSmallerMaxVal = lzc < subnormalLimitVal;
-	auto fullCancellation = lzcSmallerMaxVal.invert();
-	//cerr << "Fulll cancel : " << fullCancellation.unravel().get_str(2) << endl;
-
-	//cerr << "lzcsmaller" << lzcSmallerMaxVal.unravel().get_str(2) << endl;
+	auto lzcSmallerMaxVal = lzcInput.or_reduction();
+	auto fullCancellation = lzcInput.nor_reduction();
 
 	auto normalOverflow = z1;
-	//cerr << "Normal overflow : " << normalOverflow.unravel().get_str(2) << endl;
 	auto lzcOne = z1.invert() & z0;
 	auto subnormalOverflow = lzcOne & maxExpIsZero;
-	//cerr << "Subnormal overflow : " << subnormalOverflow.unravel().get_str(2) << endl;
 	auto cancellation = z1.invert() & z0.invert();
 
 	auto overflow = normalOverflow | subnormalOverflow;
@@ -177,24 +148,15 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto shiftFirstStage = Wrapper<lzcsize, false>::mux(isLeftShiftLZC, lzc, Wrapper<lzcsize, false>{1});
 	auto normalisationShiftVal = Wrapper<lzcsize, false>::mux(isLeftShiftExp, maxExp.template slice<lzcsize-1, 0>(), shiftFirstStage);
 
-	//cerr << "Normalisation shift : " << normalisationShiftVal.unravel().get_str(2) << endl;
 	auto normalisedSignif = signifcandResult << normalisationShiftVal;
-	//cerr << "Normalised signif : " << normalisedSignif.unravel().get_str(2) << endl;
 	auto significandPreRound = normalisedSignif.template slice<WF+2, 3>();
-	//cerr << "Preround signif : " << significandPreRound.unravel().get_str(2) << endl;
 	auto lsb = normalisedSignif.template get<3>();
-	//cerr << "lsb : " << lsb.unravel().get_str(2) << endl;
 	auto roundBit = normalisedSignif.template get<2>();
-	//cerr << "roundBit : " << roundBit.unravel().get_str(2) << endl;
 	auto sticky = stickyMinFrac | normalisedSignif.template slice <1, 0>().or_reduction();
-	//cerr << "sticky : " << sticky.unravel().get_str(2) << endl;
 
 	auto deltaExpIsZero = z1.invert() & (z0 ^ bothSubNormals);
-	//cerr << "DeltaExpIsZero : " << deltaExpIsZero.unravel().get_str(2) << endl;
 	auto deltaExpIsMinusOne = z1 | (z0 & bothSubNormals);
-	//cerr << "deltaExpIsMinusOne : " << deltaExpIsMinusOne.unravel().get_str(2) << endl;
 	auto deltaExpIsLZC = (z1 | z0 | bothSubNormals).invert() & lzcSmallerEqExp & lzcSmallerMaxVal;
-	//cerr << "deltaExpIsLZC : " << deltaExpIsLZC.unravel().get_str(2) << endl;
 	auto deltaExpExp = (deltaExpIsLZC | deltaExpIsZero | deltaExpIsMinusOne).invert();
 
 	auto deltaExpCin = deltaExpExp | deltaExpIsMinusOne | deltaExpIsLZC;
@@ -209,19 +171,12 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto maskSequence = Wrapper<WE, false>::generateSequence(deltaBigPartIsZero.invert());
 	auto deltaExpBeforeCorrection = deltaExpUnmasked & maskSequence;
 
-	//cerr << "DeltaExp : " << deltaExpBeforeCorrection.unravel().get_str(2) << endl;
-	//cerr << "DeltaEXP cin : " << deltaExpCin.unravel().get_str(2) <<endl;
-
 	auto expPreRound = maxExp.addWithCarry(deltaExpBeforeCorrection, deltaExpCin).template slice<WE-1, 0>();
-	//cerr << "expPreRound : " << expPreRound.unravel().get_str(2) << endl;
 	auto expSigPreRound = expPreRound.concatenate(significandPreRound);
-	//cerr << "expSigPreRound : " << to_string(expPreRound) << endl;
 
 	auto roundUpBit = ieee_getRoundBit(maxSign, lsb, roundBit, sticky, roundingMode);
-	//cerr << "rub : " << to_string(roundUpBit) << endl;
 
 	auto unroundedInf = expPreRound.and_reduction();
-	//cerr << "Infinity pre-round : " << to_string(unroundedInf) << endl;
 
 	Wrapper<3, false> roundingCode{static_cast<uint8_t>(roundingMode)};
 	auto b0 = roundingCode.template get<0>();
@@ -229,12 +184,10 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto b2 = roundingCode.template get<2>();
 	auto forbiddent_inf = ((b2 & b0 & (b1 == maxSign)) | (roundingCode.or_reduction().invert())) & unroundedInf & maxIsInfinity.invert() & resultIsNan.invert();
 
-	//auto roundUpBit = roundBit & (sticky | lsb);
 	auto expSigRounded = expSigPreRound.modularAdd(roundUpBit.template leftpad<WE+WF>());
 	auto finalExp = expSigRounded.template slice<WF+WE-1, WF>();
 
 	auto resultIsZero = fullCancellation & finalExp.or_reduction().invert();
-	//cerr << "ResIsZero : " << resultIsZero.unravel().get_str(2) << endl;
 	auto resultIsInf = resultIsNan.invert() & (
 					(maxIsInfinity & minIsInfinity & effsub.invert()) |
 					(maxIsInfinity ^ minIsInfinity) |
@@ -245,7 +198,6 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto constInfNanSignif = Wrapper<WF, false>::generateSequence(resultIsNan | forbiddent_inf);
 
 	auto constInfNan = constInfNanExp.concatenate(constInfNanSignif);
-	//cerr << "Constinfnan : " << to_string(constInfNan) << endl;
 	auto finalRes = Wrapper<WE+WF, false>::mux(resultIsNan | resultIsInf, constInfNan, expSigRounded);
 
 	auto bothZeros = maxIsZero & minIsZero;

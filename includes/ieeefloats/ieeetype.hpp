@@ -11,6 +11,30 @@ enum struct IEEERoundingMode : uint8_t {
 	RoundNearestTieAway = 6
 };
 
+template<unsigned int N>
+struct StandardFPDim;
+
+template<unsigned int _WE, unsigned int _WF>
+struct FPDim {
+		static constexpr unsigned int WE = _WE;
+		static constexpr unsigned int WF = _WF;
+		static constexpr unsigned int BIAS = (1<<(WE-1))-1;
+		static constexpr unsigned int ACC_SIZE = (1<<(WE+1)) -1 + 2*WF+2;
+		static constexpr unsigned int ACC_MID = (1<<(WE)) -1 + 2*WF+2;
+		static constexpr unsigned int FP_SPREAD = (1<<(WE-1));
+		static constexpr unsigned int PROD_FP_SPREAD = (1<<(WE));
+		static constexpr unsigned int SUBNORMAL_LIMIT = (1<<(WE))+BIAS;
+};
+
+template<>
+struct StandardFPDim<16> : public FPDim<5, 10> {};
+
+template <>
+struct StandardFPDim<32> : public FPDim<8, 23> {};
+
+template<>
+struct StandardFPDim<64> : public FPDim<11, 52> {};
+
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 	class IEEENumber : public Wrapper<WE + WF + 1, false>
 	{
@@ -25,40 +49,32 @@ template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wr
 
 			IEEENumber(Wrapper<WE + WF + 1, false> const & val):Wrapper<WE+WF+1, false>{val}{}
 
-			us_wrapper<1> getSign() const{
+			inline us_wrapper<1> getSign() const{
 				return basetype::template get<WE+WF>();
 			}
 
-			us_wrapper<WE> getExponent() const {
+			inline us_wrapper<WE> getExponent() const {
 				return basetype::template slice<WF + WE - 1, WF>();
 			}
 
-			us_wrapper<WF> getFractionnalPart() const {
+			inline us_wrapper<WF> getFractionnalPart() const {
 				return basetype::template slice<WF - 1, 0>();
 			}
 
-			us_wrapper<1> getLeadBitVal() const {
+			inline us_wrapper<WF+WE> getExpFrac() const {
+				return basetype::template slice<WF+WE - 1, 0>();
+			}
+
+			inline us_wrapper<1> getLeadBitVal() const {
 				return getExponent().or_reduction();
 			}
 
-			us_wrapper<1> isInfinity() const {
-				return getExponent().and_reduction().bitwise_and(getFractionnalPart().or_reduction().invert());
+			inline us_wrapper<1> isInfinity() const {
+				return getExponent().and_reduction().bitwise_and(getFractionnalPart().nor_reduction());
 			}
 
-			us_wrapper<1> isNaN() const {
-				return getExponent().and_reduction().bitwise_and(getFractionnalPart().or_reduction());
+			inline us_wrapper<1> isNaN() const {
+				return (getExponent().and_reduction()) & (getFractionnalPart().or_reduction());
 			}
 	};
-
-	/*
-	template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-	class IEEEProduct: public Wrapper<WE + 1 + 2*WF + 2 + 1, false>
-	{
-		private:
-			static constexpr unsigned int encoding_size = 1 + (WE + 1) + 2*(WF+1); // Sign, exp, explicited fraction
-			typedef Wrapper<WE+WF+1, false> basetype;
-			template<unsigned int W>
-			using us_wrapper = Wrapper<W, false>;
-	};*/
-
 #endif // IEEETYPE_HPP
