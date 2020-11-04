@@ -83,7 +83,7 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 	auto minIsNormal = Wrapper<1, false>::mux(swap, exp0IsNotZero, exp1IsNotZero);
 
 	auto infinitySub = exp0AllOne.concatenate(exp1AllOne).concatenate(frac0IsZero).concatenate(frac1IsZero).concatenate(effsub).and_reduction();
-	auto resultIsNan = maxIsNaN.concatnate(minIsNaN).concatenate(infinitySub).or_reduction();
+	auto resultIsNan = maxIsNaN.concatenate(minIsNaN).concatenate(infinitySub).or_reduction();
 	auto onlyOneSubnormal = minExpIsZero & maxExpIsZero.invert();
 	auto explicitedMaxFrac = maxIsNormal.concatenate(maxFrac);
 	auto explicitedMinFrac = minIsNormal.concatenate(minFrac);

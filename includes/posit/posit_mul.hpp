@@ -13,7 +13,7 @@ using std::cerr;
 
 
 template <unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrapper, true> in1, PositIntermediateFormat<N, WES, Wrapper, true> in2)
+inline PositProd<N, WES, Wrapper> posit_mul(PositIntermediateFormat<N, WES, Wrapper, true> const & in1, PositIntermediateFormat<N, WES, Wrapper, true> const & in2)
 {
 	auto isNar = in1.getIsNaR() | in2.getIsNaR();
 	auto isZero = in1.isZero() | in2.isZero();

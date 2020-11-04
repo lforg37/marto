@@ -82,7 +82,7 @@ inline Wrapper<bankSize, false> getToAddRec(
 {
 	constexpr unsigned int SS_WIDTH = PositDim<N, WES>::ProdExpSize - getShiftSize<bankSize>();
 	constexpr unsigned int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PositDim<N, WES>::ProdSignificandSize, bankSize>::val;
-	constexpr int TMP_BOUND = loop_idx + BANKS_FOR_USELESS_BITS - getMantSpread<N, WES, bankSize>();
+	constexpr int TMP_BOUND = loop_idx + BANKS_FOR_USELESS_BITS - getQuireSpread<N, WES, bankSize>();
 	constexpr unsigned int BOUND = (TMP_BOUND < 0) ? 0 : TMP_BOUND;
 	Wrapper<SS_WIDTH + 1, false> bound_wrapper{{BOUND}};
 	Wrapper<SS_WIDTH, false> loop_idx_wrap {{loop_idx}};
@@ -138,7 +138,7 @@ inline Wrapper<bankSize+1, false> add_sub_quire_stage(SegmentedQuire<N, WES, Wra
 	auto quireBank = quire.template getBank<loop_idx>();
 	Wrapper<1, false> quireCarry = quire.template getCarry<loop_idx - 1>();
 
-	auto toAdd = getToAdd<N, WES, Wrapper, NB_CARRY, bankSize, getMantSpread<N, WES, bankSize>(), loop_idx>(stageSelect, inputSign, isSub, shiftedSignificand);
+	auto toAdd = getToAdd<N, WES, Wrapper, NB_CARRY, bankSize, getQuireSpread<N, WES, bankSize>(), loop_idx>(stageSelect, inputSign, isSub, shiftedSignificand);
 
 
 	auto sum = quireBank.addWithCarry(toAdd, quireCarry);
@@ -157,7 +157,7 @@ inline Wrapper<bankSize+1, false> add_sub_quire_stage(SegmentedQuire<N, WES, Wra
 	auto quireBank = quire.template getBank<loop_idx>();
 	Wrapper<1, false> quireCarry = isSub;
 
-	auto toAdd = getToAdd<N, WES, Wrapper, NB_CARRY, bankSize, getMantSpread<N, WES, bankSize>(), loop_idx>(stageSelect, inputSign, isSub, shiftedSignificand);
+	auto toAdd = getToAdd<N, WES, Wrapper, NB_CARRY, bankSize, getQuireSpread<N, WES, bankSize>(), loop_idx>(stageSelect, inputSign, isSub, shiftedSignificand);
 
 	auto sum = quireBank.addWithCarry(toAdd, quireCarry);
 	return sum;
@@ -223,7 +223,7 @@ inline _partial_seg_quire_store<loop_idx, bankSize, Wrapper> _seq_quire_partial_
 
 template<unsigned int NB_CARRY, unsigned int bankSize, unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
 inline Wrapper<QuireDim<N, WES, NB_CARRY>::Size + getNbStages<N, WES, NB_CARRY, bankSize>() - 1, false>
-_perform_seg_add(
+_perform_seg_add_quire(
 		SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> quire,
 		Wrapper<PositDim<N, WES>::ProdExpSize - getShiftSize<bankSize>(), false> stage_select,
 		Wrapper<1, false> sign,
@@ -251,13 +251,9 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> segmented_add_sub_qui
 	constexpr unsigned int PROD_EXP_SIZE = PositDim<N, WES>::ProdExpSize;
 	constexpr unsigned int PROD_SIGIFICAND_SIZE = PositDim<N, WES>::ProdSignificandSize;
 	constexpr unsigned int LOG2_SHIFT_SIZE = Static_Val<getExtShiftSize<N, WES, bankSize>()>::_log2;
-	constexpr unsigned int NB_STAGES = getNbStages<N, WES, NB_CARRY, bankSize>();
-	constexpr unsigned int PROD_EXP_BANK_SIZE_MOD = PROD_EXP_SIZE % bankSize;
 	constexpr unsigned int SHIFT_SIZE = getShiftSize<bankSize>();
 	constexpr unsigned int EXT_SHIFT_SIZE = getExtShiftSize<N, WES, bankSize>();
-	constexpr unsigned int STAGE_SELECT_SIZE = PROD_EXP_SIZE - SHIFT_SIZE;
 	constexpr unsigned int BANKS_FOR_USELESS_BITS = Static_Ceil_Div<PROD_SIGIFICAND_SIZE, bankSize>::val;
-	constexpr unsigned int ENCODING_BITS_FOR_USELESS_BANKS = Static_Val<BANKS_FOR_USELESS_BITS>::_log2;
 	constexpr unsigned int PADDING = bankSize*BANKS_FOR_USELESS_BITS - PROD_SIGIFICAND_SIZE;
 	constexpr unsigned int EXT_PROD_EXP_SIZE = PROD_EXP_SIZE + BANKS_FOR_USELESS_BITS;
 
@@ -295,7 +291,7 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> segmented_add_sub_qui
 	cerr << to_string(shifted_input_shrinked) << endl;
 	cerr << "=================================" << endl;
 	*/
-	auto fullQuireWoNaR = _perform_seg_add(
+	auto fullQuireWoNaR = _perform_seg_add_quire(
 			quire,
 			stage_select,
 			sign,
@@ -316,7 +312,7 @@ _propag_carry_seg_req(
 {
 	SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> res {
 			quire.getIsNaR().concatenate(
-				_perform_seg_add(quire, {0}, {0}, {0}, {0})
+				_perform_seg_add_quire(quire, {0}, {0}, {0}, {0})
 			)
 		};
 	return _propag_carry_seg_req<NB_CARRY, bankSize, N, WES, Wrapper, loop_idx - 1>(res);
@@ -331,7 +327,7 @@ _propag_carry_seg_req(
 {
 	SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> res {
 			quire.getIsNaR().concatenate(
-				_perform_seg_add(quire, {0}, {0}, {0}, {0})
+				_perform_seg_add_quire(quire, {0}, {0}, {0}, {0})
 			)
 		};
 	return res;

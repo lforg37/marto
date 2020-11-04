@@ -32,12 +32,11 @@ using hint::to_string;
 namespace utf = boost::unit_test;
 
 
-template<unsigned int N, bool is_signed>
-using Wrapper = hint::VivadoWrapper<N, is_signed>;
+using hint::VivadoWrapper;
 
 bool is_mul_ok_p16(uint16_t testval0, uint16_t testval1)
 {
-	StandardPositEncoding<16, Wrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
+	StandardPositEncoding<16, VivadoWrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
 	auto decoded0 = posit_decoder(marto_p_0);
 	auto decoded1 = posit_decoder(marto_p_1);
 	posit16_t positValue0 = castP16(testval0);
@@ -103,18 +102,18 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
-		auto decoded2 = StandardPIF<16, Wrapper, true>{value2Encoding};
+		auto value2Encoding = StandardPositEncoding<16, VivadoWrapper>{{value2}};
+		auto decoded2 = StandardPIF<16, VivadoWrapper, true>{value2Encoding};
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
 			auto prod = value1Encoding * value2Encoding;
-			//cerr << to_string(static_cast<Wrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
-			StandardPositEncoding<16, Wrapper> encoded{prod};
+			//cerr << to_string(static_cast<VivadoWrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
+			StandardPositEncoding<16, VivadoWrapper> encoded{prod};
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positMul = p16_mul(positValue1, positValue2);
-			Wrapper<16, false> softpositMul{castUI(positMul)};
+			VivadoWrapper<16, false> softpositMul{castUI(positMul)};
 			if(!(encoded == softpositMul).template isSet<0>()){
 				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
@@ -143,18 +142,18 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 BOOST_AUTO_TEST_CASE(TestAllMulPosit8)
 {
 	for(uint32_t value2 = 0; value2 < (1<<8); value2++){
-		auto value2Encoding = StandardPositEncoding<8, Wrapper>{{value2}};
-		auto decoded2 = StandardPIF<8, Wrapper, true>{value2Encoding};
+		auto value2Encoding = StandardPositEncoding<8, VivadoWrapper>{{value2}};
+		auto decoded2 = StandardPIF<8, VivadoWrapper, true>{value2Encoding};
 
 		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
-			auto value1Encoding = StandardPositEncoding<8, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<8, VivadoWrapper>{{value1}};
 			auto prod = value1Encoding * value2Encoding;
-			//cerr << to_string(static_cast<Wrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
-			StandardPositEncoding<8, Wrapper> encoded{prod};
+			//cerr << to_string(static_cast<VivadoWrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
+			StandardPositEncoding<8, VivadoWrapper> encoded{prod};
 			posit8_t positValue1 = castP8(value1);
 			posit8_t positValue2 = castP8(value2);
 			posit8_t positMul = p8_mul(positValue1, positValue2);
-			Wrapper<8, false> softpositMul{castUI(positMul)};
+			VivadoWrapper<8, false> softpositMul{castUI(positMul)};
 			BOOST_REQUIRE_MESSAGE((encoded == softpositMul).unravel(), "Mul of " << value1 << " and " << value2 << " returned a problematic value while it should have returned " << to_string(softpositMul));
 		}
 	}
@@ -167,27 +166,27 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16, Wrapper> {{value2}};
+		auto value2Encoding = StandardPositEncoding<16, VivadoWrapper> {{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 		auto prod2 = PositIF_to_PositProd(decoded2);
-		auto base_quire = add_sub_quire(StandardQuire<16, Wrapper>{}, prod2, {0});
+		auto base_quire = add_sub_quire(StandardQuire<16, VivadoWrapper>{}, prod2, {0});
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto prod1 = PositIF_to_PositProd(decoded1);
 			auto sub = add_sub_quire(base_quire, prod1, {1});
-			//cerr << to_string(static_cast<Wrapper<StandardQuireDim<16>::Size, false> >(sub)) <<
+			//cerr << to_string(static_cast<VivadoWrapper<StandardQuireDim<16>::Size, false> >(sub)) <<
 			//	endl;
 			auto subval = quire_to_posit(sub);
 			//cerr <<
-			//	to_string(static_cast<Wrapper<StandardPositDim<16>::ValSize, false> >(subval)) <<
+			//	to_string(static_cast<VivadoWrapper<StandardPositDim<16>::ValSize, false> >(subval)) <<
 			//	endl;
 			auto encoded = posit_encoder(subval);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_sub(positValue2, positValue1);
-			Wrapper<16, false> softpositSum{castUI(positSum)};
+			VivadoWrapper<16, false> softpositSum{castUI(positSum)};
 			auto ok = (encoded == softpositSum);
 			bool res = ok.isSet<0>();
 			if(not res){
@@ -207,7 +206,7 @@ BOOST_AUTO_TEST_CASE(TestAllSubQuirePosit16, *utf::disabled() * utf::label("long
 
 bool is_sum_ok_p16(uint16_t testval0, uint16_t testval1)
 {
-	StandardPositEncoding<16, Wrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
+	StandardPositEncoding<16, VivadoWrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
 	auto decoded0 = posit_decoder(marto_p_0);
 	auto decoded1 = posit_decoder(marto_p_1);
 	posit16_t positValue0 = castP16(testval0);
@@ -220,7 +219,7 @@ bool is_sum_ok_p16(uint16_t testval0, uint16_t testval1)
 
 bool is_sum_ok_p8(uint8_t testval0, uint8_t testval1)
 {
-	StandardPositEncoding<8, Wrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
+	StandardPositEncoding<8, VivadoWrapper> marto_p_0{{testval0}}, marto_p_1{{testval1}};
 	auto decoded0 = posit_decoder(marto_p_0);
 	auto decoded1 = posit_decoder(marto_p_1);
 	posit8_t positValue0 = castP8(testval0);
@@ -245,17 +244,17 @@ BOOST_AUTO_TEST_CASE(TestSomeSumP8)
 BOOST_AUTO_TEST_CASE(TestAllSumPosit8)
 {
 	for(uint32_t value2 = 0; value2 < (1<<8); value2++){
-		auto value2Encoding = StandardPositEncoding<8, Wrapper>{{value2}};
+		auto value2Encoding = StandardPositEncoding<8, VivadoWrapper>{{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
-			auto value1Encoding = StandardPositEncoding<8, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<8, VivadoWrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto sum = posit_add(decoded1, decoded2);
 			auto encoded = posit_encoder(sum);
 			posit8_t positValue1 = castP8(value1);
 			posit8_t positValue2 = castP8(value2);
 			posit8_t positSum = p8_add(positValue1, positValue2);
-			Wrapper<8, false> softpositSum {castUI(positSum)};
+			VivadoWrapper<8, false> softpositSum {castUI(positSum)};
 			BOOST_REQUIRE_MESSAGE((encoded == softpositSum).template isSet<0>(),
 								  "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned " << to_string(softpositSum));
 		}
@@ -269,18 +268,18 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
+		auto value2Encoding = StandardPositEncoding<16, VivadoWrapper>{{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto sum = posit_add(decoded1, decoded2);
 			auto encoded = posit_encoder(sum);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_add(positValue1, positValue2);
-			Wrapper<16, false> softpositSum {castUI(positSum)};
+			VivadoWrapper<16, false> softpositSum {castUI(positSum)};
 			if(!(encoded == softpositSum).template isSet<0>()){
 				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
@@ -315,21 +314,21 @@ BOOST_AUTO_TEST_CASE(TestAllSubPosit16, *utf::disabled() * utf::label("long"))
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding =  - StandardPositEncoding<16, Wrapper>{{value2}};
+		auto value2Encoding =  - StandardPositEncoding<16, VivadoWrapper>{{value2}};
 		// value2Encoding = ~value2Encoding+1;
 		auto decoded2 = posit_decoder(value2Encoding);
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto sub = posit_add(decoded1, decoded2);
 			auto encoded = posit_encoder(sub);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSub = p16_sub(positValue1, positValue2);
-			Wrapper<16, false> softpositSum{castUI(positSub)};
+			VivadoWrapper<16, false> softpositSum{castUI(positSub)};
 			if(!(encoded == softpositSum).template isSet<0>()){
-				BOOST_REQUIRE_MESSAGE(false, "Sub of " << value1 << " and " << value2 << " returned " << hint::to_string(encoded) << " while it should have returned " << to_string(softpositSum));
+				BOOST_REQUIRE_MESSAGE(false, "Sub of " << value1 << " and " << value2 << " returned " << hint::to_string(static_cast<VivadoWrapper<16, false> const &>(encoded)) << " while it should have returned " << to_string(softpositSum));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -356,14 +355,14 @@ BOOST_AUTO_TEST_CASE(TestAllSegmentedSubQuirePosit16, *utf::disabled() * utf::la
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
+		auto value2Encoding = StandardPositEncoding<16, VivadoWrapper>{{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 		auto prod2 = PositIF_to_PositProd(decoded2);
-		auto base_quire = segmented_add_sub_quire(StandardSegmentedQuire<16, 16, Wrapper>{}, prod2, {0});
-		auto quire = add_sub_quire(StandardQuire<16, Wrapper>{}, prod2, {0});
+		auto base_quire = segmented_add_sub_quire(StandardSegmentedQuire<16, 16, VivadoWrapper>{}, prod2, {0});
+		auto quire = add_sub_quire(StandardQuire<16, VivadoWrapper>{}, prod2, {0});
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto prod1 = PositIF_to_PositProd(decoded1);
 			auto sub = segmented_add_sub_quire(base_quire, prod1, {1});
@@ -375,9 +374,9 @@ BOOST_AUTO_TEST_CASE(TestAllSegmentedSubQuirePosit16, *utf::disabled() * utf::la
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_sub(positValue2, positValue1);
-			Wrapper<16, false> softpositSum {{castUI(positSum)}};
+			VivadoWrapper<16, false> softpositSum {{castUI(positSum)}};
 			if(!(encoded == softpositSum).isSet<0>()){
-				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << hint::to_string(encoded) << " while it should have returned " << hint::to_string(softpositSum));
+				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << hint::to_string(static_cast<VivadoWrapper<16, false> const &>(encoded)) << " while it should have returned " << hint::to_string(softpositSum));
 			}
 		}
 		if(((value2%20) == 0) and (value2 != 0)){
@@ -393,11 +392,11 @@ BOOST_AUTO_TEST_CASE(TestAllSegmentedSubQuirePosit16, *utf::disabled() * utf::la
 
 inline bool test_some_inplace_sum_p16(uint16_t val1, uint16_t val2)
 {
-	auto value2Encoding = StandardPositEncoding<16, Wrapper>{{val2}};
+	auto value2Encoding = StandardPositEncoding<16, VivadoWrapper>{{val2}};
 	auto decoded2 = posit_decoder(value2Encoding);
-	auto value1Encoding = StandardPositEncoding<16, Wrapper>{{val1}};
+	auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{val1}};
 	auto decoded1 = posit_decoder(value1Encoding);
-	PositIntermediateFormat<16, 1, Wrapper, true> sum = posit_add_in_place(decoded1, decoded2);
+	PositIntermediateFormat<16, 1, VivadoWrapper, true> sum = posit_add_in_place(decoded1, decoded2);
 	auto encoded = posit_encoder(sum);
 	posit16_t positValue1 = castP16(val1);
 	posit16_t positValue2 = castP16(val2);
@@ -424,18 +423,18 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
+		auto value2Encoding = StandardPositEncoding<16, VivadoWrapper>{{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto sum = posit_add_in_place(decoded1, decoded2);
 			auto encoded = posit_encoder(sum);
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_add(positValue1, positValue2);
-			Wrapper<16, false> softpositSum {castUI(positSum)};
+			VivadoWrapper<16, false> softpositSum {castUI(positSum)};
 			// int32_t hard = encoded.unravel();
 			// int32_t soft = softpositSum.unravel();
 			// int32_t diff = ((hard-soft)<0) ? soft-hard : hard-soft;
@@ -453,7 +452,7 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 				sum.printContent();
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
 				*/
-				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << to_string(encoded) << " while it should have returned " << to_string(softpositSum));
+				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << to_string(static_cast<VivadoWrapper<16, false> const &>(encoded)) << " while it should have returned " << to_string(softpositSum));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -470,19 +469,20 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 BOOST_AUTO_TEST_CASE(TestAllSumPosit8_in_place_rounding)
 {
 	for(uint32_t value2 = 0; value2 < (1<<8); value2++){
-		auto value2Encoding = StandardPositEncoding<8, Wrapper>{{value2}};
+		auto value2Encoding = StandardPositEncoding<8, VivadoWrapper>{{value2}};
 		auto decoded2 = posit_decoder(value2Encoding);
 
 		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
-			auto value1Encoding = StandardPositEncoding<8, Wrapper>{{value1}};
+			auto value1Encoding = StandardPositEncoding<8, VivadoWrapper>{{value1}};
 			auto decoded1 = posit_decoder(value1Encoding);
 			auto sum = posit_add_in_place(decoded1, decoded2);
 			auto encoded = posit_encoder(sum);
 			posit8_t positValue1 = castP8(value1);
 			posit8_t positValue2 = castP8(value2);
 			posit8_t positSum = p8_add(positValue1, positValue2);
-			Wrapper<8, false> softpositSum {castUI(positSum)};
-			BOOST_REQUIRE_MESSAGE((encoded == softpositSum).unravel(), "Sum of " << value1 << " and " << value2 << " returned " << to_string(encoded) << " while it should have returned " << to_string(softpositSum));
+			VivadoWrapper<8, false> softpositSum {castUI(positSum)};
+			BOOST_REQUIRE_MESSAGE((encoded == softpositSum).unravel(), "Sum of " << value1 << " and " << value2 <<
+								  " returned " << to_string(static_cast<VivadoWrapper<8, false> const &>(encoded)) << " while it should have returned " << to_string(softpositSum));
 		}
 	}
 }
@@ -494,20 +494,20 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf
 	unsigned int error_counter = 0;
 	#pragma omp parallel for
 	for(uint32_t value2 = 0; value2 < (1<<16); value2++){
-		auto value2Encoding = StandardPositEncoding<16, Wrapper>{{value2}};
-		auto decoded2 = StandardPIF<16, Wrapper, true>{value2Encoding};
+		auto value2Encoding = StandardPositEncoding<16, VivadoWrapper>{{value2}};
+		auto decoded2 = StandardPIF<16, VivadoWrapper, true>{value2Encoding};
 
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
-			auto value1Encoding = StandardPositEncoding<16, Wrapper>{{value1}};
-			auto decoded1 = StandardPIF<16, Wrapper, true>{value1Encoding};
+			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
+			auto decoded1 = StandardPIF<16, VivadoWrapper, true>{value1Encoding};
 			auto prod = posit_mul(decoded1, decoded2);
 			auto pif = PositProd_to_PositIF_in_place_rounding(prod);
-			//cerr << to_string(static_cast<Wrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
-			StandardPositEncoding<16, Wrapper> encoded{pif};
+			//cerr << to_string(static_cast<VivadoWrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
+			StandardPositEncoding<16, VivadoWrapper> encoded{pif};
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positMul = p16_mul(positValue1, positValue2);
-			Wrapper<16, false> softpositMul{castUI(positMul)};
+			VivadoWrapper<16, false> softpositMul{castUI(positMul)};
 			if(!(encoded == softpositMul).template isSet<0>()){
 				/*fprintf(stderr, "\n\n\n\n");
 				fprintf(stderr, "=== Inputs === \n");
@@ -519,7 +519,7 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf
 				printApUint(encoded);
 				fprintf(stderr, "Tests Passed: %lu\n", counter);
 				*/
-				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned " << to_string(encoded) << " while it should have returned " << to_string(softpositMul));
+				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned " << to_string(static_cast<VivadoWrapper<16, false> const &>(encoded)) << " while it should have returned " << to_string(softpositMul));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -537,20 +537,21 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf
 BOOST_AUTO_TEST_CASE(TestAllMulPosit8_in_place_rounding)
 {
 	for(uint32_t value2 = 0; value2 < (1<<8); value2++){
-		auto value2Encoding = StandardPositEncoding<8, Wrapper>{{value2}};
-		auto decoded2 = StandardPIF<8, Wrapper, true>{value2Encoding};
+		auto value2Encoding = StandardPositEncoding<8, VivadoWrapper>{{value2}};
+		auto decoded2 = StandardPIF<8, VivadoWrapper, true>{value2Encoding};
 
 		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
-			auto value1Encoding = StandardPositEncoding<8, Wrapper>{{value1}};
-			auto decoded1 = StandardPIF<8, Wrapper, true>{value1Encoding};
+			auto value1Encoding = StandardPositEncoding<8, VivadoWrapper>{{value1}};
+			auto decoded1 = StandardPIF<8, VivadoWrapper, true>{value1Encoding};
 			auto prod = posit_mul(decoded1, decoded2);
 			auto pif = PositProd_to_PositIF_in_place_rounding(prod);
-			StandardPositEncoding<8, Wrapper> encoded{pif};
+			StandardPositEncoding<8, VivadoWrapper> encoded{pif};
 			posit8_t positValue1 = castP8(value1);
 			posit8_t positValue2 = castP8(value2);
 			posit8_t positMul = p8_mul(positValue1, positValue2);
-			Wrapper<8, false> softpositMul{castUI(positMul)};
-			BOOST_REQUIRE_MESSAGE((encoded == softpositMul).unravel(), "Mul of " << value1 << " and " << value2 << " returned " << to_string(encoded) << " while it should have returned " << to_string(softpositMul));
+			VivadoWrapper<8, false> softpositMul{castUI(positMul)};
+			BOOST_REQUIRE_MESSAGE((encoded == softpositMul).unravel(), "Mul of " << value1 << " and " << value2 << " returned " <<
+								  to_string(static_cast<VivadoWrapper<8, false> const &>(encoded)) << " while it should have returned " << to_string(softpositMul));
 		}
 	}
 }

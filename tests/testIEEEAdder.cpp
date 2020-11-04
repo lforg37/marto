@@ -269,9 +269,9 @@ BOOST_AUTO_TEST_CASE(TestIEEEAdd_4_7)
 		}
 		counter++;
 		if((counter % PRINT_EVERY) == 0){
-			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(counter)/static_cast<double>(FORMAT_LIMIT)*100, counter,FORMAT_LIMIT);
+			fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%u\t/%u)", static_cast<double>(counter)/static_cast<double>(FORMAT_LIMIT)*100, counter,FORMAT_LIMIT);
 		}
 	}
-	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+	fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%u\t/%u)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
 
 }//*/

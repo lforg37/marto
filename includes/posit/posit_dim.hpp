@@ -162,7 +162,7 @@ static constexpr unsigned int getExtShiftSize(){
 }
 
 template<unsigned int N, unsigned int WES, unsigned int bankSize>
-static constexpr unsigned int getMantSpread(){
+static constexpr unsigned int getQuireSpread(){
 	return hint::Static_Ceil_Div<getExtShiftSize<N, WES, bankSize>(), bankSize>::val;
 }
 

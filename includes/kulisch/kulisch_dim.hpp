@@ -1,6 +1,7 @@
-#ifndef FP_DIM_TPP
-#define FP_DIM_TPP
+#ifndef KULISCH_DIM_HPP
+#define KULISCH_DIM_HPP
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -14,150 +15,96 @@ using hint::Static_Val;
 using hint::Static_Ceil_Div;
 using hint::ArraySplitter;
 
-template<unsigned int WE_, unsigned int WF_>
-struct IEEEProdDim
-{
-	static constexpr unsigned int WProdExp = WE_ + 1;
-	static constexpr unsigned int WProdFrac = 2*WF_ + 2;
-	static constexpr unsigned int WProd = 1 + WProdExp + WProdFrac;
-};
-
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-class FPProd : public Wrapper<IEEEProdDim<WE, WF>::WProd, false>
+class FPProd
 {
 	private:
-		constexpr static unsigned int _width = IEEEProdDim<WE, WF>::WProd;
-		using storage_type = Wrapper<_width, false>;
-		using _dim = IEEEProdDim<WE, WF>;
+
+		using _dim = FPDim<WE, WF>;
+		constexpr static unsigned int _total_width = _dim::W_Prod;
+		constexpr static unsigned int _exp_width = _dim::WE_Prod;
+		constexpr static unsigned int _frac_width = _dim::WFF_Prod;
+
+		using  _sign_t = Wrapper<1, false>;
+		using _exp_t = Wrapper<_exp_width, false>;
+		using _frac_t = Wrapper<_frac_width, false>;
+		using _flag_t = Wrapper<1, false>;
+
+		_sign_t _sign;
+		_exp_t _exp;
+		_frac_t _frac;
+		_flag_t _isNaN;
+		_flag_t _isInf;
+
 	public:
 		FPProd(
-				Wrapper<1, false> mult_s,
-				Wrapper<WE+1, false> mult_e,
-				Wrapper<2*WF+2, false> mult_m
-		)
+				_sign_t const & mult_s,
+				_exp_t const & mult_e,
+				_frac_t const & mult_m,
+				_flag_t const & mult_isNaN,
+				_flag_t const & mult_isInf
+				) : _sign{mult_s}, _exp{mult_e}, _frac{mult_m}, _isNaN{mult_isNaN}, _isInf{mult_isInf}
+		{}
+
+		FPProd(Wrapper<_total_width, false> const & val)
 		{
-			auto signed_exp = mult_s.concatenate(mult_e);
-			storage_type{signed_exp.concatenate(mult_m)};
+			_sign = val.template get<_total_width - 1>();
+			_exp = val.template slice<_total_width - 2, _frac_width>();
+			_frac = val.template slice<_frac_width - 1, 0>();
 		}
 
-		FPProd(storage_type const & val):storage_type{val}{}
-
-		inline Wrapper<_dim::WProdFrac, false> getSignificand()
+		inline _frac_t getSignificand() const
 		{
-			return storage_type::template slice<_dim::WProdFrac - 1, 0>();
+			return _frac;
 		}
 
 
-		inline Wrapper<1, false> getSignBit()
+		inline _sign_t getSignBit() const
 		{
-			return storage_type::template get<_dim::WProd-1>();
+			return _sign;
 		}
 
-		inline Wrapper<_dim::WProdExp, false> getExp()
+		inline _exp_t getExp() const
 		{
-			return storage_type::template slice<_dim::WProd-2, _dim::WProdFrac>();
+			return _exp;
+		}
+
+		inline _flag_t isNaN() const
+		{
+			return _isNaN;
+		}
+
+		inline _flag_t isInf() const
+		{
+			return _isInf;
 		}
 };
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-using KulischAcc = Wrapper<FPDim<WE, WF>::ACC_SIZE, false>;
-
-template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-using SignedKulischAcc = Wrapper<FPDim<WE, WF>::ACC_SIZE+1, false>;
-
-
-template<unsigned int WE, unsigned int WF, int bankSize>
-static constexpr unsigned int getNbStages(){
-	return Static_Ceil_Div<FPDim<WE, WF>::ACC_SIZE, bankSize>::val;
-}
-
-template<int N, int bankSize>
-static constexpr int getSegmentedAccSize(){
-	return getNbStages<N, bankSize>() * bankSize;
-}
-
-template<unsigned int WE, unsigned int WF, unsigned int bankSize>
-static constexpr unsigned int getMantSpread(){
-	return Static_Ceil_Div<IEEEProdDim<WE, WF>::WProdFrac,bankSize>::val+1;
-}
-
-
-template<unsigned int WE, unsigned int WF, unsigned int bankSize, unsigned int stage, template<unsigned int, bool> class Wrapper>
-Wrapper<bankSize*(stage+1), false> concatAccBanksRec(Wrapper<bankSize, false> const acc[getNbStages<WE, WF, bankSize>()],
-	typename enable_if<(stage == 0)>::type* = 0
-	){
-	return acc[stage];
-}
-
-template<unsigned int WE, unsigned int WF, int bankSize, int stage, template<unsigned int, bool> class Wrapper>
-Wrapper<bankSize*(stage+1), false> concatAccBanksRec(Wrapper<bankSize, false> const acc[getNbStages<WE, WF, bankSize>()],
-	typename enable_if<(stage >= 1)>::type* = 0
-	){
-	auto part = concatAccBanksRec<WE, WF, bankSize, stage-1>(acc);
-	auto top = acc[stage];
-	auto res = top.concat(part);
-	return res;
-}
-
-template<unsigned int WE, unsigned int WF, int bankSize, template<unsigned int, bool> class Wrapper>
-KulischAcc<WE, WF, Wrapper> concatAccBanks(Wrapper<bankSize, false> acc[getNbStages<WE, WF, bankSize>()]){
-	auto res = concatAccBanksRec<WE, WF, bankSize, getNbStages<WE, WF, bankSize>()-1>(acc);
-	return res.template slice<FPDim<WE, WF>::ACC_SIZE-1, 0>();
-}
-
-
-
-template<unsigned int WE, unsigned int WF, int bankSize, template<unsigned int, bool> class Wrapper>
-class acc_2CK3
+class KulischAcc : public Wrapper<FPDim<WE, WF>::ACC_SIZE, false>
 {
 	private:
-		static constexpr unsigned int NB_STAGES = getNbStages<WE, WF, bankSize>();
-
-		Wrapper<bankSize, false> banks[NB_STAGES];
-		Wrapper<1, false> carries[NB_STAGES];
+		using fpdim = FPDim<WE, WF>;
+		using storage_type = Wrapper<fpdim::ACC_SIZE, false>;
 
 
+		inline storage_type const & _storage() const
+		{
+			return static_cast<storage_type const &>(*this);
+		}
 
 	public:
-		acc_2CK3(
-				KulischAcc<WE, WF, Wrapper> acc = {{0}},
-				Wrapper<NB_STAGES, false> carries_in = {{0}}
-				)
+		KulischAcc(storage_type const & in):storage_type{in}
+		{}
+
+		Wrapper<1, false> getSignBit() const
 		{
-			ArraySplitter<FPDim<WE, WF>::ACC_SIZE, bankSize>::distribute(acc, banks);
-			ArraySplitter<NB_STAGES, 1>::distribute(carries_in, carries);
+			return _storage().template get<fpdim::ACC_SIZE - 1>();
 		}
 
-		inline KulischAcc<WE, WF, Wrapper> getAcc(){
-			return concatAccBanks<WE, WF, bankSize>(banks);
-		}
-
-		template<unsigned int index>
-		inline Wrapper<bankSize, false> getBank() const{
-			static_assert(index < NB_STAGES, "Trying to access an unexisting bank");
-			return banks[index];
-		}
-
-		template<unsigned int index>
-		inline void setBank(Wrapper<bankSize, false> bank){
-			static_assert(index < NB_STAGES, "Trying to set an unexisting bank");
-			banks[index] = bank;
-		}
-
-		template<unsigned int index>
-		inline Wrapper<1, false> getCarry() const{
-			static_assert (index < NB_STAGES, "Invalid carry index");
-			return carries[index];
-		}
-
-		template<unsigned int index>
-		inline void setCarry(Wrapper<1, false> carry){
-			static_assert (index < NB_STAGES, "Invalid carry index");
-			carries[index] = carry;
-		}
-
-		inline Wrapper<1, false> isNeg() const {
-			return banks[NB_STAGES-1].template get<bankSize-1>();
+		storage_type const & downcast() const
+		{
+			return static_cast<storage_type const &>(*this);
 		}
 };
 #endif

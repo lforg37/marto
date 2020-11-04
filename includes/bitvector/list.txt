@@ -1,3 +1,0 @@
-lzoc_shifter.hpp
-shifter_marto.hpp
-shifter_sticky.hpp
