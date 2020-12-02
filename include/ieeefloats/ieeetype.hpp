@@ -12,10 +12,10 @@ enum struct IEEERoundingMode : uint8_t {
 };
 
 template<unsigned int N>
-struct StandardFPDim;
+struct StandardIEEEDim;
 
 template<unsigned int _WE, unsigned int _WF>
-struct FPDim {
+struct IEEEDim {
 		/**
 		 * @brief Format width
 		 */
@@ -123,13 +123,13 @@ struct FPDim {
 };
 
 template<>
-struct StandardFPDim<16> : public FPDim<5, 10> {};
+struct StandardIEEEDim<16> : public IEEEDim<5, 10> {};
 
 template <>
-struct StandardFPDim<32> : public FPDim<8, 23> {};
+struct StandardIEEEDim<32> : public IEEEDim<8, 23> {};
 
 template<>
-struct StandardFPDim<64> : public FPDim<11, 52> {};
+struct StandardIEEEDim<64> : public IEEEDim<11, 52> {};
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 	class IEEENumber : public Wrapper<WE + WF + 1, false>

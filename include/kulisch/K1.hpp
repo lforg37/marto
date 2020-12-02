@@ -14,8 +14,8 @@ inline KulischAcc<WE, WF, Wrapper> add_2CK1(
 		KulischAcc<WE, WF, Wrapper> const & acc,
 		FPProd<WE, WF, Wrapper> const & prod
 ){
-	constexpr unsigned int PSWidth = FPDim<WE, WF>::WFF_Prod;
-	constexpr unsigned int ACCWidth = FPDim<WE, WF>::ACC_SIZE;
+	constexpr unsigned int PSWidth = IEEEDim<WE, WF>::WFF_Prod;
+	constexpr unsigned int ACCWidth = IEEEDim<WE, WF>::ACC_SIZE;
 	auto psb = prod.getSignBit();
 	auto significand = prod.getSignificand();
 	auto inv = significand.invert();

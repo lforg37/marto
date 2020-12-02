@@ -20,7 +20,7 @@ class FPProd
 {
 	private:
 
-		using _dim = FPDim<WE, WF>;
+		using _dim = IEEEDim<WE, WF>;
 		constexpr static unsigned int _total_width = _dim::W_Prod;
 		constexpr static unsigned int _exp_width = _dim::WE_Prod;
 		constexpr static unsigned int _frac_width = _dim::WFF_Prod;
@@ -81,10 +81,10 @@ class FPProd
 };
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-class KulischAcc : public Wrapper<FPDim<WE, WF>::ACC_SIZE, false>
+class KulischAcc : public Wrapper<IEEEDim<WE, WF>::ACC_SIZE, false>
 {
 	private:
-		using fpdim = FPDim<WE, WF>;
+		using fpdim = IEEEDim<WE, WF>;
 		using storage_type = Wrapper<fpdim::ACC_SIZE, false>;
 
 

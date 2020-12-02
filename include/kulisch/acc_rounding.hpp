@@ -22,9 +22,9 @@ template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wr
 inline IEEENumber<WE, WF, Wrapper> acc_IEEE_rounding(
 		KulischAcc<WE, WF, Wrapper> const & acc
 ){
-	constexpr unsigned int subnormal_first_idx = FPDim<WE, WF>::MIN_SN_ACC_OFFSET;
-	constexpr unsigned int normal_max_idx = FPDim<WE, WF>::MAX_N_ACC_OFFSET;
-	constexpr unsigned int overflow_bits = FPDim<WE, WF>::ACC_SIZE - (normal_max_idx + 2);
+	constexpr unsigned int subnormal_first_idx = IEEEDim<WE, WF>::MIN_SN_ACC_OFFSET;
+	constexpr unsigned int normal_max_idx = IEEEDim<WE, WF>::MAX_N_ACC_OFFSET;
+	constexpr unsigned int overflow_bits = IEEEDim<WE, WF>::ACC_SIZE - (normal_max_idx + 2);
 
 	constexpr unsigned int reduced_acc_size = normal_max_idx - subnormal_first_idx + 2;
 
@@ -43,7 +43,7 @@ inline IEEENumber<WE, WF, Wrapper> acc_IEEE_rounding(
 	// We keep one extra bit for having the real rounding value for subnormals
 	auto low_acc = acc.template slice<subnormal_first_idx - 2 , 0>();
 	auto mid_acc = acc.template slice<normal_max_idx, subnormal_first_idx - 1>();
-	auto high_acc = acc.template slice<FPDim<WE, WF>::ACC_SIZE -2, normal_max_idx + 1>();
+	auto high_acc = acc.template slice<IEEEDim<WE, WF>::ACC_SIZE -2, normal_max_idx + 1>();
 
 	auto r_s = acc.getSignBit();
 
@@ -79,7 +79,7 @@ inline IEEENumber<WE, WF, Wrapper> acc_IEEE_rounding(
 	auto sn_sticky = Wrapper<1, false>::mux(sn_limit, sticky_tmp, guard1 | guard3 | sticky_tmp);
 
 	//Normal case
-	constexpr unsigned int bias = FPDim<WE, WF>::MAX_NORMAL_BIASED_EXP;
+	constexpr unsigned int bias = IEEEDim<WE, WF>::MAX_NORMAL_BIASED_EXP;
 	Wrapper<lzoc_size, false> bias_wrap{bias};
 	auto n_signed_signif = shifted.template slice<reduced_acc_size - 2, reduced_acc_size - WF - 1>();
 	auto n_exp = bias_wrap.modularSub(lzoc).template slice<WE-1, 0>();
