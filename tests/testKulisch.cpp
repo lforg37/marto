@@ -13,9 +13,9 @@
 #include "kulisch/acc_rounding.hpp"
 #include "kulisch/K1.hpp"
 #include "kulisch/K3.hpp"
-#include "tools/utils.hpp"
 
 #include "hint.hpp"
+#include "tools/printing.hpp"
 
 namespace utf = boost::unit_test;
 
@@ -28,7 +28,7 @@ template <unsigned int W>
 using Wrapper = hint::VivadoWrapper<N, false>;
 
 using hint::VivadoWrapper;
-using fp_dim = StandardFPDim<N>;
+using fp_dim = StandardIEEEDim<N>;
 
 using ieee_t = IEEENumber<fp_dim::WE, fp_dim::WF, VivadoWrapper>;
 
@@ -93,8 +93,8 @@ BOOST_AUTO_TEST_CASE(TestRand2CK1_32, *utf::disabled() * utf::label("long"))
 			fprintf(stderr, "Result : %1.15f\n", res_f);
 			fprintf(stderr, "mpfr : %1.15f\n", mpfr_sum);
 			conv_r.f = mpfr_sum;
-			ap_uint<32> mpfr_bits = conv_r.i;
-			printApUint(mpfr_bits);
+			VivadoWrapper<32, false> mpfr_bits{{conv_r.i}};
+			cerr << hint::to_string(mpfr_bits) << endl;
 			BOOST_REQUIRE_MESSAGE(false, "Accumulator holding incorrect result");
 		}
 		// fprintf(stderr, "%d\n", i);

@@ -17,7 +17,7 @@ inline FPProd<WE, WF, Wrapper> exact_prod(
 		IEEENumber<WE, WF, Wrapper> const & in2
 ){
 
-	using _dim = FPDim<WE, WF>;
+	using _dim = IEEEDim<WE, WF>;
 
 	auto m1 = in1.getLeadBitVal().concatenate(in1.getFractionnalPart());
 	auto m2 = in2.getLeadBitVal().concatenate(in2.getFractionnalPart());

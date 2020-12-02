@@ -17,7 +17,7 @@ using std::cerr;
 
 template<unsigned int WE, unsigned int WF, int bankSize>
 static constexpr unsigned int getNbStages(){
-	return Static_Ceil_Div<FPDim<WE, WF>::ACC_SIZE, bankSize>::val;
+	return Static_Ceil_Div<IEEEDim<WE, WF>::ACC_SIZE, bankSize>::val;
 }
 
 template<int N, int bankSize>
@@ -27,7 +27,7 @@ static constexpr int getSegmentedAccSize(){
 
 template<unsigned int WE, unsigned int WF, unsigned int bankSize>
 static constexpr unsigned int getMantSpread(){
-	return Static_Ceil_Div<FPDim<WE, WF>::WFF_Prod, bankSize>::val+1;
+	return Static_Ceil_Div<IEEEDim<WE, WF>::WFF_Prod, bankSize>::val+1;
 }
 
 
@@ -51,7 +51,7 @@ Wrapper<bankSize*(stage+1), false> concatAccBanksRec(array<Wrapper<bankSize, fal
 template<unsigned int WE, unsigned int WF, int unsigned bankSize, template<unsigned int, bool> class Wrapper>
 KulischAcc<WE, WF, Wrapper> concatAccBanks(array<Wrapper<bankSize, false>, getNbStages<WE, WF, bankSize>()> const & acc){
 	auto res = concatAccBanksRec<WE, WF, bankSize, getNbStages<WE, WF, bankSize>()-1>(acc);
-	return res.template slice<FPDim<WE, WF>::ACC_SIZE-1, 0>();
+	return res.template slice<IEEEDim<WE, WF>::ACC_SIZE-1, 0>();
 }
 
 template<unsigned int WE, unsigned int WF, unsigned int bankSize, template<unsigned int, bool> class Wrapper>
@@ -59,7 +59,7 @@ class acc_2CK3
 {
 		static_assert (hint::is2Pow<bankSize>(), "bankSize should be a power of two");
 	private:
-		using _dim = FPDim<WE, WF>;
+		using _dim = IEEEDim<WE, WF>;
 		/**
 		 * @brief NB_STAGES required number of banks inside the accumulator
 		 */
@@ -421,14 +421,14 @@ class acc_2CK3
 			auto prodSign = prod.getSignBit();
 
 			auto inputSignificand = prod.getSignificand();
-			auto inputSignificandComplemented = Wrapper<FPDim<WE, WF>::WFF_Prod, false>::mux(
+			auto inputSignificandComplemented = Wrapper<IEEEDim<WE, WF>::WFF_Prod, false>::mux(
 						prodSign,
-						(inputSignificand.invert().modularAdd(Wrapper<FPDim<WE, WF>::WFF_Prod, false>{1})),
+						(inputSignificand.invert().modularAdd(Wrapper<IEEEDim<WE, WF>::WFF_Prod, false>{1})),
 						 inputSignificand
 				);
 
 			auto shiftValue = prodExp.template slice<BANK_WIDTH-1,0>();
-			auto extension = Wrapper<SHIFTED_SIGNIF_WIDTH - FPDim<WE, WF>::WFF_Prod, false>::generateSequence(prodSign);
+			auto extension = Wrapper<SHIFTED_SIGNIF_WIDTH - IEEEDim<WE, WF>::WFF_Prod, false>::generateSequence(prodSign);
 			auto ext = extension.concatenate(inputSignificandComplemented);
 
 			auto shiftedInput = shifter<false>(ext,shiftValue,{0});
