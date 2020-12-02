@@ -129,6 +129,10 @@ if(BUILD_UNIT_TEST)
 		Message(WARNING "Tests on posit value cannot be run")
 	endif()
 
+	add_executable(testExpressions_exe tests/testExpression.cpp)
+	target_link_libraries(testExpressions_exe ${LIBNAME} ${Boost_LIBRARIES} VIVADO_AP_INT)
+	target_compile_definitions(testExpressions_exe PRIVATE VIVADO_BACKEND)
+
 	find_path(MPFR mpfr.h)
 
 	if(MPFR)
@@ -155,8 +159,6 @@ if(BUILD_UNIT_TEST)
 
 	add_library(libnumform INTERFACE)
 	target_include_directories(libnumform INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/libnumform)
-
-
 
 	add_executable(testLibNumForm_exe tests/testLibNumForm.cpp)
 	target_link_libraries(testLibNumForm_exe PRIVATE libnumform ${Boost_LIBRARIES})
