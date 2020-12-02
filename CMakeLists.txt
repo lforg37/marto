@@ -23,6 +23,12 @@ add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
 target_link_libraries(${LIBNAME} INTERFACE hint)
 
+
+OPTION(DEBUG_FPEXPR_SUM "Dump all FPExpr sum operator signals")
+if(DEBUG_FPEXPR_SUM)
+	target_compile_definitions(${LIBNAME} INTERFACE FPEXPR_SUM_DEBUG)
+endif()
+
 OPTION(DEBUG_IEEE_ADDER "Dump all ieee_adder signals")
 if(DEBUG_IEEE_ADDER)
 	target_compile_definitions(${LIBNAME} INTERFACE IEEE_ADDER_DEBUG)
@@ -127,6 +133,10 @@ if(BUILD_UNIT_TEST)
 		Message(WARNING "Tests on posit value cannot be run")
 	endif()
 
+	add_executable(testExpressions_exe tests/testExpression.cpp)
+	target_link_libraries(testExpressions_exe ${LIBNAME} ${Boost_LIBRARIES} VIVADO_AP_INT)
+	target_compile_definitions(testExpressions_exe PRIVATE VIVADO_BACKEND)
+
 	find_path(MPFR mpfr.h)
 
 	if(MPFR)
@@ -134,6 +144,8 @@ if(BUILD_UNIT_TEST)
 		add_executable(testKulisch_exe tests/testKulisch.cpp)
 		target_link_libraries(testKulisch_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} -lmpfr)
 		target_compile_definitions(testKulisch_exe PRIVATE MPFR VIVADO_BACKEND)
+		target_link_libraries(testExpressions_exe -lmpfr)
+		target_compile_definitions(testExpressions_exe PRIVATE MPFR)
 		add_test(testKulisch testKulisch_exe)
 	else()
 		Message(WARNING "Tests on Kulisch value cannot be run")
@@ -153,8 +165,6 @@ if(BUILD_UNIT_TEST)
 
 	add_library(libnumform INTERFACE)
 	target_include_directories(libnumform INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/libnumform)
-
-
 
 	add_executable(testLibNumForm_exe tests/testLibNumForm.cpp)
 	target_link_libraries(testLibNumForm_exe PRIVATE libnumform ${Boost_LIBRARIES})
