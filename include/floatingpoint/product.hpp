@@ -14,18 +14,12 @@ using FPProdDim = TightFPDim<
 		DIM1::MIN_EXP + DIM1::MIN_EXP
 	>;
 
-
-template<typename DIM1, typename DIM2>
-struct FPProdSig
-{
-		using type = FPProdDim<DIM1, DIM2>;
-};
-
 template<vec_width TargetWF, typename DIM1, typename DIM2>
 struct RoundedFPProd {
-	public:
+	private:
 		using ExactProdDim = FPProdDim<DIM1, DIM2>;
 		using round_helper = RoundDimHelper<ExactProdDim, TargetWF>;
+	public:
 		using dim = typename round_helper::dim;
 
 	private:
