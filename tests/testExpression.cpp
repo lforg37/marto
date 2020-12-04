@@ -3,6 +3,10 @@
 
 #include <boost/test/unit_test.hpp>
 
+#ifdef MPFR
+#include <mpfr.h>
+#endif
+
 #include <hint.hpp>
 
 using hint::VivadoWrapper;
@@ -100,3 +104,64 @@ BOOST_AUTO_TEST_CASE(TestProduct)
 	BOOST_REQUIRE(res.isNaN().unravel() == 0);
 	BOOST_REQUIRE(res.isZero().unravel() == 0);
 }
+
+#ifdef MPFR
+template<typename Dim1, typename Dim2, vec_width targetWF>
+void check_addition_standard(int64_t exp1, int64_t exp2, int64_t sfrac1, int64_t sfrac2)
+{
+	int sign1 = (sfrac1 < 0) ? 1 : 0;
+	int sign2 = (sfrac2 < 0) ? 1 : 0;
+	uint64_t frac1 = (sfrac1 < 0) ? -sfrac1 : sfrac1;
+	uint64_t frac2 = (sfrac2 < 0) ? -sfrac2 : sfrac2;
+
+	/**** Using expr ********/
+
+	using fpnum1 = FPNumber<Dim1, VivadoWrapper>;
+	using fpnum2 = FPNumber<Dim2, VivadoWrapper>;
+
+	fpnum1 op1{{{frac1}}, {{exp1}}, {{sign1}}, {{0}}, {{0}}, {{0}}};
+	fpnum2 op2{{{frac2}}, {{exp2}}, {{sign2}}, {{0}}, {{0}}, {{0}}};
+
+	auto eop1 = to_expr(op1);
+	auto eop2 = to_expr(op2);
+
+	auto exprres = eop1+eop2;
+	auto res = exprres.template computeWithTargetPrecision<targetWF>();
+
+	/**** Using mpfr ****/
+	mpfr_t mpfr_op1, mpfr_op2, mpfr_res;
+	mpfr_init2(mpfr_op1, Dim1::WF);
+	mpfr_init2(mpfr_op2, Dim2::WF);
+	mpfr_init2(mpfr_res, targetWF);
+
+	uint64_t signif1 = frac1 | (uint64_t{1} << Dim1::WF);
+	uint64_t signif2 = frac2 | (uint64_t{1} << Dim2::WF);
+
+	mpfr_set_ui_2exp(mpfr_op1, signif1, exp1 - Dim1::WF, MPFR_RNDN);
+	mpfr_set_ui_2exp(mpfr_op2, signif2, exp2 - Dim2::WF, MPFR_RNDN);
+	mpfr_setsign(mpfr_op1, mpfr_op1, sign1, MPFR_RNDN);
+	mpfr_setsign(mpfr_op2, mpfr_op2, sign2, MPFR_RNDN);
+	// MPFR does not provide rounding to nearest tie to away at the moment :
+	mpfr_add(mpfr_res, mpfr_op1, mpfr_op2, MPFR_RNDN);
+	auto mpfr_exp = mpfr_get_exp(mpfr_res) - 1;
+	mpfr_mul_2si(mpfr_res, mpfr_res, targetWF-mpfr_exp, MPFR_RNDN);
+	uint64_t mpfr_res_signif = mpfr_get_ui(mpfr_res, MPFR_RNDN);
+	uint64_t mpfr_res_frac = mpfr_res_signif & ((uint64_t{1} << targetWF) - 1);
+	auto mpfr_res_sign = mpfr_signbit(mpfr_res);
+	mpfr_clears(mpfr_op1, mpfr_op2, mpfr_res, static_cast<mpfr_ptr>(0));
+	//----------------------------------------------------------------------------
+
+	BOOST_REQUIRE_MESSAGE(res.getFraction().unravel() == mpfr_res_frac, "mpfr and expression results fraction differs");
+	BOOST_REQUIRE_MESSAGE(res.getExponent().unravel() == mpfr_exp, "mpfr and expression result differs on the exponent");
+	BOOST_REQUIRE_MESSAGE(res.getSign().unravel() == mpfr_res_sign, "mpfr and expression results differs on the sign");
+	BOOST_REQUIRE_MESSAGE(res.isInf().unravel() == 0, "Result inf flag is set, that should not happen");
+	BOOST_REQUIRE_MESSAGE(res.isNaN().unravel() == 0, "Result NaN flag is set, that should not happen");
+}
+
+BOOST_AUTO_TEST_CASE(TestAdditionNoOverlap)
+{
+	using dim1 = TightFPDim<15, 18, -5>;
+	using dim2 = TightFPDim<8, 7, -26>;
+	check_addition_standard<dim1, dim2, 15>(15, -2, 0, 0);
+}
+#endif

@@ -54,6 +54,7 @@ struct RoundedFPSum
 		using rounding_helper = RoundDimHelper<partial_sum_dim, TargetWF>;
 		static constexpr vec_width sum_op_align = (max_wf < TruncatingWidth) ? TruncatingWidth : max_wf;
 		static constexpr vec_width lzoc_count = (Static_Val<sum_op_align+2>::_2pow == sum_op_align + 2) ? Static_Val<sum_op_align+2>::_2pow : Static_Val<sum_op_align+2>::_2pow - 1;
+		static constexpr vec_width lzoc_size = Static_Val<lzoc_count>::_storage;
 
 		template<template<unsigned int, bool> class Wrapper>
 		static inline FPNumber<partial_sum_dim, Wrapper> compute_truncated_sum(
@@ -95,8 +96,8 @@ struct RoundedFPSum
 			auto s_res = (s1 & op1_greater) | (s2 & op1_greater.invert());
 
 
-			auto g_signif = Wrapper<max_wf+1, false>::mux(op1_greater, signif1, signif2).template right_pad<sum_op_align + 2>();
-			auto l_signif = Wrapper<max_wf+1, false>::mux(op1_greater, signif2, signif1).template right_pad<sum_op_align + 2>();
+			auto g_signif = Wrapper<max_wf+1, false>::mux(op1_greater, signif1, signif2).template rightpad<sum_op_align + 2>();
+			auto l_signif = Wrapper<max_wf+1, false>::mux(op1_greater, signif2, signif1).template rightpad<sum_op_align + 2>();
 
 			//------ Flags ----------------------------------------------------------------------------------------------------/
 
@@ -111,25 +112,25 @@ struct RoundedFPSum
 			auto close_add = g_signif.modularSub(l_close);
 			auto lzoc_shifted = LZOC_shift<sum_op_align+2, lzoc_count>(close_add, {{0}});
 			auto lzoc = lzoc_shifted.lzoc;
-			auto cancellation_frac = lzoc_shifted.shited.template slice<sum_op_align, 0>();
-			auto cancellation_exp = g_exp.modularSub(lzoc.template leftpad<partial_we>()).as_signed();
-			auto cancel_to_zero = lzoc_shifted == Wrapper<lzoc_count, false>{{sum_op_align + 2}};
+			auto cancellation_frac = lzoc_shifted.shifted.template slice<sum_op_align, 0>();
+			auto cancellation_exp = g_exp.modularSub(lzoc.template leftpad<partial_we>().as_signed()).as_signed();
+			auto cancel_to_zero = (lzoc == Wrapper<lzoc_size, false>{{sum_op_align + 2}});
 
 			//------ Far Path ---------------------------------------------------------------------------------------------------
 			auto frac_mask = Wrapper<sum_op_align+3, false>::generateSequence(eff_sub);
-			auto add_res = g_signif.template rightpad<sum_op_align + 3>.addWithCarry((l_signif.template rightPad<sum_op_align + 3>() >> exp_diff) ^ frac_mask, eff_sub);
+			auto add_res = g_signif.template rightpad<sum_op_align + 3>().addWithCarry((l_signif.template rightpad<sum_op_align + 3>() >> exp_diff) ^ frac_mask, eff_sub);
 			auto overflowed = add_res.template get<sum_op_align + 3>();
 			auto normal_pos = add_res.template get<sum_op_align + 2>() & overflowed.invert();
 			auto shiftval = overflowed.concatenate(normal_pos);
 			auto frac_ext = add_res.template slice<sum_op_align + 2, 0>() >> shiftval;
 			auto fracRes = frac_ext.template slice<sum_op_align, 0>();
 
-			auto expMask = Wrapper<partial_we, true>::generateSequence(overflowed.invert());
+			auto expMask = Wrapper<partial_we, false>::generateSequence(overflowed.invert()).as_signed();
 			auto expNormal = g_exp.addWithCarry(expMask, overflowed | normal_pos).template slice<partial_we - 1, false>().as_signed();
 			//-------------------------------------------------------------------------------------------------------------------
 
 			auto select_close_path = (exp_equals | exp_diff_is_one) & eff_sub;
-			auto final_frac = Wrapper<sum_op_align+2, false>::mux(select_close_path, cancellation_frac, fracRes);
+			auto final_frac = Wrapper<sum_op_align+1, false>::mux(select_close_path, cancellation_frac, fracRes);
 			auto final_exp = Wrapper<partial_we, true>::mux(select_close_path, cancellation_exp, expNormal);
 
 			auto isZero = isZeroFromFlags | (select_close_path & cancel_to_zero);
@@ -145,7 +146,7 @@ struct RoundedFPSum
 		}
 
 	public:
-		using dim = typename rounding_helper::type;
+		using dim = typename rounding_helper::dim;
 		template<template<unsigned int, bool> class Wrapper>
 		static FPNumber<dim, Wrapper> compute(FPNumber<Dim1, Wrapper> const & op1, FPNumber<Dim2, Wrapper> const & op2)
 		{

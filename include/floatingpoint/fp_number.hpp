@@ -30,7 +30,6 @@ struct TightWEHelper
 		static constexpr vec_width requiredWidth = (maxExpRequiredWidth > minExpRequiredWidth) ? maxExpRequiredWidth : minExpRequiredWidth;
 };
 
-
 template <vec_width _WE, vec_width _WF, int64_t _maxExp = 0, int64_t _minExp = 0>
 struct FPDim {
 		/**
