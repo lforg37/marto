@@ -146,9 +146,11 @@ struct RoundedFPSum
 
 	public:
 		using dim = typename rounding_helper::type;
-
-
-
+		template<template<unsigned int, bool> class Wrapper>
+		static FPNumber<dim, Wrapper> compute(FPNumber<Dim1, Wrapper> const & op1, FPNumber<Dim2, Wrapper> const & op2)
+		{
+			return Rounder<dim, partial_sum_dim>::compute(compute_truncated_sum(op1, op2));
+		}
 };
 
 #endif // SUM_HPP

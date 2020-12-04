@@ -48,9 +48,12 @@ struct BinaryOp
 };
 
 #include "product.hpp"
+#include "sum.hpp"
 
 template<typename op1type, typename op2type, template <unsigned int, bool> class Wrapper>
 using ExprProduct = BinaryOp<op1type, op2type, Wrapper, RoundedFPProd>;
+template<typename op1type, typename op2type, template <unsigned int, bool> class Wrapper>
+using ExprSum = BinaryOp<op1type, op2type, Wrapper, RoundedFPSum>;
 
 template<typename optype, template<unsigned int, bool> class Wrapper, template<vec_width, typename> class RoundingOp>
 struct UnaryOp
@@ -102,6 +105,9 @@ struct LeafFP {
 
 template<typename T, template<unsigned int, bool> class Wrapper>
 struct Expr : public T::arg_storage {
+	private:
+		using this_type = Expr<T, Wrapper>;
+	public:
 		using arg_storage = typename T::arg_storage;
 
 		template<vec_width targetPrecision>
@@ -110,22 +116,45 @@ struct Expr : public T::arg_storage {
 		Expr (arg_storage & init):arg_storage{init}
 		{}
 
-		template<size_t targetWF>
+		template<vec_width targetWF>
 		inline FPNumber<roundedDim<targetWF>, Wrapper> computeWithTargetPrecision() const
 		{
 			return T::template computeWithTargetPrecision<targetWF>(static_cast<arg_storage &>(*this));
 		}
+
+		Expr<OppositeExpr<this_type, Wrapper>, Wrapper> operator-() const
+		{
+			return {*this};
+		}
 };
 
-// TODO : find a way to get rid of these ugly "Wrapper"
 template<typename dim, template<unsigned int, bool> class Wrapper>
 using FPExpr = Expr<LeafFP<dim, Wrapper>, Wrapper>;
 
+
+// TODO : find a way to get rid of those ugly "Wrapper"
 template<typename T1, typename T2, template<unsigned int, bool> class Wrapper>
 inline Expr<ExprProduct<Expr<T1, Wrapper>, Expr<T2, Wrapper>, Wrapper>, Wrapper> operator*(Expr<T1, Wrapper> const & op1, Expr<T2, Wrapper> const & op2)
 {
 	return {{op1, op2}};
 }
 
+template<typename T1, typename T2, template<unsigned int, bool> class Wrapper>
+inline Expr<ExprSum<Expr<T1, Wrapper>, Expr<T2, Wrapper>, Wrapper>, Wrapper> operator+(Expr<T1, Wrapper> const & op1, Expr<T2, Wrapper> const & op2)
+{
+	return {{op1, op2}};
+}
+
+template<typename T1, typename T2, template<unsigned int, bool> class Wrapper>
+inline Expr<ExprSum<Expr<T1, Wrapper>, Expr<OppositeExpr<Expr<T2, Wrapper>, Wrapper>, Wrapper>, Wrapper>, Wrapper> operator-(Expr<T1, Wrapper> const & op1, Expr<T2, Wrapper> const & op2)
+{
+	return {{op1, {op2}}};
+}
+
+template<typename Dim, template<vec_width, bool> class Wrapper>
+FPExpr<Dim, Wrapper> inline to_expr(FPNumber<Dim, Wrapper> const & val)
+{
+	return {val};
+}
 
 #endif // EXPRESSION_HPP

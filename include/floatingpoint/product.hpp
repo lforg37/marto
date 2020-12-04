@@ -65,14 +65,14 @@ struct RoundedFPProd {
 		}
 
 		template<bool can_round, template<unsigned int, bool> class Wrapper>
-		static FPNumber<dim, Wrapper> do_compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2,
+		static inline FPNumber<dim, Wrapper> do_compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2,
 											  typename enable_if<not can_round>::type* = 0)
 		{
 			return do_exact_prod(op1, op2);
 		}
 
 		template<bool can_round, template<unsigned int, bool> class Wrapper>
-		static FPNumber<dim, Wrapper> do_compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2,
+		static inline FPNumber<dim, Wrapper> do_compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2,
 											  typename enable_if<can_round>::type* = 0)
 		{
 			using rounder = Rounder<dim, ExactProdDim>;
@@ -82,7 +82,7 @@ struct RoundedFPProd {
 
 		public:
 		template<template<unsigned int, bool> class Wrapper>
-		static FPNumber<dim, Wrapper> compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2)
+		static inline FPNumber<dim, Wrapper> compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2)
 		{
 			return do_compute<round_helper::CAN_ROUND>(op1, op2);
 		}

@@ -17,10 +17,19 @@ typedef int biasval;
 
 
 template<int64_t maxexp, int64_t minexp>
-constexpr vec_width getTightWE()
+struct TightWEHelper
 {
-	return (maxexp > -minexp) ? Static_Val<maxexp>::_storage + 1 : Static_Val<-minexp>::_storage + 1;
-}
+		static_assert (maxexp > 0, "getTighhtWE expects maxexp to be strictly positive");
+		static_assert (minexp < 0, "getTighhtWE expects minexp to be strictly negative");
+		static constexpr int64_t absMinExp = -minexp;
+		static constexpr bool minExprIsToPow = Static_Val<absMinExp>::_is2Pow;
+		static constexpr vec_width minExpStorage = Static_Val<absMinExp>::_storage;
+		static constexpr vec_width minExpRequiredWidth = (minExprIsToPow) ? minExpStorage : minExpStorage + 1;
+		static constexpr vec_width maxExpStorage = Static_Val<maxexp>::_storage;
+		static constexpr vec_width maxExpRequiredWidth = maxExpStorage + 1;
+		static constexpr vec_width requiredWidth = (maxExpRequiredWidth > minExpRequiredWidth) ? maxExpRequiredWidth : minExpRequiredWidth;
+};
+
 
 template <vec_width _WE, vec_width _WF, int64_t _maxExp = 0, int64_t _minExp = 0>
 struct FPDim {
@@ -63,7 +72,7 @@ struct FPDim {
 };
 
 template<vec_width WF, int64_t maxExp, int64_t minExp>
-using TightFPDim = FPDim<getTightWE<maxExp, minExp>(), WF, maxExp, minExp>;
+using TightFPDim = FPDim<TightWEHelper<maxExp, minExp>::requiredWidth, WF, maxExp, minExp>;
 
 template<typename sourceDim, vec_width targetWF>
 struct RoundDimHelper {
@@ -127,15 +136,15 @@ class FPNumber {
 		inline flag_t isNaN() const {return NaN;}
 		inline significand_t getSignificand() const {return nonZero.concatenate(fraction);}
 
-		static FPNumber getZero(sign_t s = {{0}}) {
+		static inline FPNumber getZero(sign_t s = {{0}}) {
 			return FPNumber{{{0}}, {{0}}, s, {{0}}, {{0}}, {{1}}};
 		}
 
-		static FPNumber getInf(sign_t s = {{0}}) {
+		static inline FPNumber getInf(sign_t s = {{0}}) {
 			return FPNumber{{{0}}, {{0}}, s, {{1}}, {{0}}, {{0}}};
 		}
 
-		static FPNumber getNaN() {
+		static inline FPNumber getNaN() {
 			return FPNumber{{{0}}, {{0}}, {{0}}, {{0}}, {{1}}, {{0}}};
 		}
 };
