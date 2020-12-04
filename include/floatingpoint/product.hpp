@@ -26,16 +26,10 @@ struct RoundedFPProd {
 		template<template<unsigned int, bool> class Wrapper>
 		static inline FPNumber<ExactProdDim, Wrapper> do_exact_prod(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2)
 		{
-			auto exp_no_overflow = op1.getExponent()
-									  .addWithCarry(
-										op2.getExponent(),
-											{{0}}
-										).template slice<ExactProdDim::WE - 1, 0>().as_signed();
-			auto exp_overflow = op1.getExponent()
-									  .addWithCarry(
-										op2.getExponent(),
-											{{1}}
-										).template slice<ExactProdDim::WE - 1, 0>().as_signed();
+			auto exp_1_extended = op1.getExponent().template sign_extend<ExactProdDim::WE>();
+			auto exp_2_extended = op2.getExponent().template sign_extend<ExactProdDim::WE>();
+			auto exp_no_overflow = exp_1_extended.modularAdd(exp_2_extended).as_signed();
+			auto exp_overflow = exp_1_extended.addWithCarry(exp_2_extended, {{1}}).template slice<ExactProdDim::WE - 1, 0>().as_signed();
 
 			auto signif1 = op1.getSignificand();
 			auto signif2 = op2.getSignificand();
