@@ -23,6 +23,12 @@ add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
 target_link_libraries(${LIBNAME} INTERFACE hint)
 
+
+OPTION(DEBUG_FPEXPR_SUM "Dump all FPExpr sum operator signals")
+if(DEBUG_FPEXPR_SUM)
+	target_compile_definitions(${LIBNAME} INTERFACE FPEXPR_SUM_DEBUG)
+endif()
+
 OPTION(DEBUG_IEEE_ADDER "Dump all ieee_adder signals")
 if(DEBUG_IEEE_ADDER)
 	target_compile_definitions(${LIBNAME} INTERFACE IEEE_ADDER_DEBUG)
