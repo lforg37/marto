@@ -148,6 +148,16 @@ class FPNumber {
 		}
 };
 
+template<typename dim, template<unsigned int, bool> class Wrapper>
+Wrapper<1, false> operator==(FPNumber<dim, Wrapper> const & op1, FPNumber<dim, Wrapper> const & op2)
+{
+	auto exp_frac_ok = (op1.getFraction() == op2.getFraction()) & (op1.getExponent() == op2.getExponent());
+	auto s_ok = (op1.getSign() == op2.getSign());
+	auto spec_ok = (op1.isNaN() == op2.isNaN()) & (op1.isInf() == op2.isInf()) & (op1.isZero() == op2.isZero());
+	auto res = (exp_frac_ok | op1.isInf() | op1.isNaN() | op1.isZero()) & s_ok & spec_ok;
+	return res;
+}
+
 template <typename TargetDim, typename SourceDim, bool AllowPrecisionExtension = false>
 struct Rounder {
 	public:
