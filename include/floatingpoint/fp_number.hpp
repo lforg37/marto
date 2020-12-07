@@ -16,6 +16,14 @@ typedef unsigned int vec_width;
 typedef int biasval;
 
 
+#ifdef FPEXPR_ROUND_DEBUG
+#include <iostream>
+#include "tools/printing.hpp"
+using hint::to_string;
+using std::cerr;
+#endif
+
+
 template<int64_t maxexp, int64_t minexp>
 struct TightWEHelper
 {
@@ -236,7 +244,18 @@ struct Rounder {
 			auto overflow_res = Wrapper<TargetDim::WE, true>::mux(exp_sign, minReprRes, maxReprRes);
 			auto normal_res = source_exp.template slice<TargetDim::WE-1, 0>().as_signed();
 			auto res = Wrapper<TargetDim::WE, true>::mux(ov_und_flow, overflow_res, normal_res);
-			return {res, ov_und_flow.concatenate(exp_is_limit.invert())};
+#ifdef FPEXPR_ROUND_DEBUG
+			cerr << "--------> FPRoundExp<true> " << endl;
+			cerr << "exp_sign: " << to_string(exp_sign) << endl;
+			cerr << "exp_greater: " << to_string(exp_greater) << endl;
+			cerr << "exp_smaller: " << to_string(exp_smaller) << endl;
+			cerr << "ov_und_flow: " << to_string(ov_und_flow) << endl;
+			cerr << "exp_is_limit: " << to_string(exp_is_limit) << endl;
+			cerr << "overflow_res: " << to_string(overflow_res) << endl;
+			cerr << "normal_res: " << to_string(normal_res) << endl;
+			cerr << "res: " << to_string(res) << endl;
+#endif
+			return {res, ov_und_flow.concatenate(exp_is_limit)};
 		}
 
 		template <bool exp_can_overflow, template<unsigned int, bool> class Wrapper>
@@ -297,20 +316,40 @@ struct Rounder {
 		{
 			auto roundFrac_ov = fp_round_frac<TargetDim::WF, SourceDim::WF>(source);
 			auto roundedFrac = roundFrac_ov.first;
+			auto fracOverflowed = roundFrac_ov.second;
 			auto exp = source.getExponent();
 			auto choices = getExpPossibilities<CAN_ROUND>(exp);
-			auto ov_exp = selectExp<CAN_ROUND>(choices, roundFrac_ov.second);
+			auto ov_exp = selectExp<CAN_ROUND>(choices, fracOverflowed);
 			auto roundExpInf = fp_round_exp<EXP_CAN_OVERFLOW>(ov_exp);
 			auto ov_und_exp = roundExpInf.second;
 			auto should_clear_frac = ov_und_exp.template get<1>();
 			auto ov_und = ov_und_exp.template get<1>();
-			auto erase = ov_und_exp.template get<0>();
+			auto erase = ov_und_exp.template get<0>() & fracOverflowed.invert();
 			auto rounded_exp = roundExpInf.first;
 			auto exp_sign = rounded_exp.template get<TargetDim::WE-1>();
 			auto isNaN = source.isNaN();
-			auto isZero = isNaN.invert() & (source.isZero() | (ov_und & exp_sign & erase));
+			auto isZero = isNaN.invert() & (source.isZero() | (ov_und & exp_sign & erase.invert()));
 			auto isInf = isNaN.invert() & (source.isInf() | (ov_und & exp_sign.invert()));
-			auto finalFrac = roundedFrac & Wrapper<TargetDim::WF, false>::generateSequence(ov_und.invert());
+			auto finalFrac = roundedFrac & Wrapper<TargetDim::WF, false>::generateSequence(erase.invert());
+
+#ifdef FPEXPR_ROUND_DEBUG
+			cerr << "====== FPEXPR_ROUND ======" << endl;
+			cerr << "roundedFrac: " << to_string(roundedFrac) << endl;
+			cerr << "exp: " << to_string(exp) << endl;
+			cerr << "ov_exp: " << to_string(ov_exp) << endl;
+			cerr << "ov_und_exp: " << to_string(ov_und_exp) << endl;
+			cerr << "should_clear_frac: " << to_string(should_clear_frac) << endl;
+			cerr << "ov_und: " << to_string(ov_und) << endl;
+			cerr << "erase: " << to_string(erase) << endl;
+			cerr << "rounded_exp: " << to_string(rounded_exp) << endl;
+			cerr << "exp_sign: " << to_string(exp_sign) << endl;
+			cerr << "isNaN: " << to_string(isNaN) << endl;
+			cerr << "isZero: " << to_string(isZero) << endl;
+			cerr << "isInf: " << to_string(isInf) << endl;
+			cerr << "finalFrac: " << to_string(finalFrac) << endl;
+			cerr << "============" << endl;
+#endif
+
 			return {finalFrac, rounded_exp, source.getSign(), isInf, isNaN, isZero};
 		}
 };

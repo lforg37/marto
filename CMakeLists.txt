@@ -29,6 +29,11 @@ if(DEBUG_FPEXPR_SUM)
 	target_compile_definitions(${LIBNAME} INTERFACE FPEXPR_SUM_DEBUG)
 endif()
 
+OPTION(DEBUG_FPEXPR_ROUND "Dump all FPExpr Round operator signals")
+if(DEBUG_FPEXPR_ROUND)
+	target_compile_definitions(${LIBNAME} INTERFACE FPEXPR_ROUND_DEBUG)
+endif()
+
 OPTION(DEBUG_IEEE_ADDER "Dump all ieee_adder signals")
 if(DEBUG_IEEE_ADDER)
 	target_compile_definitions(${LIBNAME} INTERFACE IEEE_ADDER_DEBUG)
