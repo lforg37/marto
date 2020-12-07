@@ -133,7 +133,7 @@ if(BUILD_UNIT_TEST)
 		Message(WARNING "Tests on posit value cannot be run")
 	endif()
 
-	add_executable(testExpressions_exe tests/testExpression.cpp)
+	add_executable(testExpressions_exe tests/testExpression.cpp tests/testExprSum.cpp tests/testExprProduct.cpp tests/testExprRounding.cpp)
 	target_link_libraries(testExpressions_exe ${LIBNAME} ${Boost_LIBRARIES} VIVADO_AP_INT)
 	target_compile_definitions(testExpressions_exe PRIVATE VIVADO_BACKEND)
 
