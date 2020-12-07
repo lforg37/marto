@@ -87,8 +87,8 @@ struct RoundedFPSum
 			auto signif1 = op1.getSignificand().template rightpad<max_wf+1>();
 			auto signif2 = op2.getSignificand().template rightpad<max_wf+1>();
 
-			auto negSignif1 = op1.getSignificand().template rightpad<max_wf+1>().invert().modularAdd({{1}});
-			auto negSignif2 = op2.getSignificand().template rightpad<max_wf+1>().invert().modularAdd({{1}});
+			auto negSignif1 = op1.getSignificand().invert().modularAdd({{1}}).template rightpad<max_wf+1>();
+			auto negSignif2 = op2.getSignificand().invert().modularAdd({{1}}).template rightpad<max_wf+1>();
 
 			auto exp1_greater = exp1 > exp2;
 			auto exp_equals = (exp1 == exp2);
