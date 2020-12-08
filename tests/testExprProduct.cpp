@@ -106,8 +106,7 @@ BOOST_AUTO_TEST_CASE(TestRoundedProductFull, *utf::disabled() * utf::label("long
 #else
 BOOST_AUTO_TEST_CASE(WarningIncompleteTestsProduct)
 {
-	std::cerr << "Warning : the test executable was not linked against mpfr, so test on Rounded Product will not be performed" << std::endl;
-	BOOST_WARN_MESSAGE(true, "The current test executable was compiled without mpfr support, rounded product component will not be tested.");
+	BOOST_CHECK_MESSAGE(false, "The current test executable was compiled without mpfr support, rounded product component will not be tested.");
 }
 #endif
 
@@ -124,7 +123,6 @@ BOOST_AUTO_TEST_CASE(TestProduct)
 	using proddim = FPProdDim<dim1, dim2>;
 
 	constexpr vec_width WFProd = proddim::WF;
-	constexpr vec_width WEProd = proddim::WE;
 
 	constexpr uint64_t signif_1 = (uint64_t{1} << (WF1+1)) - 1;
 	constexpr uint64_t signif_2 = (uint64_t{1} << (WF2+1)) - 1;

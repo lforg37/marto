@@ -4,7 +4,7 @@
 #include "ieeefloats/ieeetype.hpp"
 #include "ieeefloats/ieee_rounding.hpp"
 #include "tools/static_math.hpp"
-#include "primitives/lzoc_shifter.hpp"
+#include "primitives/shifter.hpp"
 #include "primitives/lzoc.hpp"
 #include "primitives/shifter_sticky.hpp"
 

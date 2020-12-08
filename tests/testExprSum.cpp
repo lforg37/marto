@@ -331,7 +331,6 @@ BOOST_AUTO_TEST_CASE(TestAdditionCompleteInequalFormats, *utf::disabled() * utf:
 #else
 BOOST_AUTO_TEST_CASE(WarningIncompleteTestsSum)
 {
-	std::cerr << "Warning : the test executable was not linked against mpfr, so test on SUM operator will not be performed" << std::endl;
-	BOOST_WARN_MESSAGE(true, "The current test executable was compiled without mpfr support, Sum component will not be tested.");
+	BOOST_CHECK_MESSAGE(false, "The current test executable was compiled without mpfr support, Sum component will not be tested.");
 }
 #endif
