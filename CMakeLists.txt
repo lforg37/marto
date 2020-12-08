@@ -102,8 +102,6 @@ if(BUILD_UNIT_TEST)
 
 	enable_testing()
 
-	set(TESTDATAROOT ${CMAKE_CURRENT_SOURCE_DIR}/testdata)
-
 	add_executable(testConvert_exe tests/testConvert.cpp  tests/testConversionPosit.cpp)
 	find_library(SOFTPOSIT_LIB softposit)
 	find_path(SOFTPOSIT_H softposit.h)
@@ -119,7 +117,7 @@ if(BUILD_UNIT_TEST)
 		add_executable(testAritOps_exe tests/testArithmeticOp.cpp)
 		target_include_directories(testAritOps_exe PRIVATE ${SOFTPOSIT_H})
 		target_link_libraries(testAritOps_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} ${SOFTPOSIT_LIB} VIVADO_AP_INT -fopenmp)
-		target_compile_definitions(testAritOps_exe PRIVATE TESTDATA_ROOT="${TESTDATAROOT}" VIVADO_BACKEND)
+		target_compile_definitions(testAritOps_exe PRIVATE VIVADO_BACKEND)
 		add_test(testAritOps testAritOps_exe)
 
 		if(OpenMP_CXX_FOUND)
