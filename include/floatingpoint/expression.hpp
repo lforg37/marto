@@ -122,6 +122,13 @@ struct Expr : public T::arg_storage {
 			return T::template computeWithTargetPrecision<targetWF>(static_cast<arg_storage &>(*this));
 		}
 
+		template<typename targetDim, vec_width internalWF>
+		inline FPNumber<targetDim, Wrapper> roundTo() const
+		{
+			auto intermediary = T::template computeWithTargetPrecision<internalWF>(static_cast<arg_storage &>(*this));
+			return Rounder<targetDim, roundedDim<internalWF>, true>::compute(intermediary);
+		}
+
 		Expr<OppositeExpr<this_type, Wrapper>, Wrapper> operator-() const
 		{
 			return {*this};
