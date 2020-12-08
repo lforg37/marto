@@ -18,7 +18,7 @@ union u32float {
 	uint32_t val;
 };
 
-inline bool test_round_val(uint32_t repr) {
+static inline bool test_round_val(uint32_t repr) {
 	constexpr unsigned int WE = 8;
 	constexpr unsigned int WF = 23;
 
