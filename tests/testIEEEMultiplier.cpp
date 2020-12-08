@@ -19,8 +19,121 @@
 
 using namespace std;
 using namespace hint;
+namespace utf = boost::unit_test;
 #include <bitset>
 
+#ifdef SOFTFLOAT
+extern "C" {
+#include "softfloat.h"
+}
+
+struct ProdError {
+        enum struct Code : uint8_t {
+            OK = 0,
+            WaitingNaN = 1,
+            ResDiffer = 2
+        };
+
+        uint16_t op1;
+        uint16_t op2;
+        uint16_t expected_result;
+        uint16_t result;
+        Code err_code;
+};
+
+inline bool isNan(float16_t val)
+{
+    constexpr uint16_t nan_inf_flag = ((1 << 5) - 1) << 10;
+    constexpr uint16_t absval_flag = (1 << 15) - 1;
+    uint16_t repr = val.v & absval_flag;
+    return ((repr & nan_inf_flag) == nan_inf_flag) && (repr ^ nan_inf_flag);
+}
+
+void compute_ieee_mult()
+{
+    constexpr unsigned int WE = 5;
+    constexpr unsigned int WF = 10;
+
+    auto softfloat_roundingMode = softfloat_round_near_even;
+
+    using MartoIEEE = IEEENumber<WE, WF, hint::VivadoWrapper>;
+    constexpr uint64_t FORMAT_SIZE = 1 + WE + WF;
+    constexpr uint64_t FORMAT_LIMIT = 1 << FORMAT_SIZE;
+    uint64_t global_counter = 0;
+    uint64_t counter = 0;
+    constexpr uint64_t PRINT_EVERY = 10;
+
+    int keep_going = -1;
+    ProdError retval = {0, 0, 0, 0, ProdError::Code::OK};
+
+    #pragma omp parallel for private(counter) shared(global_counter) schedule(static, 64)
+    for (uint64_t count1 = 0 ; count1 < FORMAT_LIMIT; ++count1) {
+        uint16_t op1_repr = count1;
+        float16_t op1_sf{op1_repr};
+        MartoIEEE op1_marto{{op1_repr}};
+
+        for (uint32_t count2=count1 ; count2 < FORMAT_LIMIT && keep_going < 0; count2++ ) {
+            uint16_t op2_repr = count2;
+            float16_t op2_sf{op2_repr};
+            MartoIEEE op2_marto{{op2_repr}};
+            auto prod_sf = f16_mul(op1_sf, op2_sf);
+            auto prod_repr = prod_sf.v;
+            auto prod_marto = ieee_product(op1_marto, op2_marto);
+            if (isNan(prod_sf)) {//result is NaN
+                bool marto_is_nan = (prod_marto.isNaN().unravel() == 1);
+                if(not marto_is_nan){
+                    if (keep_going < 0) {
+                        #pragma omp critical (res)
+                        {
+                            retval.op1 = op1_repr;
+                            retval.op2 = op2_repr;
+                            retval.expected_result = prod_sf.v;
+                            retval.result = prod_marto.unravel();
+                            retval.err_code = ProdError::Code::WaitingNaN;
+                            keep_going = 1;
+                        }
+                    }
+                }
+            }
+            else{
+                bool must = (prod_sf.v == prod_marto.unravel());
+                // bool must = ((marto_prod.unravel()-resgmp) <= 1) and ((resgmp-marto_prod.unravel()) <= 1);
+
+                if(not must){
+                    if (keep_going < 0) {
+                        #pragma omp critical (res)
+                        {
+                            retval.op1 = op1_repr;
+                            retval.op2 = op2_repr;
+                            retval.expected_result = prod_sf.v;
+                            retval.result = prod_marto.unravel();
+                            retval.err_code = ProdError::Code::ResDiffer;
+                            keep_going = 1;
+                        }
+                    }
+                }
+            }
+        }
+        counter++;
+        if((counter % PRINT_EVERY) == 0){
+            #pragma omp critical (print)
+            {
+                global_counter += PRINT_EVERY;
+                fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)", static_cast<double>(global_counter)/static_cast<double>(FORMAT_LIMIT)*100, global_counter,FORMAT_LIMIT);
+            }
+        }
+    }
+    fprintf(stderr, "\33[2K\rCompletion: \t%1.1f%% (%lu\t/%lu)\n", static_cast<double>(FORMAT_LIMIT)/static_cast<double>(FORMAT_LIMIT)*100, FORMAT_LIMIT,FORMAT_LIMIT);
+    BOOST_REQUIRE_MESSAGE(retval.err_code == ProdError::Code::OK, "Sum error on operands " << retval.op1 << " and " << retval.op2);
+};
+
+BOOST_AUTO_TEST_CASE(TestIEEEMult_5_10_SF, *utf::disabled() * utf::label("long"))
+{
+    compute_ieee_mult();
+}
+
+
+#endif
 
 BOOST_AUTO_TEST_CASE(TestIEEEMul0)
 {
