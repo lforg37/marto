@@ -93,13 +93,14 @@ template<typename dim, template<unsigned int, bool> class Wrapper>
 struct LeafFP {
 	public:
 		using arg_storage = const FPNumber<dim, Wrapper>;
+		using resizer = TightResize<dim>;
 		template <vec_width targetPrecision>
-		using roundedDim = dim;
+		using roundedDim = typename resizer::dim;
 
 		template<vec_width maxInternalPrecision>
-		static inline FPNumber<dim, Wrapper> computeWithTargetPrecision(arg_storage & arg)
+		static inline FPNumber<roundedDim<maxInternalPrecision>, Wrapper> computeWithTargetPrecision(arg_storage & arg)
 		{
-			return arg;
+			return resizer::compute(arg);
 		}
 };
 

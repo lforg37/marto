@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 
+using std::conditional;
 using std::enable_if;
 using std::pair;
 
@@ -365,6 +366,47 @@ struct strictRounderOp {
 		compute(FPNumber<sourceDim, Wrapper> const & source)
 		{
 			return Rounder<dim, sourceDim>::compute(source);
+		}
+};
+
+template<typename sourceDim>
+struct TightResize {
+	private:
+		using tightdim = TightFPDim<sourceDim::WF, sourceDim::MAX_EXP, sourceDim::MIN_EXP>;
+		static_assert(tightdim::WE <= sourceDim::WE, "TightResize should only be used with complete exponent range fp dim");
+		static constexpr bool isReduce = (tightdim::WE < sourceDim::WE);
+	public:
+		using dim = typename conditional<isReduce, tightdim, sourceDim>::type;
+	private:
+		template<bool reduction, template<unsigned int, bool> class Wrapper>
+		static inline FPNumber<dim, Wrapper> do_compute(
+				FPNumber<sourceDim, Wrapper> const & in,
+				typename enable_if<reduction>::type* = 0
+		) {
+			auto exp = in.getExponent().template slice<dim::WE-1, 0>().as_signed();
+			return {
+				in.getFraction(),
+				exp,
+				in.getSign(),
+				in.isInf(),
+				in.isNaN(),
+				in.isZero()
+			};
+		}
+
+		template<bool reduction, template<unsigned int, bool> class Wrapper>
+		static inline FPNumber<dim, Wrapper> do_compute(
+				FPNumber<sourceDim, Wrapper> const & in,
+				typename enable_if<not reduction>::type* = 0
+		) {
+			return in;
+		}
+	public:
+		template<template<unsigned int, bool> class Wrapper>
+		static inline FPNumber<dim, Wrapper>
+		compute(FPNumber<sourceDim, Wrapper> const & source)
+		{
+			return do_compute<isReduce>(source);
 		}
 };
 
