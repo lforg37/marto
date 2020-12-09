@@ -208,8 +208,8 @@ BOOST_AUTO_TEST_CASE(TestAdditionCompleteFormat, *utf::disabled() * utf::label("
 				for (int64_t frac2 = frac1; frac2 < max_ex_significand ; ++frac2) {
 					uint64_t signif2 = frac2 | signif_mask;
 					mpfr_set_ui_2exp(mpfr_op2, signif2, exp2 - WF, MPFR_RNDN);
-					for (int64_t s1 = 0 ; s1 <= 1 ; s1++) {
-						for(int64_t s2 = 0 ; s2 <=1 ; s2++) {
+					for (int64_t s1 : {0, 1}) {
+						for(int64_t s2 : {0, 1}) {
 							/*** Expressions ***/
 							fpnum op2{{{frac2}}, {{exp2}}, {{s2}}, {{0}}, {{0}}, {{0}}};
 							fpnum op1{{{frac1}}, {{exp1}}, {{s1}}, {{0}}, {{0}}, {{0}}};
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(TestAdditionCompleteFormat, *utf::disabled() * utf::label("
 								mpfr_dump(mpfr_op2);
 								mpfr_dump(mpfr_sum);
 								mpfr_dump(mpfr_round);
-								BOOST_REQUIRE(res_bool);
+								BOOST_REQUIRE(false);
 							}
 						}
 					}

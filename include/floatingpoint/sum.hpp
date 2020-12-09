@@ -140,7 +140,8 @@ struct RoundedFPSum
 			auto cancellation_full_frac = lzoc_shifted.shifted.template slice<max_signif_width, 0>();
 			auto cancellation_exp = g_exp.modularSub(lzoc.template leftpad<partial_we>().as_signed()).as_signed();
 			auto cancel_to_zero = lzoc_shifted.shifted.template get<max_signif_width>().invert();
-			auto cancellation_frac = cancellation_full_frac.template slice<max_signif_width-1, 0>().template rightpad<op_align_wf + 1>().template slice<partialWF - 1, 0>();
+			auto up_cancellation_frac = cancellation_full_frac.template slice<max_signif_width-1, 0>();
+			auto cancellation_frac = up_cancellation_frac.template rightpad<op_align_wf + 1>().template slice<op_align_wf, op_align_wf - partialWF + 1>();
 
 			//------ Far Path ---------------------------------------------------------------------------------------------------
 			auto normal_g_signif = g_signif.template rightpad<significand_align_width + 1>();
@@ -195,12 +196,16 @@ struct RoundedFPSum
 			cerr << "isNaN: " << to_string(isNaN) << endl;
 			cerr << "isInf: " << to_string(isInf) << endl;
 			cerr << "isZeroFromFlags: " << to_string(isZeroFromFlags) << endl;
+			cerr << "g_signif_close: " << to_string(g_signif_close) << endl;
+			cerr << "p_l_close: " << to_string(p_l_close) << endl;
 			cerr << "l_close: " << to_string(l_close) << endl;
 			cerr << "close_add: " << to_string(close_add) << endl;
 			cerr << "lzoc: " << to_string(lzoc) << endl;
-			cerr << "cancellation_frac: " << to_string(cancellation_frac) << endl;
+			cerr << "cancellation_full_frac: " << to_string(cancellation_full_frac) << endl;
 			cerr << "cancellation_exp: " << to_string(cancellation_exp) << endl;
 			cerr << "cancel_to_zero: " << to_string(cancel_to_zero) << endl;
+			cerr << "cancellation_frac: " << to_string(cancellation_frac) << endl;
+			cerr << "normal_g_signif: " << to_string(normal_g_signif) << endl;
 			cerr << "shifted_low_frac: " << to_string(shifted_low_frac) << endl;
 			cerr << "add_res: " << to_string(add_res) << endl;
 			cerr << "overflowed: " << to_string(overflowed) << endl;
@@ -214,7 +219,6 @@ struct RoundedFPSum
 			cerr << "final_frac: " << to_string(final_frac) << endl;
 			cerr << "final_exp: " << to_string(final_exp) << endl;
 			cerr << "isZero: " << to_string(isZero) << endl;
-
 			cerr << "============" << endl;
 #endif
 
