@@ -42,8 +42,8 @@ struct FPSumDim
 		static constexpr int64_t maxLowBitExp = (op1lowbitExp > op2lowbitExp) ? op1lowbitExp : op2lowbitExp;
 		static constexpr int64_t minExp = (possibleCancellation) ? maxLowBitExp : minMinExp;
 
-		static constexpr vec_width range1 = op1maxE - op2minE;
-		static constexpr vec_width range2 = op2maxE - op1minE;
+		static constexpr vec_width range1 = op1maxE - op2minE + 1;
+		static constexpr vec_width range2 = op2maxE - op1minE + 1;
 		static constexpr vec_width WFmax = (range1 > range2) ? range1 : range2;
 
 	public:
@@ -57,13 +57,20 @@ struct RoundedFPSum
 		using ExactSumDim = typename FPSumDim<Dim1, Dim2>::type;
 		static constexpr vec_width max_wf = (Dim1::WF > Dim2::WF) ? Dim1::WF : Dim2::WF;
 		static constexpr vec_width full_sum_wf = ExactSumDim::WF;
-		static constexpr vec_width TruncatingWidth = (full_sum_wf > TargetWF) ?  full_sum_wf : TargetWF;
+		static constexpr bool isExact = (TargetWF >= full_sum_wf);
+		static constexpr vec_width TruncatingWidth = isExact ?  full_sum_wf : TargetWF;
+		static constexpr vec_width roundingbitOffset = (isExact) ? 0 : 1;
+		static constexpr vec_width partialWF = TruncatingWidth + roundingbitOffset;
+		static constexpr vec_width max_signif_width = max_wf + 1;
+		//static_assert (not isExact, "exact  sum is buggy at the moment");
 
-		using partial_sum_dim = FPDim<ExactSumDim::WE, TruncatingWidth + 1, ExactSumDim::MAX_EXP, ExactSumDim::MIN_EXP>;
+		using partial_sum_dim = FPDim<ExactSumDim::WE, partialWF, ExactSumDim::MAX_EXP, ExactSumDim::MIN_EXP>;
 		static constexpr vec_width partial_we = partial_sum_dim::WE;
 		using rounding_helper = RoundDimHelper<partial_sum_dim, TargetWF>;
-		static constexpr vec_width sum_op_align = (max_wf < TruncatingWidth) ? TruncatingWidth : max_wf;
-		static constexpr vec_width lzoc_count = (Static_Val<sum_op_align+2>::_2pow == sum_op_align + 2) ? Static_Val<sum_op_align+2>::_2pow : Static_Val<sum_op_align+2>::_2pow - 1;
+		static constexpr vec_width sum_op_align = (TruncatingWidth > max_wf) ? TruncatingWidth : max_wf; //take at minimum maxWF bits
+		static constexpr vec_width op_align_wf = sum_op_align + roundingbitOffset;
+		static constexpr vec_width significand_align_width = 1 + op_align_wf;
+		static constexpr vec_width lzoc_count = (Static_Val<max_signif_width + 1>::_2pow == 1 + max_signif_width) ? Static_Val<1 + max_signif_width>::_2pow : Static_Val<1 + max_signif_width>::_2pow - 1;
 		static constexpr vec_width lzoc_size = Static_Val<lzoc_count>::_storage;
 
 		template<template<unsigned int, bool> class Wrapper>
@@ -84,11 +91,11 @@ struct RoundedFPSum
 			auto diff1 = exp1.modularSub(exp2);
 			auto diff2 = exp2.modularSub(exp1);
 
-			auto signif1 = op1.getSignificand().template rightpad<max_wf+1>();
-			auto signif2 = op2.getSignificand().template rightpad<max_wf+1>();
+			auto signif1 = op1.getSignificand().template rightpad<max_signif_width>();
+			auto signif2 = op2.getSignificand().template rightpad<max_signif_width>();
 
-			auto negSignif1 = op1.getSignificand().invert().modularAdd({{1}}).template rightpad<max_wf+1>();
-			auto negSignif2 = op2.getSignificand().invert().modularAdd({{1}}).template rightpad<max_wf+1>();
+			auto negSignif1 = op1.getSignificand().invert().modularAdd({{1}}).template rightpad<max_signif_width>();
+			auto negSignif2 = op2.getSignificand().invert().modularAdd({{1}}).template rightpad<max_signif_width>();
 
 			auto exp1_greater = exp1 > exp2;
 			auto exp_equals = (exp1 == exp2);
@@ -109,10 +116,10 @@ struct RoundedFPSum
 			auto s_res = (s1 & op1_greater) | (s2 & op1_greater.invert());
 
 
-			auto g_signif = Wrapper<max_wf+1, false>::mux(op1_greater, signif1, signif2).template rightpad<sum_op_align + 2>();
-			auto l_signif_pos = Wrapper<max_wf+1, false>::mux(op1_greater, signif2, signif1);
-			auto l_signif_neg = Wrapper<max_wf+1, false>::mux(op1_greater, negSignif2, negSignif1);
-			auto l_signif = Wrapper<max_wf+1, false>::mux(eff_sub, l_signif_neg, l_signif_pos).template rightpad<sum_op_align + 2>();
+			auto g_signif = Wrapper<max_signif_width, false>::mux(op1_greater, signif1, signif2);
+			auto l_signif_pos = Wrapper<max_signif_width, false>::mux(op1_greater, signif2, signif1);
+			auto l_signif_neg = Wrapper<max_signif_width, false>::mux(op1_greater, negSignif2, negSignif1);
+			auto l_signif = Wrapper<max_signif_width, false>::mux(eff_sub, l_signif_neg, l_signif_pos);
 
 			//------ Flags ----------------------------------------------------------------------------------------------------/
 
@@ -123,29 +130,34 @@ struct RoundedFPSum
 
 			//------ Close path ------------------------------------------------------------------------------------------------
 			// Handle only the cancellation case
-			auto l_close = (Wrapper<1, false>{{1}}.concatenate(l_signif) >> (exp_equals.invert())).template slice <sum_op_align+1, 0>();
-			auto close_add = g_signif.modularAdd(l_close);
-			auto lzoc_shifted = LZOC_shift<sum_op_align+2, lzoc_count>(close_add, {{0}});
+			// Two fracs are extended on signif_align_width + 1
+			auto g_signif_close = g_signif.template rightpad<max_signif_width + 1>();
+			auto p_l_close = l_signif.template rightpad<max_signif_width + 1>();
+			auto l_close = (Wrapper<1, false>{{1}}.concatenate(p_l_close) >> (exp_equals.invert())).template slice <max_signif_width, 0>();
+			auto close_add = g_signif_close.modularAdd(l_close);
+			auto lzoc_shifted = LZOC_shift<max_signif_width + 1, lzoc_count>(close_add, {{0}});
 			auto lzoc = lzoc_shifted.lzoc;
-			auto cancellation_frac = lzoc_shifted.shifted.template slice<sum_op_align, 0>();
+			auto cancellation_full_frac = lzoc_shifted.shifted.template slice<max_signif_width, 0>();
 			auto cancellation_exp = g_exp.modularSub(lzoc.template leftpad<partial_we>().as_signed()).as_signed();
-			auto cancel_to_zero = lzoc_shifted.shifted.template get<sum_op_align + 1>().invert();
+			auto cancel_to_zero = lzoc_shifted.shifted.template get<max_signif_width>().invert();
+			auto cancellation_frac = cancellation_full_frac.template slice<max_signif_width-1, 0>().template rightpad<op_align_wf + 1>().template slice<partialWF - 1, 0>();
 
 			//------ Far Path ---------------------------------------------------------------------------------------------------
-			auto shifted_low_frac = shifter<true>(l_signif.template rightpad<sum_op_align + 3>(), exp_diff, eff_sub);
-			auto add_res = g_signif.template rightpad<sum_op_align + 3>().addWithCarry(shifted_low_frac, {{0}});
-			auto overflowed = add_res.template get<sum_op_align + 3>() & eff_sub.invert();
-			auto normal_pos = add_res.template get<sum_op_align + 2>() & overflowed.invert();
+			auto normal_g_signif = g_signif.template rightpad<significand_align_width + 1>();
+			auto shifted_low_frac = shifter<true>(l_signif.template rightpad<significand_align_width + 1>(), exp_diff, eff_sub);
+			auto add_res = normal_g_signif.addWithCarry(shifted_low_frac, {{0}});
+			auto overflowed = add_res.template get<significand_align_width + 1>() & eff_sub.invert();
+			auto normal_pos = add_res.template get<significand_align_width>() & overflowed.invert();
 			auto shiftval = overflowed.concatenate(normal_pos);
-			auto frac_ext = add_res.template slice<sum_op_align + 2, 0>() >> shiftval;
-			auto fracRes = frac_ext.template slice<sum_op_align, 0>();
+			auto frac_ext = add_res.template slice<significand_align_width, 0>() >> shiftval;
+			auto fracRes = frac_ext.template slice<partialWF - 1, 0>();
 
 			auto expMask = Wrapper<partial_we, false>::generateSequence(overflowed.invert()).as_signed();
 			auto expNormal = g_exp.addWithCarry(expMask, overflowed | normal_pos).template slice<partial_we - 1, false>().as_signed();
 			//-------------------------------------------------------------------------------------------------------------------
 
 			auto select_close_path = (exp_equals | exp_diff_is_one) & eff_sub;
-			auto final_frac = Wrapper<sum_op_align+1, false>::mux(select_close_path, cancellation_frac, fracRes);
+			auto final_frac = Wrapper<partialWF, false>::mux(select_close_path, cancellation_frac, fracRes);
 			auto final_exp = Wrapper<partial_we, true>::mux(select_close_path, cancellation_exp, expNormal);
 
 			auto isZero = isZeroFromFlags | (select_close_path & cancel_to_zero);

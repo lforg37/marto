@@ -11,7 +11,7 @@ namespace utf = boost::unit_test;
 
 using hint::VivadoWrapper;
 
-#include "ieeefloats/ieeetype.hpp"
+#include "ieeefloats/ieee_expr.hpp"
 
 union u32float {
 	float f;

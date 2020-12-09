@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(TestSumCompilation)
 	auto b = to_expr(constnum::getZero());
 	auto one = to_expr(constnum::getZero());
 
-	auto xn_expr = y + one - a * x * x;
+	auto xn_expr = y + one;// - a * x * x;
 	auto yn_expr = b * x;
 
 	auto xn = xn_expr.roundTo<vardim, INTERNAL_WF>();
