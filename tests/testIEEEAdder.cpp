@@ -56,7 +56,7 @@ bool test_f16_sum(uint16_t op1_repr, uint16_t op2_repr, decltype(softfloat_round
 	auto sum_marto = ieee_add_sub_impl(op1_marto, op2_marto, marto_round_mode);
 	uint16_t res_repr_sf = sum_sf.v;
 	uint16_t res_repr_marto = sum_marto.unravel();
-	cout << "SF: " << res_repr_sf << endl << "Marto :" << res_repr_marto << endl;
+	//cout << "SF: " << res_repr_sf << endl << "Marto :" << res_repr_marto << endl;
 	return (isNan(sum_sf) and sum_marto.isNaN().unravel()) or (res_repr_sf == res_repr_marto);
 }
 

@@ -12,6 +12,33 @@ using hint::VivadoWrapper;
 
 #include "floatingpoint/expression.hpp"
 
+BOOST_AUTO_TEST_CASE(TestSumCompilation)
+{
+	constexpr vec_width CONST_WE = 2;
+	constexpr vec_width EXTERNAL_WF = 23;
+	constexpr vec_width INTERNAL_WF = 42;
+	constexpr vec_width CONST_WF = 23;
+
+	using vardim = TightFPDim<EXTERNAL_WF, 20, -20>;
+	using const_dim = FPDim<CONST_WE, CONST_WF>;
+
+	using fpnum = FPNumber<vardim, VivadoWrapper>;
+	using constnum = FPNumber<const_dim, VivadoWrapper>;
+
+	auto x = to_expr(fpnum::getZero());
+	auto y = to_expr(fpnum::getZero());
+
+	auto a = to_expr(constnum::getZero());
+	auto b = to_expr(constnum::getZero());
+	auto one = to_expr(constnum::getZero());
+
+	auto xn_expr = y + one - a * x * x;
+	auto yn_expr = b * x;
+
+	auto xn = xn_expr.roundTo<vardim, INTERNAL_WF>();
+	auto yn = yn_expr.roundTo<vardim, INTERNAL_WF>();
+}
+
 #ifdef MPFR
 template<typename Dim1, typename Dim2, vec_width targetWF>
 inline bool check_addition_standard(int64_t s1, int64_t s2, int64_t exp1, int64_t exp2, int64_t frac1, int64_t frac2)

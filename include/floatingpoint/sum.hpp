@@ -57,7 +57,7 @@ struct RoundedFPSum
 		using ExactSumDim = typename FPSumDim<Dim1, Dim2>::type;
 		static constexpr vec_width max_wf = (Dim1::WF > Dim2::WF) ? Dim1::WF : Dim2::WF;
 		static constexpr vec_width full_sum_wf = ExactSumDim::WF;
-		static constexpr vec_width TruncatingWidth = (full_sum_wf > TargetWF) ? TargetWF : full_sum_wf;
+		static constexpr vec_width TruncatingWidth = (full_sum_wf > TargetWF) ?  full_sum_wf : TargetWF;
 
 		using partial_sum_dim = FPDim<ExactSumDim::WE, TruncatingWidth + 1, ExactSumDim::MAX_EXP, ExactSumDim::MIN_EXP>;
 		static constexpr vec_width partial_we = partial_sum_dim::WE;
