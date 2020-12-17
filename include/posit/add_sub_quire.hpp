@@ -310,9 +310,17 @@ _propag_carry_seg_req(
 		typename enable_if<(loop_idx > 0)>::type* = 0
 		)
 {
+	constexpr unsigned int sssize = PositDim<N, WES>::ProdExpSize - getShiftSize<bankSize>();
+	constexpr unsigned int essize = getExtShiftSize<N, WES, bankSize>();
+
 	SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> res {
 			quire.getIsNaR().concatenate(
-				_perform_seg_add_quire(quire, {0}, {0}, {0}, {0})
+				_perform_seg_add_quire(quire,
+									   Wrapper<sssize, false>{{0}},
+									   Wrapper<1, false>{{0}},
+									   Wrapper<1, false>{{0}},
+									   Wrapper<essize, false>{{0}}
+									)
 			)
 		};
 	return _propag_carry_seg_req<NB_CARRY, bankSize, N, WES, Wrapper, loop_idx - 1>(res);
@@ -325,9 +333,17 @@ _propag_carry_seg_req(
 		typename enable_if<(loop_idx == 0)>::type* = 0
 		)
 {
+	constexpr unsigned int sssize = PositDim<N, WES>::ProdExpSize - getShiftSize<bankSize>();
+	constexpr unsigned int essize = getExtShiftSize<N, WES, bankSize>();
+
 	SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> res {
 			quire.getIsNaR().concatenate(
-				_perform_seg_add_quire(quire, {0}, {0}, {0}, {0})
+				_perform_seg_add_quire(quire,
+									   Wrapper<sssize, false>{{0}},
+									   Wrapper<1, false>{{0}},
+									   Wrapper<1, false>{{0}},
+									   Wrapper<essize, false>{{0}}
+									)
 			)
 		};
 	return res;
