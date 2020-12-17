@@ -38,7 +38,7 @@ struct FPSumDim
 		static constexpr int64_t minMinExp = (op1minE > op2minE) ? op2minE : op1minE;
 		static constexpr int64_t op1lowbitExp = op1minE - op1WF;
 		static constexpr int64_t op2lowbitExp = op2minE - op2WF;
-		static constexpr bool possibleCancellation = (op1lowbitExp < minMinExp) and (op2lowbitExp < minMinExp);
+		static constexpr bool possibleCancellation = (op1lowbitExp <= minMinExp) and (op2lowbitExp <= minMinExp);
 		static constexpr int64_t maxLowBitExp = (op1lowbitExp > op2lowbitExp) ? op1lowbitExp : op2lowbitExp;
 		static constexpr int64_t minExp = (possibleCancellation) ? maxLowBitExp : minMinExp;
 

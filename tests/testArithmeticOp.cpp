@@ -64,39 +64,6 @@ BOOST_AUTO_TEST_CASE(TestSomeMulPosit16) {
 
 BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 {
-	// ap_uint<16> value10 = 0b1000000000000001;
-	// ap_uint<16> value20 = 0b1000000000000010;
-	// PositValue<16> a = posit_decoder(value10);
-	// PositValue<16> b = posit_decoder(value20);
-	// // PositValue<16> b = posit_decoder((ap_uint<16>)0b0110111100000111);
-
-	// PositProd<16> res = posit_mul(a,b);
-
-	// printf("===== a =====\n");
-	// a.printContent();
-	// printf("===== b =====\n");
-	// b.printContent();
-	// printf("===== res =====\n");
-	// res.printContent();
-	// auto resPosit = PositProd_to_PositValue(res);
-	// printf("===== res as posit =====\n");
-	// resPosit.printContent();
-
-	// ap_uint<16> encoded = posit_encoder(resPosit);
-	// printApUint(encoded);
-
-	// posit16_t positValue1 = castP16(value10);
-	// posit16_t positValue2 = castP16(value20);
-	// posit16_t positMul = p16_mul(positValue1, positValue2);
-	// ap_uint<16> softpositMul = (ap_uint<16>) castUI(positMul);
-	// printApUint(softpositMul);
-
-	// printf("===== encoding of soft result =====\n");
-	// ap_uint<16> value30 = softpositMul;
-	// PositValue<16> t = posit_decoder(value30);
-	// t.printContent();
-	// exit(0);
-
 	uint64_t counter = 0;
 	uint64_t TOTAL_TESTS = uint64_t{1}<<32;
 	unsigned int error_counter = 0;
@@ -108,23 +75,12 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16, *utf::disabled() * utf::label("long"))
 		for(uint32_t value1 = 0; value1 < (1<<16); value1++){
 			auto value1Encoding = StandardPositEncoding<16, VivadoWrapper>{{value1}};
 			auto prod = value1Encoding * value2Encoding;
-			//cerr << to_string(static_cast<VivadoWrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
 			StandardPositEncoding<16, VivadoWrapper> encoded{prod};
 			posit16_t positValue1 = castP16(value1);
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positMul = p16_mul(positValue1, positValue2);
 			VivadoWrapper<16, false> softpositMul{castUI(positMul)};
 			if(!(encoded == softpositMul).template isSet<0>()){
-				/*fprintf(stderr, "\n\n\n\n");
-				fprintf(stderr, "=== Inputs === \n");
-				printApUint(value1Encoding);
-				printApUint(value2Encoding);
-				fprintf(stderr, "=== Expected result === \n");
-				printApUint(softpositMul);
-				fprintf(stderr, "=== Computed result === \n");
-				printApUint(encoded);
-				fprintf(stderr, "Tests Passed: %lu\n", counter);
-				*/
 				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned a problematic value while it should have returned " << to_string(softpositMul));
 			}
 		}
@@ -148,7 +104,6 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit8)
 		for(uint32_t value1 = 0; value1 < (1<<8); value1++){
 			auto value1Encoding = StandardPositEncoding<8, VivadoWrapper>{{value1}};
 			auto prod = value1Encoding * value2Encoding;
-			//cerr << to_string(static_cast<VivadoWrapper<StandardPositDim<16>::ProdSize, false> >(prod)) << endl;
 			StandardPositEncoding<8, VivadoWrapper> encoded{prod};
 			posit8_t positValue1 = castP8(value1);
 			posit8_t positValue2 = castP8(value2);
@@ -281,17 +236,6 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16, *utf::disabled() * utf::label("long"))
 			posit16_t positSum = p16_add(positValue1, positValue2);
 			VivadoWrapper<16, false> softpositSum {castUI(positSum)};
 			if(!(encoded == softpositSum).template isSet<0>()){
-				/*fprintf(stderr, "\n\n\n\n");
-				fprintf(stderr, "=== Inputs === \n");
-				printApUint(value1Encoding);
-				printApUint(value2Encoding);
-				fprintf(stderr, "=== Expected result === \n");
-				printApUint(softpositSum);
-				fprintf(stderr, "=== Computed result === \n");
-				printApUint(encoded);
-				sum.printContent();
-				fprintf(stderr, "Tests Passed: %lu\n", counter);
-				*/
 				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned a wrong value while it should have returned " << to_string(softpositSum));
 			}
 		}
@@ -435,24 +379,9 @@ BOOST_AUTO_TEST_CASE(TestAllSumPosit16_in_place_rounding, *utf::disabled() * utf
 			posit16_t positValue2 = castP16(value2);
 			posit16_t positSum = p16_add(positValue1, positValue2);
 			VivadoWrapper<16, false> softpositSum {castUI(positSum)};
-			// int32_t hard = encoded.unravel();
-			// int32_t soft = softpositSum.unravel();
-			// int32_t diff = ((hard-soft)<0) ? soft-hard : hard-soft;
 
 			if(!(encoded == softpositSum).template isSet<0>()){
-			// if(diff > 1){
-				/*fprintf(stderr, "\n\n\n\n");
-				fprintf(stderr, "=== Inputs === \n");
-				printApUint(value1Encoding);
-				printApUint(value2Encoding);
-				fprintf(stderr, "=== Expected result === \n");
-				printApUint(softpositSum);
-				fprintf(stderr, "=== Computed result === \n");
-				printApUint(encoded);
-				sum.printContent();
-				fprintf(stderr, "Tests Passed: %lu\n", counter);
-				*/
-				BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << to_string(static_cast<VivadoWrapper<16, false> const &>(encoded)) << " while it should have returned " << to_string(softpositSum));
+			BOOST_REQUIRE_MESSAGE(false, "Sum of " << value1 << " and " << value2 << " returned " << to_string(static_cast<VivadoWrapper<16, false> const &>(encoded)) << " while it should have returned " << to_string(softpositSum));
 			}
 		}
 		if(((value2%100) == 0) and (value2 != 0)){
@@ -509,16 +438,6 @@ BOOST_AUTO_TEST_CASE(TestAllMulPosit16_in_place_rounding, *utf::disabled() * utf
 			posit16_t positMul = p16_mul(positValue1, positValue2);
 			VivadoWrapper<16, false> softpositMul{castUI(positMul)};
 			if(!(encoded == softpositMul).template isSet<0>()){
-				/*fprintf(stderr, "\n\n\n\n");
-				fprintf(stderr, "=== Inputs === \n");
-				printApUint(value1Encoding);
-				printApUint(value2Encoding);
-				fprintf(stderr, "=== Expected result === \n");
-				printApUint(softpositMul);
-				fprintf(stderr, "=== Computed result === \n");
-				printApUint(encoded);
-				fprintf(stderr, "Tests Passed: %lu\n", counter);
-				*/
 				BOOST_REQUIRE_MESSAGE(false, "Mul of " << value1 << " and " << value2 << " returned " << to_string(static_cast<VivadoWrapper<16, false> const &>(encoded)) << " while it should have returned " << to_string(softpositMul));
 			}
 		}

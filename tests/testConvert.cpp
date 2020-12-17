@@ -229,6 +229,15 @@ BOOST_AUTO_TEST_CASE(TestSegmentedQuireConvertBack)
 	}
 }
 
+BOOST_AUTO_TEST_CASE(TestQuireCompile)
+{
+	constexpr unsigned int N = 16;
+	constexpr unsigned int SEGMENT = 32;
+	StandardSegmentedQuire<N, SEGMENT, VivadoWrapper> quire{{0}};
+	auto r = propagateCarries(quire).unravel();
+	BOOST_REQUIRE(r == 0);
+}
+
 #ifdef SOFTPOSIT
 BOOST_AUTO_TEST_CASE(TestMinMax)
 {
