@@ -113,10 +113,10 @@ class acc_2CK3
 		};
 
 		template<unsigned int level>
-		static constexpr bool canSignExt()
+		struct CanSignExt
 		{
-			return (level >= SIGNIFICAND_SPREAD);
-		}
+			static constexpr bool check = (level >= SIGNIFICAND_SPREAD);
+		};
 
 		template <unsigned int stageIndex, unsigned int spread>
 		inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
@@ -124,7 +124,7 @@ class acc_2CK3
 			Wrapper<1, false> const & inputSign,
 			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const &,
 			typename enable_if<(spread == 0)>::type* = 0,
-			typename enable_if<canSignExt<stageIndex>()>::type* = 0
+			typename enable_if<CanSignExt<stageIndex>::check>::type* = 0
 		) const
 		{
 			auto cond = stageSelect  < Wrapper<STAGE_ID_WIDTH, false>{{stageIndex+1-SIGNIFICAND_SPREAD}};
@@ -145,7 +145,7 @@ class acc_2CK3
 			Wrapper<1, false> const &,
 			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const &,
 			typename enable_if<(spread == 0)>::type* = 0,
-			typename enable_if<!canSignExt<stageIndex>()>::type* = 0
+			typename enable_if<!CanSignExt<stageIndex>::check>::type* = 0
 		) const
 		{
 			auto ret = Wrapper<bankSize, false>{{0}};
