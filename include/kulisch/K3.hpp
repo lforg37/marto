@@ -107,10 +107,10 @@ class acc_2CK3
 		}
 
 		template<unsigned int level, unsigned int spread>
-		static constexpr bool isValidSpreadConfig()
+		struct IsValidSpreadConfig
 		{
-			return ((level - (spread -1)) <= MAX_STAGE_ID ) and ((static_cast<int>(level) - static_cast<int>(spread) + 1) >= 0);
-		}
+			static constexpr bool check = ((level - (spread -1)) <= MAX_STAGE_ID ) and ((static_cast<int>(level) - static_cast<int>(spread) + 1) >= 0);
+		};
 
 		template<unsigned int level>
 		static constexpr bool canSignExt()
@@ -163,7 +163,7 @@ class acc_2CK3
 			Wrapper<1, false> const & inputSign,
 			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
 			typename enable_if<(spread >= 1)>::type* = 0,
-			typename enable_if<!isValidSpreadConfig<stageIndex, spread>()>::type* = 0
+			typename enable_if<!IsValidSpreadConfig<stageIndex, spread>::check>::type* = 0
 			) const
 		{
 			auto res = add_2CK3_to_add_Rec<stageIndex, spread-1>(stageSelect, inputSign, shiftedSignificand);
@@ -181,7 +181,7 @@ class acc_2CK3
 			Wrapper<1, false> const & inputSign,
 			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
 			typename enable_if<(spread >= 1)>::type* = 0,
-			typename enable_if<isValidSpreadConfig<stageIndex, spread>()>::type* = 0,
+			typename enable_if<IsValidSpreadConfig<stageIndex, spread>::check>::type* = 0,
 			typename enable_if<(spread < SIGNIFICAND_SPREAD)>::type* = 0
 			) const
 		{
@@ -214,7 +214,7 @@ class acc_2CK3
 			Wrapper<1, false> const & inputSign,
 			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
 			typename enable_if<(spread >= 1)>::type* = 0,
-			typename enable_if<isValidSpreadConfig<stageIndex, spread>()>::type* = 0,
+			typename enable_if<IsValidSpreadConfig<stageIndex, spread>::check>::type* = 0,
 			typename enable_if<(spread == SIGNIFICAND_SPREAD)>::type* = 0
 			) const
 		{
