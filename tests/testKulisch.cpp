@@ -128,10 +128,10 @@ BOOST_AUTO_TEST_CASE(TestRand2CK3_32, *utf::disabled() * utf::label("long"))
 		ieee_t m_op1{{i_op1}}, m_op2{{i_op2}};
 
 		auto prod = exact_prod(m_op1, m_op2);
-		acc = acc.add_2CK3(prod);
+		acc = add_2ck3(acc, prod);
 
 		acc2 = add_2CK1(acc2, prod);
-		auto accprop = acc.propagate_carries_2CK3();
+		auto accprop = propagate_carries(acc);
 
 
 		mpfr_set_flt(current_mpfr_value1, f_op1, MPFR_RNDN);

@@ -30,42 +30,15 @@ static constexpr unsigned int getMantSpread(){
 	return Static_Ceil_Div<IEEEDim<WE, WF>::WFF_Prod, bankSize>::val+1;
 }
 
-
-template<unsigned int WE, unsigned int WF, unsigned int bankSize, unsigned int stage, template<unsigned int, bool> class Wrapper>
-Wrapper<bankSize*(stage+1), false> concatAccBanksRec(array<Wrapper<bankSize, false>, getNbStages<WE, WF, bankSize>()> const & acc,
-	typename enable_if<(stage == 0)>::type* = 0
-	){
-	return acc[stage];
-}
-
-template<unsigned int WE, unsigned int WF, unsigned int bankSize, unsigned int stage, template<unsigned int, bool> class Wrapper>
-Wrapper<bankSize*(stage+1), false> concatAccBanksRec(array<Wrapper<bankSize, false>, getNbStages<WE, WF, bankSize>()> const & acc,
-	typename enable_if<(stage >= 1)>::type* = 0
-	){
-	auto part = concatAccBanksRec<WE, WF, bankSize, stage-1>(acc);
-	auto top = acc[stage];
-	auto res = top.concatenate(part);
-	return res;
-}
-
-template<unsigned int WE, unsigned int WF, int unsigned bankSize, template<unsigned int, bool> class Wrapper>
-KulischAcc<WE, WF, Wrapper> concatAccBanks(array<Wrapper<bankSize, false>, getNbStages<WE, WF, bankSize>()> const & acc){
-	auto res = concatAccBanksRec<WE, WF, bankSize, getNbStages<WE, WF, bankSize>()-1>(acc);
-	return res.template slice<IEEEDim<WE, WF>::ACC_SIZE-1, 0>();
-}
-
-template<unsigned int WE, unsigned int WF, unsigned int bankSize, template<unsigned int, bool> class Wrapper>
-class acc_2CK3
+template<unsigned int WE, unsigned int WF, unsigned int bankSize>
+struct AccK3Dim
 {
-		static_assert (hint::is2Pow<bankSize>(), "bankSize should be a power of two");
-	private:
 		using _dim = IEEEDim<WE, WF>;
 		/**
 		 * @brief NB_STAGES required number of banks inside the accumulator
 		 */
 
 		static constexpr unsigned int NB_STAGES = getNbStages<WE, WF, bankSize>();
-
 		static constexpr unsigned int ACC_SIZE = _dim::ACC_SIZE;
 
 		/**
@@ -90,44 +63,92 @@ class acc_2CK3
 
 		static constexpr unsigned int MAX_STAGE_ID = (1 << STAGE_ID_WIDTH) - 1;
 
-		array<Wrapper<bankSize, false>, NB_STAGES> banks;
-		array<Wrapper<1, false>, NB_STAGES> carries;
+		static constexpr unsigned int TOTAL_WIDTH = (bankSize + 1) * NB_STAGES;
+};
 
+template<unsigned int WE, unsigned int WF, unsigned int bankSize, template<unsigned int, bool> class Wrapper>
+class acc_2CK3 : public Wrapper<AccK3Dim<WE, WF, bankSize>::TOTAL_WIDTH, false>
+{
+		static_assert (hint::is2Pow<bankSize>(), "bankSize should be a power of two");
+	private:
+
+		using _k3dim = AccK3Dim<WE, WF, bankSize>;
+
+		using _storage = Wrapper<_k3dim::TOTAL_WIDTH, false>;
+
+	public:
+		acc_2CK3(
+				Wrapper<_k3dim::TOTAL_WIDTH, false> const & acc = {{0}}
+				):_storage{acc}
+		{}
 
 		template<unsigned int index>
-		inline void setBank(Wrapper<bankSize, false> bank){
-			static_assert(index < NB_STAGES, "Trying to set an unexisting bank");
-			banks[index] = bank;
+		inline Wrapper<bankSize, false> getBank() const{
+			static_assert(index < _k3dim::NB_STAGES, "Trying to access an unexisting bank");
+			constexpr unsigned int low_idx = index*bankSize;
+			constexpr unsigned int up_idx = low_idx + bankSize - 1;
+			return _storage::template slice<up_idx, low_idx>();
 		}
 
 		template<unsigned int index>
-		inline void setCarry(Wrapper<1, false> carry){
-			static_assert (index < NB_STAGES, "Invalid carry index");
-			carries[index] = carry;
+		inline Wrapper<1, false> getCarry() const{
+			static_assert (index < _k3dim::NB_STAGES, "Invalid carry index");
+			return _storage::template get<index + _k3dim::NB_STAGES * bankSize>();
 		}
+
+		inline Wrapper<1, false> isNeg() const {
+			return _storage::template get<_k3dim::NB_STAGES * bankSize - 1>();
+		}
+};
+
+template <unsigned int WE, unsigned int WF, unsigned int bankSize>
+class AccK3Adder {
+	private:
+		using _k3dim = AccK3Dim<WE, WF, bankSize>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using prod_t = FPProd<WE, WF, Wrapper>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using k3acc_t = acc_2CK3<WE, WF, bankSize, Wrapper>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using kulisch_t = KulischAcc<WE, WF, Wrapper>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using stage_id_t = Wrapper<WE-_k3dim::BANK_WIDTH+1, false>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using shifted_signif_t = Wrapper<_k3dim::SHIFTED_SIGNIF_WIDTH, false>;
+
+		template<unsigned int loop_idx, template<unsigned int, bool> class Wrapper>
+		struct _partial_acc_store {
+				Wrapper<loop_idx + 1, false> carries;
+				Wrapper<(loop_idx + 1)*bankSize, false> banks;
+		};
 
 		template<unsigned int level, unsigned int spread>
 		struct IsValidSpreadConfig
 		{
-			static constexpr bool check = ((level - (spread -1)) <= MAX_STAGE_ID ) and ((static_cast<int>(level) - static_cast<int>(spread) + 1) >= 0);
+			static constexpr bool check = ((level - (spread -1)) <= _k3dim::MAX_STAGE_ID ) and ((static_cast<int>(level) - static_cast<int>(spread) + 1) >= 0);
 		};
 
 		template<unsigned int level>
 		struct CanSignExt
 		{
-			static constexpr bool check = (level >= SIGNIFICAND_SPREAD);
+			static constexpr bool check = (level >= _k3dim::SIGNIFICAND_SPREAD);
 		};
 
-		template <unsigned int stageIndex, unsigned int spread>
-		inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
-			Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
+		template <unsigned int stageIndex, unsigned int spread, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
+			stage_id_t<Wrapper> const & stageSelect,
 			Wrapper<1, false> const & inputSign,
-			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const &,
+			shifted_signif_t<Wrapper> const &,
 			typename enable_if<(spread == 0)>::type* = 0,
 			typename enable_if<CanSignExt<stageIndex>::check>::type* = 0
-		) const
+		)
 		{
-			auto cond = stageSelect  < Wrapper<STAGE_ID_WIDTH, false>{{stageIndex+1-SIGNIFICAND_SPREAD}};
+			auto cond = stageSelect  < Wrapper<_k3dim::STAGE_ID_WIDTH, false>{{stageIndex+1-_k3dim::SIGNIFICAND_SPREAD}};
 			auto ret = Wrapper<bankSize, false>::generateSequence(cond & inputSign);
 		#ifdef K3_ACC_DEBUG_FULL
 			cerr << ">>> add_2CK3_to_add_Rec<can_sign_ext, " << stageIndex << ", " << spread << ",...>" << endl;
@@ -139,14 +160,14 @@ class acc_2CK3
 			return ret;
 		}
 
-		template <unsigned int stageIndex, unsigned int spread>
-		inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
-			Wrapper<STAGE_ID_WIDTH, false> const &,
+		template <unsigned int stageIndex, unsigned int spread, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
+			stage_id_t<Wrapper> const &,
 			Wrapper<1, false> const &,
-			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const &,
+			shifted_signif_t<Wrapper> const &,
 			typename enable_if<(spread == 0)>::type* = 0,
 			typename enable_if<!CanSignExt<stageIndex>::check>::type* = 0
-		) const
+		)
 		{
 			auto ret = Wrapper<bankSize, false>{{0}};
 		#ifdef K3_ACC_DEBUG_FULL
@@ -157,14 +178,14 @@ class acc_2CK3
 			return ret;
 		}
 
-		template <unsigned int stageIndex, unsigned int spread>
-		inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
-			Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
+		template <unsigned int stageIndex, unsigned int spread, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
+			stage_id_t<Wrapper> const & stageSelect,
 			Wrapper<1, false> const & inputSign,
-			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
+			shifted_signif_t<Wrapper> const & shiftedSignificand,
 			typename enable_if<(spread >= 1)>::type* = 0,
 			typename enable_if<!IsValidSpreadConfig<stageIndex, spread>::check>::type* = 0
-			) const
+			)
 		{
 			auto res = add_2CK3_to_add_Rec<stageIndex, spread-1>(stageSelect, inputSign, shiftedSignificand);
 		#ifdef K3_ACC_DEBUG_FULL
@@ -175,21 +196,21 @@ class acc_2CK3
 			return res;
 		}
 
-		template <unsigned int stageIndex, unsigned int spread>
-		inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
-			Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
+		template <unsigned int stageIndex, unsigned int spread, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
+			stage_id_t<Wrapper> const & stageSelect,
 			Wrapper<1, false> const & inputSign,
-			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
+			shifted_signif_t<Wrapper> const & shiftedSignificand,
 			typename enable_if<(spread >= 1)>::type* = 0,
 			typename enable_if<IsValidSpreadConfig<stageIndex, spread>::check>::type* = 0,
-			typename enable_if<(spread < SIGNIFICAND_SPREAD)>::type* = 0
-			) const
+			typename enable_if<(spread < _k3dim::SIGNIFICAND_SPREAD)>::type* = 0
+			)
 		{
 			constexpr unsigned int ident_x = stageIndex - spread + 1;
 			constexpr unsigned int up = spread * bankSize - 1;
 			constexpr unsigned int down = (spread - 1)*bankSize;
 
-			Wrapper<STAGE_ID_WIDTH, false> activationValue{ident_x};
+			stage_id_t<Wrapper> activationValue{ident_x};
 
 			auto cond = (stageSelect == activationValue);
 
@@ -208,25 +229,25 @@ class acc_2CK3
 			return res;
 		}
 
-		template <unsigned int stageIndex, unsigned int spread>
-		inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
-			Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
+		template <unsigned int stageIndex, unsigned int spread, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize, false> add_2CK3_to_add_Rec(
+			stage_id_t<Wrapper> const & stageSelect,
 			Wrapper<1, false> const & inputSign,
-			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
+			shifted_signif_t<Wrapper> const & shiftedSignificand,
 			typename enable_if<(spread >= 1)>::type* = 0,
 			typename enable_if<IsValidSpreadConfig<stageIndex, spread>::check>::type* = 0,
-			typename enable_if<(spread == SIGNIFICAND_SPREAD)>::type* = 0
-			) const
+			typename enable_if<(spread == _k3dim::SIGNIFICAND_SPREAD)>::type* = 0
+			)
 		{
 			constexpr unsigned int ident_x = stageIndex - spread + 1;
-			constexpr unsigned int up = SHIFTED_SIGNIF_WIDTH - 1;
+			constexpr unsigned int up = _k3dim::SHIFTED_SIGNIF_WIDTH - 1;
 			constexpr unsigned int down = (spread - 1)*bankSize;
 			constexpr unsigned int pad_width = bankSize - (up - down + 1);
 
 			auto ext = Wrapper<pad_width, false>::generateSequence(inputSign);
 			auto low = shiftedSignificand.template slice<up, down>();
 
-			Wrapper<STAGE_ID_WIDTH, false> activationValue{ident_x};
+			stage_id_t<Wrapper> activationValue{ident_x};
 
 			auto cond = (stageSelect == activationValue);
 
@@ -245,227 +266,206 @@ class acc_2CK3
 			return res;
 		}
 
-		template <unsigned int stageIndex>
-		inline Wrapper<bankSize, false> add_2CK3_to_add_(
-			Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
+		template <unsigned int stageIndex, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize, false> _get_to_add(
+			stage_id_t<Wrapper> const & stageSelect,
 			Wrapper<1, false> const & inputSign,
-			Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand
-				) const {
-			return add_2CK3_to_add_Rec<stageIndex, SIGNIFICAND_SPREAD>(stageSelect, inputSign, shiftedSignificand);
+			shifted_signif_t<Wrapper> const & shiftedSignificand
+				)  {
+			return add_2CK3_to_add_Rec<stageIndex, _k3dim::SIGNIFICAND_SPREAD>(stageSelect, inputSign, shiftedSignificand);
 		}
 
-		template<unsigned int stageIndex>
-		inline Wrapper<bankSize+1, false> add_2CK3_acc_stage(
-							Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
-							Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
-							Wrapper<1, false> const & sign,
-							Wrapper<1, false> const & = {0},
-							typename enable_if<(stageIndex>0)>::type* = 0
-				) const
+
+
+		template<unsigned int loop_idx, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize+1, false> _add_sub_acc_stage(
+				k3acc_t<Wrapper> const & acc,
+				stage_id_t<Wrapper> const & stageSelect,
+				Wrapper<1, false> const & effectSub,
+				shifted_signif_t<Wrapper> const & shiftedInput,
+				typename enable_if<(loop_idx > 0)>::type* = 0
+			)
 		{
-			auto bank = getBank<stageIndex>();
-			auto accCarry = getCarry<stageIndex-1>();
+			auto accBank = acc.template getBank<loop_idx>();
+			auto carry = acc.template getCarry<loop_idx - 1>();
 
-			auto toAdd = add_2CK3_to_add_<stageIndex>(stageSelect, sign, shiftedSignificand);
-		#ifdef K3_ACC_DEBUG_FULL
-			cerr << ">>> add_2CK3_acc_stage<" << stageIndex << ">,...>" << endl;
-			cerr << "bank: " << to_string(bank) << endl;
-			cerr << "accCarry: " << to_string(accCarry) << endl;
-			cerr << "toAdd: " << to_string(toAdd) << endl;
-			cerr << "<<< add_2CK3_acc_stage<" << stageIndex << ">,...>" << endl;
-		#endif
-			return bank.addWithCarry(toAdd, accCarry);
+			auto toAdd = _get_to_add<loop_idx>(stageSelect, effectSub, shiftedInput);
+
+			auto sum = accBank.addWithCarry(toAdd, carry);
+			return sum;
 		}
 
-		template<unsigned int stageIndex>
-		inline Wrapper<bankSize+1, false> add_2CK3_acc_stage(
-							Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
-							Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
-							Wrapper<1, false> const & sign,
-							Wrapper<1, false> const & carry0 = {0},
-							typename enable_if<(stageIndex==0)>::type* = 0
-				) const
+
+		template<unsigned int loop_idx, template<unsigned int, bool> class Wrapper>
+		static inline Wrapper<bankSize+1, false> _add_sub_acc_stage(
+				k3acc_t<Wrapper> const & acc,
+				stage_id_t<Wrapper> const & stageSelect,
+				Wrapper<1, false> const & effectSub,
+				shifted_signif_t<Wrapper> const & shiftedInput,
+				typename enable_if<(loop_idx == 0)>::type* = 0
+			)
 		{
-			auto bank = getBank<stageIndex>();
-			auto accCarry = carry0;
-			auto toAdd = add_2CK3_to_add_<stageIndex>(stageSelect, sign, shiftedSignificand);
-		#ifdef K3_ACC_DEBUG_FULL
-			cerr << ">>> add_2CK3_acc_stage<" << stageIndex << ">,...>" << endl;
-			cerr << "bank: " << to_string(bank) << endl;
-			cerr << "accCarry: " << to_string(accCarry) << endl;
-			cerr << "toAdd: " << to_string(toAdd) << endl;
-			cerr << "<<< add_2CK3_acc_stage<" << stageIndex << ">,...>" << endl;
-		#endif
-			return bank.addWithCarry(toAdd, accCarry);
+			auto accBank = acc.template getBank<loop_idx>();
+
+			auto toAdd = _get_to_add<loop_idx>(stageSelect, effectSub, shiftedInput);
+
+			auto sum = accBank + toAdd;
+			return sum;
 		}
 
-
-		template<unsigned int stage>
-		inline void _perform_addition_all_stages(
-					Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
-					Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
-					Wrapper<1, false> const & sign,
-					acc_2CK3& resAcc,
-					typename enable_if<(stage == 0)>::type* = 0
-				) const
-		{
-			auto stageResult = add_2CK3_acc_stage<stage>(
-						stageSelect,
-						shiftedSignificand,
-						sign
-			);
-			resAcc.template setCarry<stage>(stageResult.template get<bankSize>());
-			resAcc.template setBank<stage>(stageResult.template slice<bankSize-1,0>());
-		#ifdef K3_ACC_DEBUG_FULL
-			cerr << ">>> _perform_addition_all_stages<" << stage << ", ...>" << endl;
-			cerr << "stageResult: " << to_string(stageResult) << endl;
-			cerr << "<<< _perform_addition_all_stages<" << stage << ", ...>" << endl;
-		#endif
-		}
-
-		/**
-		 * Recursive unrolling of addition on all accumulator banks
-		 * @param stageSelect[in] range in which the product should be added
-		 * @param shiftedSignificand[in] significand shifted by a value of the range (0, banksize(
-		 * @param sign[in] sign of the operation (1 for subtraction)
-		 * @param resAcc[out] accumulator in which to store the result
-		 */
-		template<unsigned int stage>
-		inline void _perform_addition_all_stages(
-					Wrapper<STAGE_ID_WIDTH, false> const & stageSelect,
-					Wrapper<SHIFTED_SIGNIF_WIDTH, false> const & shiftedSignificand,
-					Wrapper<1, false> const & sign,
-					acc_2CK3& resAcc,
-					typename enable_if<(stage > 0)>::type* = 0
-				) const
-		{
-			auto stageResult = add_2CK3_acc_stage<stage>(
-						stageSelect,
-						shiftedSignificand,
-						sign
-			);
-			resAcc.template setCarry<stage>(stageResult.template get<bankSize>());
-			resAcc.template setBank<stage>(stageResult.template slice<bankSize-1,0>());
-		#ifdef K3_ACC_DEBUG_FULL
-			cerr << ">>> _perform_addition_all_stages<" << stage << ", ...>" << endl;
-			cerr << "stageResult: " << to_string(stageResult) << endl;
-			cerr << "<<< _perform_addition_all_stages<" << stage << ", ...>" << endl;
-		#endif
-			_perform_addition_all_stages<stage-1>(stageSelect, shiftedSignificand, sign, resAcc);
-		}
-
-		template<unsigned int nb_repeat>
-		inline acc_2CK3 _propagate_carries_2CK3_Req(
-				typename enable_if<(nb_repeat > 0)>::type* = 0
-		) const
-		{
-				acc_2CK3 ret;
-				_perform_addition_all_stages<NB_STAGES - 1>({{0}}, {{0}}, {{0}}, ret);
-				return ret._propagate_carries_2CK3_Req<nb_repeat - 1>();
-		}
-
-		template<unsigned int nb_repeat>
-		inline acc_2CK3 _propagate_carries_2CK3_Req(
-				typename enable_if<(nb_repeat == 0)>::type* = 0
-		) const
-		{
-				acc_2CK3 ret;
-				_perform_addition_all_stages<NB_STAGES - 1>({{0}}, {{0}}, {{0}}, ret);
-				return ret;
-		}
-
-	public:
-		acc_2CK3(
-				KulischAcc<WE, WF, Wrapper> const & acc = {{0}},
-				Wrapper<NB_STAGES, false> const & carries_in= {{0}}
+		template<unsigned int loop_idx, template<unsigned int, bool> class Wrapper>
+		static inline _partial_acc_store<loop_idx, Wrapper> _req_partial_add(
+					k3acc_t<Wrapper> const & acc,
+					stage_id_t<Wrapper> stageSelect,
+					Wrapper<1, false> effectSub,
+					shifted_signif_t<Wrapper> shiftedInput,
+					typename enable_if<(loop_idx > 0)>::type* = 0
 				)
 		{
-			ArraySplitter<ACC_SIZE, bankSize>::distribute(
-						static_cast<Wrapper<ACC_SIZE, false> const &>(acc), banks);
-			ArraySplitter<NB_STAGES, 1>::distribute(carries_in, carries);
-#ifdef K3_ACC_DEBUG_FULL
-			cerr << "CTOR of acc_2CK3<WE=" << WE << ", WF=" << WF << ", bankSize=" << bankSize << ">" << endl;
-			cerr << "ACC_SIZE=" << ACC_SIZE << endl;
-			cerr << "NB_STAGES=" << NB_STAGES << endl;
-#endif
+			auto stage_result = _add_sub_acc_stage<loop_idx>(
+						acc,
+						stageSelect,
+						effectSub,
+						shiftedInput
+				);
+			auto lower_stages = _req_partial_add<loop_idx - 1>(acc, stageSelect, effectSub, shiftedInput);
+			auto cur_stage_carry = stage_result.template get<bankSize>();
+			auto cur_stage_bank = stage_result.template slice<bankSize - 1, 0>();
+			_partial_acc_store<loop_idx, Wrapper> ret {
+					cur_stage_carry.concatenate(lower_stages.carries),
+					cur_stage_bank.concatenate(lower_stages.banks)
+			};
+			return ret;
 		}
 
-		inline KulischAcc<WE, WF, Wrapper> getAcc(){
-			return concatAccBanks<WE, WF, bankSize>(banks);
+		template<unsigned int loop_idx, template<unsigned int, bool> class Wrapper>
+		static inline _partial_acc_store<loop_idx, Wrapper> _req_partial_add(
+					k3acc_t<Wrapper> const & acc,
+					stage_id_t<Wrapper> stageSelect,
+					Wrapper<1, false> effectSub,
+					shifted_signif_t<Wrapper> shiftedInput,
+					typename enable_if<(loop_idx== 0)>::type* = 0
+				)
+		{
+			 auto stage_result = _add_sub_acc_stage<0>(
+						 acc,
+						 stageSelect,
+						 effectSub,
+						 shiftedInput
+				 );
+			_partial_acc_store<loop_idx, Wrapper> ret{stage_result.template get<bankSize>(), stage_result.template slice<bankSize - 1, 0>()};
+			return ret;
 		}
 
-		template<unsigned int index>
-		inline Wrapper<bankSize, false> getBank() const{
-			static_assert(index < NB_STAGES, "Trying to access an unexisting bank");
-			return banks[index];
+		template<template<unsigned int, bool> class Wrapper>
+		static inline k3acc_t<Wrapper>_perform_seg_add(
+				k3acc_t<Wrapper> const & acc,
+				stage_id_t<Wrapper> const & stageSelect,
+				Wrapper<1, false> const & effectSub,
+				shifted_signif_t<Wrapper> const & shiftedInput)
+		{
+			constexpr unsigned int start_idx = _k3dim::NB_STAGES - 1;
+			auto val = _req_partial_add<start_idx>(
+					acc,
+					stageSelect,
+					effectSub,
+					shiftedInput
+				);
+			return {{val.carries.concatenate(val.banks)}};
 		}
 
-		template<unsigned int index>
-		inline Wrapper<1, false> getCarry() const{
-			static_assert (index < NB_STAGES, "Invalid carry index");
-			return carries[index];
-		}
 
-		inline Wrapper<1, false> isNeg() const {
-			return banks[NB_STAGES-1].template get<bankSize-1>();
-		}
-
-		/**
-		 *	Adding a value to a 2's complement segmented Kulisch accumulator
-		 *	@param acc [in] the accumulator to which the product should be added
-		 *	@param prod [in] the product to add
-		 */
-		inline acc_2CK3 add_2CK3(FPProd<WE, WF, Wrapper> const & prod) const
+	public:
+		template<template<unsigned int, bool> class Wrapper>
+		static inline k3acc_t<Wrapper> add_2CK3(
+				k3acc_t<Wrapper> const & in,
+				prod_t<Wrapper> const & prod,
+				Wrapper<1, false> const & isSub)
 		{
 			auto prodExp = prod.getExp();
 			auto prodSign = prod.getSignBit();
+			auto effectSub = prodSign ^ isSub;
 
 			auto inputSignificand = prod.getSignificand();
 			auto inputSignificandComplemented = Wrapper<IEEEDim<WE, WF>::WFF_Prod, false>::mux(
-						prodSign,
+						effectSub,
 						(inputSignificand.invert().modularAdd(Wrapper<IEEEDim<WE, WF>::WFF_Prod, false>{1})),
 						 inputSignificand
 				);
 
-			auto shiftValue = prodExp.template slice<BANK_WIDTH-1,0>();
-			auto extension = Wrapper<SHIFTED_SIGNIF_WIDTH - IEEEDim<WE, WF>::WFF_Prod, false>::generateSequence(prodSign);
+			auto shiftValue = prodExp.template slice<_k3dim::BANK_WIDTH-1,0>();
+			auto extension = Wrapper<_k3dim::SHIFTED_SIGNIF_WIDTH - IEEEDim<WE, WF>::WFF_Prod, false>::generateSequence(prodSign);
 			auto ext = extension.concatenate(inputSignificandComplemented);
 
 			auto shiftedInput = shifter<false>(ext,shiftValue,{0});
 
-			auto stageSelect = prodExp.template slice<WE, BANK_WIDTH>();
-			acc_2CK3<WE, WF, bankSize, Wrapper> fullAcc{};
+			auto stageSelect = prodExp.template slice<WE, _k3dim::BANK_WIDTH>();
 
-			_perform_addition_all_stages<NB_STAGES-1>(stageSelect, shiftedInput, prodSign, fullAcc);
-		#ifdef K3_ACC_DEBUG
-			cerr << "====== K3 accumulation ====" << endl;
-			cerr << "prodExp: " << to_string(prodExp) << endl;
-			cerr << "prodSign: " << to_string(prodSign) << endl;
-			cerr << "inputSignificand: " << to_string(inputSignificand) << endl;
-			cerr << "inputSignificandComplemented: " << to_string(inputSignificandComplemented) << endl;
-			cerr << "extension: " << to_string(extension) << endl;
-			cerr << "shiftValue: " << to_string(shiftValue) << endl;
-			cerr << "ext: " << to_string(ext) << endl;
-			cerr << "shiftedInput: " << to_string(shiftedInput) << endl;
-			cerr << "stageSelect: " << to_string(stageSelect) << endl;
-			cerr << "Resulting acc :" << to_string(fullAcc.getAcc().downcast()) << endl;
-			size_t i = 0;
-			for (auto const & bank : fullAcc.banks) {
-				cerr << "banks[" << i++ << "]: " << to_string(bank) << endl;
-			}
-			cerr << "===========================" << endl;
-		#endif
-			return fullAcc;
-		}
-
-		inline KulischAcc<WE, WF, Wrapper> propagate_carries_2CK3() const
-		{
-			auto retK3 = _propagate_carries_2CK3_Req<NB_STAGES>();
-			auto ret = retK3.getAcc();
-		#ifdef K3_ACC_DEBUG
-			cerr << "ret: " << to_string(static_cast<Wrapper<FPDim<WE, WF>::ACC_SIZE, false> const &>(ret)) << endl;
-		#endif
-			return ret;
+			auto res = _perform_seg_add(in, stageSelect, effectSub, shiftedInput);
+			return res;
 		}
 };
+
+template<unsigned int WE, unsigned int WF, unsigned int bankSize, template<unsigned int, bool> class Wrapper>
+inline acc_2CK3<WE, WF, bankSize, Wrapper> add_2ck3(
+		acc_2CK3<WE, WF, bankSize, Wrapper> const & acc,
+		FPProd<WE, WF, Wrapper> const & prod,
+		Wrapper<1, false> const & issub = {{0}}
+	)
+{
+	return AccK3Adder<WE, WF, bankSize>::add_2CK3(acc, prod, issub);
+}
+
+template <unsigned int WE, unsigned int WF, unsigned int bankSize>
+class K3ToKulisch {
+	private:
+		using _k3dim = AccK3Dim<WE, WF, bankSize>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using prod_t = FPProd<WE, WF, Wrapper>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using k3acc_t = acc_2CK3<WE, WF, bankSize, Wrapper>;
+
+		template <template<unsigned int, bool> class Wrapper>
+		using kulisch_t = KulischAcc<WE, WF, Wrapper>;
+
+		static constexpr unsigned int NB_STAGES = _k3dim::NB_STAGES;
+
+		using adder = AccK3Adder<WE, WF, bankSize>;
+
+
+		template<unsigned int loop_idx, template<unsigned int, bool> class Wrapper>
+		static inline kulisch_t<Wrapper> _propagate_rec(
+			k3acc_t<Wrapper> const & acc,
+			typename enable_if<(loop_idx > 0)>::type* = 0
+		)
+		{
+			auto next_acc = adder::add_2CK3(acc, {{0}}, {{0}});
+			return _propagate_rec<loop_idx - 1>(next_acc);
+		}
+
+		template<unsigned int loop_idx, template<unsigned int, bool> class Wrapper>
+		static inline kulisch_t<Wrapper> _propagate_rec(
+			k3acc_t<Wrapper> const & acc,
+			typename enable_if<(loop_idx == 0)>::type* = 0
+		)
+		{
+			auto next_acc = adder::add_2CK3(acc, {{0}}, {{0}});
+			return next_acc.template slice<_k3dim::ACC_SIZE-1, 0>();
+		};
+
+	public:
+		template<template<unsigned int, bool> class Wrapper>
+		static inline kulisch_t<Wrapper> propagate_carries(k3acc_t<Wrapper> const & in)
+		{
+			return _propagate_rec<NB_STAGES-1>(in);
+		}
+};
+
+template<unsigned int WE, unsigned int WF, unsigned int bankSize, template<unsigned int, bool> class Wrapper>
+inline KulischAcc<WE, WF, Wrapper> propagate_carries(acc_2CK3<WE, WF, bankSize, Wrapper> const & acc)
+{
+	return K3ToKulisch<WE, WF, bankSize>::propagate_carries(acc);
+}
 #endif
