@@ -115,8 +115,10 @@ class AccK3Adder {
 		template <template<unsigned int, bool> class Wrapper>
 		using kulisch_t = KulischAcc<WE, WF, Wrapper>;
 
+		static constexpr unsigned int STAGE_ID_WIDTH = WE-_k3dim::BANK_WIDTH+1;
+
 		template <template<unsigned int, bool> class Wrapper>
-		using stage_id_t = Wrapper<WE-_k3dim::BANK_WIDTH+1, false>;
+		using stage_id_t = Wrapper<STAGE_ID_WIDTH, false>;
 
 		template <template<unsigned int, bool> class Wrapper>
 		using shifted_signif_t = Wrapper<_k3dim::SHIFTED_SIGNIF_WIDTH, false>;
