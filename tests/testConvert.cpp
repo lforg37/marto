@@ -120,6 +120,8 @@ BOOST_AUTO_TEST_CASE(PositValueToProd)
 		if (posit_val.getIsNaR().template isSet<0>()) {
 			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.getIsNaR().template isSet<0>() , "Prod by one should be NAR");
 			BOOST_REQUIRE_MESSAGE(posit_prod_direct.getIsNaR().template isSet<0>(), "Direct conversion should be NAR");
+		} else if (posit_prod_direct.isZero().template isSet<0>()){
+			BOOST_REQUIRE_MESSAGE(posit_prod_by_one.isZero().template isSet<0>(), "Error : only one operand is zero");
 		} else {
 			bool ok = (posit_prod_by_one == posit_prod_direct).isSet<0>();
 			if (!ok) {
@@ -164,21 +166,11 @@ BOOST_AUTO_TEST_CASE(TestOppositeProd)
 		auto op_value = posit_decoder(opposite);
 		auto convert_op = PositIF_to_PositProd(op_value);
 		BOOST_REQUIRE_MESSAGE(
-				(convert_op == neg_prod).isSet<0>(),
+				(convert_op == neg_prod).isSet<0>() or
+				(convert_op.isZero().isSet<0>() and neg_prod.isZero().isSet<0>()),
 				"Error with encoding " << i
 			);
 	}
-}
-
-
-BOOST_AUTO_TEST_CASE(TestZeroExpZero)
-{
-	StandardPositEncoding<16, VivadoWrapper> val{{0}};
-	VivadoWrapper<StandardPositDim<16>::WE, false> zero{0};
-	auto decoded = posit_decoder(val);
-	BOOST_REQUIRE_MESSAGE((decoded.getExp() == zero).isSet<0>(),
-			"Decoded biased exp of 0 should be zero after decoding"
-		);
 }
 
 BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
@@ -195,6 +187,10 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 		if (decoded.getIsNaR().template isSet<0>()) {
 			BOOST_REQUIRE_MESSAGE(back_convert.getIsNaR().template isSet<0>(),
 				"Nar value decoding should be NaR"
+			);
+		} else if (decoded.isZero().isSet<0>()) {
+			BOOST_REQUIRE_MESSAGE(back_convert.isZero().template isSet<0>(),
+				"Zero value decoding should be Zero"
 			);
 		} else {
 			BOOST_REQUIRE_MESSAGE((back_convert == decoded).isSet<0>(),
@@ -220,6 +216,10 @@ BOOST_AUTO_TEST_CASE(TestSegmentedQuireConvertBack)
 		if (decoded.getIsNaR().template isSet<0>()) {
 			BOOST_REQUIRE_MESSAGE(back_convert.getIsNaR().template isSet<0>() ,
 				"Nar value decoding should be NaR"
+			);
+		} else if (decoded.isZero().isSet<0>()) {
+			BOOST_REQUIRE_MESSAGE(back_convert.isZero().template isSet<0>(),
+				"Zero value decoding should be Zero"
 			);
 		} else {
 			BOOST_REQUIRE_MESSAGE((back_convert == decoded).isSet<0>(),

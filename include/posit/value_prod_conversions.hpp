@@ -49,7 +49,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 	auto exp = val.getExp();
 
 	// hint<1> isZero = not(((hint<4>) val.getSignificand().slice(PositDim<N>::ProdSignificandSize - 1, PositDim<N>::ProdSignificandSize - 4)).or_reduce());
-	auto isZero = sign.invert() & implicitBit.invert() & isNaR.invert();
+	auto isZero = sign.invert() & implicitBit.invert();
 
 	//cerr << to_string(isZero) << endl;
 	//cerr << to_string(exp) << endl;
@@ -61,7 +61,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 	auto exp_aabs = exp ^ eabs_mask; // exp_aabs is either -|exp| or -|exp + 1|
 
 	// Get sign bit of Emax - |abs| to check if exponent overflow
-	auto expOverFlow = emax.addWithCarry(exp_aabs, exp_pos).template get<PROD_WE - 1>() & isNaR.invert();
+	auto expOverFlow = emax.addWithCarry(exp_aabs, exp_pos).template get<PROD_WE - 1>() & isNaR.invert() & isZero.invert();
 
 
 	auto isMinPos = expOverFlow & exp_pos.invert();

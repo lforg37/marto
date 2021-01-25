@@ -285,6 +285,11 @@ class PositProd : public PositProdSizedHint<N, WES, Wrapper>
 			return hint_type::template get<Size - 1>();
 		}
 
+		inline wrapper_helper<1> isZero() const
+		{
+			return (hint_type::template slice<SignificandSize, SignificandSize-1>() == wrapper_helper<2>{0});
+		}
+
 		operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
 		operator PositEncoding<N, WES, Wrapper>() const;
 
