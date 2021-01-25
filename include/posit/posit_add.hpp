@@ -83,13 +83,13 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 	auto round = shifted.template get<2>();
 	auto sticky = sticky_low.bitwise_or(shifted.template get<1>().bitwise_or(shifted.template get<0>()));
 
-	auto is_zero = toCount.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
-	auto non_zero_exp = subExpOp1.subWithCarry(lzoc.template leftpad<S_WE>().as_signed(), {1}).template slice<S_WE-1, 0>();
-	auto final_exp = Wrapper<S_WE, false>::mux(
+	//auto is_zero = toCount.invert().bitwise_and(lzoc == Wrapper<Static_Val<S_WF+4>::_storage, false>{S_WF+4});
+	auto final_exp = subExpOp1.subWithCarry(lzoc.template leftpad<S_WE>().as_signed(), {1}).template slice<S_WE-1, 0>();
+	/*auto final_exp = Wrapper<S_WE, false>::mux(
 					is_zero,
-					{0},
+					{PositDim<N, WES>::},
 					non_zero_exp
-				).as_unsigned();
+				).as_unsigned();*/
 
 	auto isResultNar = in1.getIsNaR().bitwise_or(in2.getIsNaR());
 

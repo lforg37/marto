@@ -188,6 +188,8 @@ bool is_sum_ok_p8(uint8_t testval0, uint8_t testval1)
 BOOST_AUTO_TEST_CASE(TestSomeSumP16)
 {
 	BOOST_REQUIRE(is_sum_ok_p16(0, 1));
+	BOOST_REQUIRE(is_sum_ok_p16((1 << 13) - 1, ((1 << 13) - 1) * -1));
+	BOOST_REQUIRE(is_sum_ok_p16(-1*((1 << 13) - 1), (1 << 13) - 1));
 }
 
 BOOST_AUTO_TEST_CASE(TestSomeSumP8)
