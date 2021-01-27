@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(testInplaceRoundP16, *utf::label("long"))
 	constexpr size_t limit_frac = (1 << (WF));
 
 
-	constexpr size_t PIF_SIZE = StandardPositDim<16>::ValSize;
+	constexpr size_t PIF_SIZE = StandardPositDim<16>::UPIFSize;
 	for (size_t isNar = 0 ; isNar <= 1 ; isNar++) {
 		size_t isNarMask = isNar << (WF + 2 + WE);
 		for (size_t gs = 0 ; gs < 4 ; gs++) {

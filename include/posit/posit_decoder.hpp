@@ -88,7 +88,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_decoder(PositEncodin
 
 	//auto biased_exp = exponent.modularAdd({PositDim<N, WES>::EXP_BIAS});
 
-	auto is_not_zero = is_zero.invert();
+	//auto is_not_zero = is_zero.invert();
 	//auto extended_is_not_zero = Wrapper<PositDim<N, WES>::WE, false>::generateSequence(is_not_zero);
 	//auto final_biased_exp = biased_exp.bitwise_and(extended_is_not_zero);
 	auto final_biased_exp = exponent.as_unsigned();//.bitwise_and(extended_is_not_zero);
@@ -118,11 +118,11 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_decoder(PositEncodin
 	cerr << "=====================" << endl;
 #endif
 
-	return PositIntermediateFormat<N, WES, Wrapper, true>(
+	return PositIntermediateFormat<N, WES, Wrapper, true>{
 				is_NAR,
 				final_biased_exp,
 				s,
 				implicit_bit,
 				fraction
-			);
+			};
 }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdio>
 //#include <tools/printing.hpp>
@@ -70,27 +70,27 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 	//cerr << to_string(isMaxPos) << endl;
 	//cerr << to_string(isMinPos) << endl;
 
-	auto minposval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+	auto minposval = Wrapper<PositDim<N, WES>::PIFSize, false>::mux(
 					sign,
 					PositIntermediateFormat<N, WES, Wrapper, true>::getMinNeg(),
 					PositIntermediateFormat<N, WES, Wrapper, true>::getMinPos()
 				);
 
-	auto maxposval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+	auto maxposval = Wrapper<PositDim<N, WES>::PIFSize, false>::mux(
 				sign,
 				PositIntermediateFormat<N, WES, Wrapper, true>::getMaxNeg(),
 				PositIntermediateFormat<N, WES, Wrapper, true>::getMaxPos()
 			);
 
-	auto specialval = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+	auto specialval = Wrapper<PositDim<N, WES>::PIFSize, false>::mux(
 				isMaxPos,
 				maxposval,
 				minposval
 			);
 
-	auto ret = Wrapper<PositDim<N, WES>::ValSize, false>::mux(
+	auto ret = Wrapper<PositDim<N, WES>::UPIFSize, false>::mux(
 				expOverFlow,
-				specialval,
+				specialval.template leftpad<PositDim<N, WES>::UPIFSize>(),
 				PositIntermediateFormat<N, WES, Wrapper, false>(
 								resultGuardBit,
 								resultStickyBit,

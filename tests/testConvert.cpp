@@ -39,14 +39,14 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 {
 	//Positive underflow
 	StandardQuire<16, hint::VivadoWrapper> quire{};
-	constexpr unsigned int PIF_SIZE = StandardPositDim<16>::ValSize;
+	constexpr unsigned int PIF_SIZE = StandardPositDim<16>::UPIFSize;
 	constexpr unsigned int PROD_SIZE = StandardPositDim<16>::ProdSize;
 	constexpr unsigned int QUIRE_SIZE = StandardQuireDim<16>::Size;
 	auto minpos = StandardPIF<16, VivadoWrapper, true>::getMinPos();
 	auto prod = posit_mul(minpos, minpos);
 	auto quire_conv = add_sub_quire(quire, prod, {0});
 	auto decoded = quire_to_posit(quire_conv);
-	bool ok = (decoded == minpos).isSet<0>();
+	bool ok = (decoded == minpos.template leftpad<PIF_SIZE>()).isSet<0>();
 	if (!ok) {/*
 		cerr << "minpos:\t" << hint::to_string(minpos) << endl;
 		cerr << "prod:\t" << hint::to_string(prod) << endl;
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 	prod = posit_mul(maxpos, maxpos);
 	quire_conv = add_sub_quire(quire, prod, {0});
 	decoded = quire_to_posit(quire_conv);
-	BOOST_REQUIRE_MESSAGE((decoded == maxpos).isSet<0>(),
+	BOOST_REQUIRE_MESSAGE((decoded == maxpos.template leftpad<PIF_SIZE>()).isSet<0>(),
 			"Positive overflow doesn't return maxpos"
 			);
 
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 	prod = posit_mul(minpos, minneg);
 	quire_conv = add_sub_quire(quire, prod, {0});
 	decoded = quire_to_posit(quire_conv);
-	BOOST_REQUIRE_MESSAGE((decoded == minneg).isSet<0>(),
+	BOOST_REQUIRE_MESSAGE((decoded == minneg.template leftpad<PIF_SIZE>()).isSet<0>(),
 			"Negative underflow is not mapped to minneg"
 			);
 
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(QuireBackCornerCases)
 	prod = posit_mul(maxpos, maxneg);
 	quire_conv = add_sub_quire(quire, prod, {0});
 	decoded = quire_to_posit(quire_conv);
-	BOOST_REQUIRE_MESSAGE((decoded == maxneg).isSet<0>(),
+	BOOST_REQUIRE_MESSAGE((decoded == maxneg.template leftpad<PIF_SIZE>()).isSet<0>(),
 			"Negative overflow is not mapped to maxneg"
 			);
 }
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(TestQuireConvertBack)
 				"Zero value decoding should be Zero"
 			);
 		} else {
-			BOOST_REQUIRE_MESSAGE((back_convert == decoded).isSet<0>(),
+			BOOST_REQUIRE_MESSAGE((back_convert == decoded.template leftpad<StandardPositDim<16>::UPIFSize>()).isSet<0>(),
 					"Error for posit with encoding " << value
 				);
 		}
@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE(TestSegmentedQuireConvertBack)
 				"Zero value decoding should be Zero"
 			);
 		} else {
-			BOOST_REQUIRE_MESSAGE((back_convert == decoded).isSet<0>(),
+			BOOST_REQUIRE_MESSAGE((back_convert == decoded.template leftpad<StandardPositDim<16>::UPIFSize>()).isSet<0>(),
 					"Error for posit with encoding " << value
 				);
 		}

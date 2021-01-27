@@ -31,7 +31,8 @@ class PositDim {
 	static constexpr unsigned int WF = N - (WES_Val+3);
 
 	// The "2" is for the guard bit and the sticky
-	static constexpr unsigned int ValSize = 2 + 3 + WE + WF;
+	static constexpr unsigned int UPIFSize = 2 + 3 + WE + WF;
+	static constexpr unsigned int PIFSize =  3 + WE + WF;
 	static constexpr unsigned int EMax = (N-2) << WES_Val;
 	static constexpr unsigned int EMin_repr = (EMax ^ (((1) << WE)-1)) + 1;
 	static constexpr unsigned int ProdSignificandSize = 2*WF + 2;
@@ -310,19 +311,17 @@ class PositProd : public PositProdSizedHint<N, WES, Wrapper>
 template<unsigned int N, template<unsigned int, bool> class Wrapper>
 using StandardPositProd = PositProd<N, hint::Static_Val<(N>>3)>::_log2, Wrapper>;
 
-template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-using PositValSizedHint = Wrapper<PositDim<N, WES>::ValSize, false>;
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<N, WES, Wrapper>
+class PositIntermediateFormat<N, WES, Wrapper, true> : public Wrapper<PositDim<N, WES>::PIFSize, false>
 {
 	//Storage :
 	// isNar Exp Sign ImplicitBit Fraction
 	public:
-		typedef PositValSizedHint<N, WES, Wrapper> hint_type;
+		typedef Wrapper<PositDim<N, WES>::PIFSize, false> hint_type;
 		template<unsigned int W>
 		using wrapper_helper = Wrapper<W, false>;
-		static constexpr unsigned int Size = PositDim<N, WES>::ValSize;
+		static constexpr unsigned int Size = PositDim<N, WES>::PIFSize;
 		static constexpr unsigned int ExpSize = PositDim<N, WES>::WE;
 		static constexpr unsigned int FractionSize = PositDim<N, WES>::WF;
 		PositIntermediateFormat(
@@ -436,15 +435,15 @@ class PositIntermediateFormat<N, WES, Wrapper, true> : public PositValSizedHint<
 
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-class PositIntermediateFormat<N, WES, Wrapper, false> : public PositValSizedHint<N, WES, Wrapper>
+class PositIntermediateFormat<N, WES, Wrapper, false> : public Wrapper<PositDim<N, WES>::UPIFSize, false>
 {
 	//Storage :
 	// Guard Sticky isNar Exp Sign ImplicitBit Fraction
 	public:
-		typedef PositValSizedHint<N, WES, Wrapper> hint_type;
+		typedef Wrapper<PositDim<N, WES>::UPIFSize, false> hint_type;
 		template<unsigned int W>
 		using wrapper_helper = Wrapper<W, false>;
-		static constexpr unsigned int Size = PositDim<N, WES>::ValSize;
+		static constexpr unsigned int Size = PositDim<N, WES>::UPIFSize;
 		static constexpr unsigned int ExpSize = PositDim<N, WES>::WE;
 		static constexpr unsigned int FractionSize = PositDim<N, WES>::WF;
 		PositIntermediateFormat(
