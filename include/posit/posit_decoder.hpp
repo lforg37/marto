@@ -118,11 +118,11 @@ inline PositIntermediateFormat<N, WES, Wrapper, true> posit_decoder(PositEncodin
 	cerr << "=====================" << endl;
 #endif
 
-	return PositIntermediateFormat<N, WES, Wrapper, true>{
+	return PositIntermediateFormat<N, WES, Wrapper, true>(
 				is_NAR,
 				final_biased_exp,
 				s,
 				implicit_bit,
 				fraction
-			};
+			);
 }

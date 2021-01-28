@@ -63,23 +63,23 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> posit_add(
 				lessSignifSign
 			);
 
-	auto shiftedTop = shiftedSignificand.template slice<S_WF+2+2, 3>();
+	auto shiftedTop = shiftedSignificand.template slice<S_WF+2+2, 3>(); // S_WF + 2
 	auto guards = shiftedSignificand.template slice<2, 1>();
 	auto sticky_low = shiftedSignificand.template get<0>();
 
-	auto addOp1 = mostSignifSign.concatenate(mostSignificantSignificand);
-	auto addOp2 = lessSignifSign.concatenate(shiftedTop);
+	auto addOp1 = mostSignifSign.concatenate(mostSignificantSignificand); //S_WF + 3 sign ext
+	auto addOp2 = lessSignifSign.concatenate(shiftedTop); // S_WF + 3 sign extension
 
-	auto addRes = addOp1.modularAdd(addOp2);
+	auto addRes = addOp1.modularAdd(addOp2); // S_WF + 3
 	auto toCount = addRes.template get<S_WF+2>();
-	auto usefulRes = addRes.template slice<S_WF+1, 0>();
+	auto usefulRes = addRes.template slice<S_WF+1, 0>(); // S_WF + 2
 
 	auto lzoc_shifted = LZOC_shift<S_WF+4, S_WF+4>(usefulRes.concatenate(guards), toCount);
 
 
 	auto & lzoc = lzoc_shifted.lzoc;
 	auto & shifted = lzoc_shifted.shifted;
-	auto frac = shifted.template slice<S_WF+3, 3>();
+	auto frac = shifted.template slice<S_WF+3, 3>(); // S_WF + 1
 	auto round = shifted.template get<2>();
 	auto sticky = sticky_low.bitwise_or(shifted.template get<1>().bitwise_or(shifted.template get<0>()));
 

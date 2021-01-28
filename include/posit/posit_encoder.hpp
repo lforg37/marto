@@ -149,11 +149,11 @@ inline PositEncoding<N, WES, Wrapper> posit_encoder(PositIntermediateFormat<N, W
 	auto roundedResult = unroundedResult.modularAdd(roundingBit.template leftpad<N-1>());
 
 	auto normalOutput = sign.concatenate(roundedResult);
-	auto zero = Wrapper<N-1, false>{{0}};
+	auto zero = Wrapper<N-1, false>::generateSequence({0});
 	auto isNaRBit = positValue.getIsNaR();
 	auto specialCasesValue = isNaRBit.concatenate(zero);
 
-	auto isSpecial = positValue.isZero() | isNaRBit;
+	auto isSpecial = (positValue.getSignBit().invert() & positValue.getImplicitBit().invert()) | isNaRBit;
 
 	auto ret = Wrapper<N, false>::mux(isSpecial, specialCasesValue, normalOutput);
 #ifdef POSIT_ENCODER_DEBUG
