@@ -288,7 +288,7 @@ class PositProd : public PositProdSizedHint<N, WES, Wrapper>
 
 		inline wrapper_helper<1> isZero() const
 		{
-			return {hint_type::template get<SignificandSize>().bitwise_or(hint_type::template get<SignificandSize - 1>()).invert()};
+			return hint_type::template get<SignificandSize>().bitwise_or(hint_type::template get<SignificandSize - 1>()).invert();
 		}
 
 		operator PositIntermediateFormat<N, WES, Wrapper, false>() const;
