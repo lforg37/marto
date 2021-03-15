@@ -9,15 +9,8 @@ Marto provides C++ headers to implement custom sized arithmetic objects such as:
 
 # Marto usage
 
-Marto is an header only library.
-In order to use the provided operators, simply clone the git repository and include the required headers in your project.
-
-Most of Marto operators are designed for VivadoHLS.
-However, the operators are currently transitioning to a multi-HLS tool library (Hint HLS integer library) in order to support IntelHLS as well.
-When using such operators, the user must have [Hint](https://github.com/yuguen/hint).
-
-Migrated operators:
-+ IEEE adder: ```ieee_add_sub_impl```
+Marto is a header only library.
+It is based on [Hint](https://github.com/yuguen/hint) in order to provide support for many HLS backends.
 
 # Building unit tests 
 

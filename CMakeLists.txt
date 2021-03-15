@@ -20,7 +20,10 @@ add_library(VIVADO_AP_INT INTERFACE IMPORTED)
 target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
 
 add_library(${LIBNAME} INTERFACE)
-target_include_directories(${LIBNAME} INTERFACE ${INCLUDE_ROOT})
+target_include_directories(${LIBNAME} INTERFACE 
+	$<BUILD_INTERFACE:${INCLUDE_ROOT}>
+	$<INSTALL_INTERFACE:include/marto>
+	)
 target_link_libraries(${LIBNAME} INTERFACE hint)
 
 
