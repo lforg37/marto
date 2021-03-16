@@ -8,11 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(LIBNAME marto)
 set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-find_package(libhint CONFIG REQUIRED)
-
-if(NOT DEFINED AP_INT_INCLUDE_DIR)
-	MESSAGE(FATAL_ERROR "Please provide the path to ap_int include directory in AP_INT_INCLUDE_DIR")
-endif()
+find_package(Hint CONFIG REQUIRED)
 
 add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE 
@@ -105,15 +101,19 @@ endif()
 install(DIRECTORY ${INCLUDE_ROOT}/ DESTINATION include/marto FILES_MATCHING PATTERN "*.hpp" PATTERN "*.ipp")
 install(
 	TARGETS ${LIBNAME}
-	EXPORT libmarto
+	EXPORT ${PROJECT_NAME}Targets
 	PUBLIC_HEADER DESTINATION "include/marto"
 	)
-install(EXPORT libmarto DESTINATION ${CMAKE_INSTALL_PREFIX}/include/marto/)
-export(EXPORT libmarto FILE libmarto-config.cmake)
-export(PACKAGE libmarto)
+install(FILES ${PROJECT_NAME}Config.cmake DESTINATION lib/cmake/${PROJECT_NAME})
+install(EXPORT ${PROJECT_NAME}Targets FILE ${PROJECT_NAME}Targets.cmake DESTINATION lib/cmake/${PROJECT_NAME})
+export(PACKAGE ${PROJECT_NAME})
 
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests")
 if(BUILD_UNIT_TEST)
+if(NOT DEFINED AP_INT_INCLUDE_DIR)
+	MESSAGE(FATAL_ERROR "Please provide the path to ap_int include directory in AP_INT_INCLUDE_DIR")
+endif()
+
 	set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
 
 	add_library(VIVADO_AP_INT INTERFACE IMPORTED)
