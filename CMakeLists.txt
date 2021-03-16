@@ -14,11 +14,6 @@ if(NOT DEFINED AP_INT_INCLUDE_DIR)
 	MESSAGE(FATAL_ERROR "Please provide the path to ap_int include directory in AP_INT_INCLUDE_DIR")
 endif()
 
-set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
-
-add_library(VIVADO_AP_INT INTERFACE IMPORTED)
-target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
-
 add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE 
 	$<BUILD_INTERFACE:${INCLUDE_ROOT}>
@@ -108,7 +103,8 @@ if(DEBUG_KULISH_ROUND)
 endif()
 
 install(DIRECTORY ${INCLUDE_ROOT}/ DESTINATION include/marto FILES_MATCHING PATTERN "*.hpp" PATTERN "*.ipp")
-install(TARGETS marto
+install(
+	TARGETS ${LIBNAME}
 	EXPORT libmarto
 	PUBLIC_HEADER DESTINATION "include/marto"
 	)
@@ -118,6 +114,12 @@ export(PACKAGE libmarto)
 
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests")
 if(BUILD_UNIT_TEST)
+	set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
+
+	add_library(VIVADO_AP_INT INTERFACE IMPORTED)
+	target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
+
+
 	find_package(Boost 1.55 REQUIRED COMPONENTS unit_test_framework)
 	find_package(OpenMP)
 
