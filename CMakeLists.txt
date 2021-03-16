@@ -108,6 +108,13 @@ if(DEBUG_KULISH_ROUND)
 endif()
 
 install(DIRECTORY ${INCLUDE_ROOT}/ DESTINATION include/marto FILES_MATCHING PATTERN "*.hpp" PATTERN "*.ipp")
+install(TARGETS marto
+	EXPORT marto
+	PUBLIC_HEADER DESTINATION "include/marto"
+	)
+install(EXPORT marto DESTINATION ${CMAKE_INSTALL_PREFIX}/include/marto/)
+export(EXPORT marto FILE export-config.cmake)
+export(PACKAGE marto)
 
 OPTION(BUILD_UNIT_TEST "Build the operators unit tests")
 if(BUILD_UNIT_TEST)
