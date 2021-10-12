@@ -24,7 +24,9 @@ Wrapper<1, false> ieee_getRoundBit(
 		IEEERoundingMode roundingMode
 		)
 {
-	Wrapper<3, false> roundingCode{static_cast<uint8_t>(roundingMode)};
+	auto roundingCode =
+        Wrapper<8, false>{static_cast<uint8_t>(roundingMode)}
+            .template slice<2, 0>();
 	auto b0 = roundingCode.template get<0>();
 	auto b1 = roundingCode.template get<1>();
 	auto b2 = roundingCode.template get<2>();

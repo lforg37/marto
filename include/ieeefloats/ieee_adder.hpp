@@ -178,8 +178,10 @@ inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
 
 	auto unroundedInf = expPreRound.and_reduction();
 
-	auto roundingCode = Wrapper<8, false>{static_cast<uint8_t>(roundingMode)}.template slice<2, 0>();
-	auto b0 = roundingCode.template get<0>();
+    auto roundingCode =
+        Wrapper<8, false>{static_cast<uint8_t>(roundingMode)}
+            .template slice<2, 0>();
+    auto b0 = roundingCode.template get<0>();
 	auto b1 = roundingCode.template get<1>();
 	auto b2 = roundingCode.template get<2>();
 	auto forbiddent_inf = ((b2 & b0 & (b1 == maxSign)) | (roundingCode.or_reduction().invert())) & unroundedInf & maxIsInfinity.invert() & resultIsNan.invert();
