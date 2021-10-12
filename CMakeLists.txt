@@ -11,7 +11,7 @@ set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if (NOT DEFINED HintBackendVersion)
 	set(HintBackendVersion "master")
 endif()
-set (HintBackendVersion ${HintBackendVersion} CACHE STRING "Hint commit version used" FORCE)
+set (HintBackendVersion ${HintBackendVersion} CACHE STRING "Hint commit version used")
 
 FetchContent_Declare(
 	Hint
