@@ -8,7 +8,27 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(LIBNAME marto)
 set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-find_package(Hint CONFIG REQUIRED)
+if (NOT DEFINED HintBackendVersion)
+	set(HintBackendVersion "master")
+endif()
+set (HintBackendVersion ${HintBackendVersion} CACHE STRING "Hint commit version used" FORCE)
+
+FetchContent_Declare(
+	Hint
+	GIT_REPOSITORY https://github.com/yuguen/hint.git
+	GIT_TAG ${HintBackendVersion}
+	)
+
+FetchContent_MakeAvailable(Hint)
+
+if(DEFINED AP_INT_INCLUDE_DIR)
+	set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
+
+	add_library(VIVADO_AP_INT INTERFACE IMPORTED)
+	target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
+else()
+	MESSAGE(WARNING "AP_INT_INCLUDE_DIR not provided, will not build for vivado ap_int")
+endif()
 
 add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE 
