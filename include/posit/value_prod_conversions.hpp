@@ -129,7 +129,7 @@ inline PositIntermediateFormat<N, WES, Wrapper, false> PositProd_to_PositIF(Posi
 }
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper>
-inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_place_rounding(PositProd<N, WES, Wrapper> const & val)
+inline PositIntermediateFormat<N, WES, Wrapper, true> PositProd_to_PositIF_in_place_rounding(PositProd<N, WES, Wrapper> const val)
 {
 	auto prod_inexact = PositProd_to_PositIF(val);
 	auto ret = in_place_rounder(prod_inexact);

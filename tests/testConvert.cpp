@@ -1,7 +1,6 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE PositToValueTest
 
-#define VIVADO_BACKEND
 #include <array>
 #include <cmath>
 #include <cstdio>

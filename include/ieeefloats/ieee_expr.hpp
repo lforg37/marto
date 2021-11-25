@@ -59,7 +59,7 @@ struct IEEEtoFPNum
 };
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-FPExpr<typename IEEEToFPDim<WE, WF>::type, Wrapper> inline to_expr(IEEENumber<WE, WF, Wrapper> const & in)
+FPExpr<typename IEEEToFPDim<WE, WF>::type, Wrapper> inline to_expr(IEEENumber<WE, WF, Wrapper> const in)
 {
 	return to_expr(IEEEtoFPNum<WE, WF>::compute(in));
 }

@@ -134,13 +134,13 @@ class Quire : public QuireSizedHint<N, WES, NB_CARRY, Wrapper>
 
 template <int N, int WES, int NB_CARRY, template<unsigned int, bool> class Wrapper>
 Quire<N, WES, Wrapper, NB_CARRY> operator+(
-		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		Quire<N, WES, Wrapper, NB_CARRY> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	);
 template <int N, int WES, int NB_CARRY, template<unsigned int, bool> class Wrapper>
 Quire<N, WES, Wrapper, NB_CARRY> operator-(
-		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		Quire<N, WES, Wrapper, NB_CARRY> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	);
 
 template <unsigned int N, template<unsigned int, bool> class Wrapper>
@@ -218,13 +218,13 @@ class SegmentedQuire : public SegmentedQuireSizedHint<N, WES, NB_CARRY, bankSize
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int bankSize>
 SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> operator+(
-		SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	);
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int bankSize>
 SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> operator-(
-		SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, bankSize> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	);
 
 template<unsigned int N, unsigned int banksize, template<unsigned int, bool> class Wrapper>
@@ -537,7 +537,7 @@ public:
 		typedef Wrapper<N, false> hint_type;
 		template<unsigned int W>
 		using wrapper_helper = Wrapper<W, false>;
-	PositEncoding(hint_type const & val):hint_type{val}{}
+	PositEncoding(hint_type const val):hint_type{val}{}
 
 	operator PositIntermediateFormat<N, WES, Wrapper, true>() const;
 	operator PositProd<N, WES, Wrapper>() const;
@@ -549,19 +549,19 @@ public:
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 PositEncoding<N, WES, Wrapper> operator+(
-		PositEncoding<N, WES, Wrapper> const & lhs,
-		PositEncoding<N, WES, Wrapper> const & rhs
+		PositEncoding<N, WES, Wrapper> const lhs,
+		PositEncoding<N, WES, Wrapper> const rhs
    );
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 PositEncoding<N, WES, Wrapper> operator-(
-		PositEncoding<N, WES, Wrapper> const & lhs,
-		PositEncoding<N, WES, Wrapper> const & rhs
+		PositEncoding<N, WES, Wrapper> const lhs,
+		PositEncoding<N, WES, Wrapper> const rhs
 	);
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 PositEncoding<N, WES, Wrapper> operator-(
-		PositEncoding<N, WES, Wrapper> const & val
+		PositEncoding<N, WES, Wrapper> const val
 	)
 {
 	auto one = Wrapper<1, false>{{1}}.template leftpad<N>();
@@ -572,8 +572,8 @@ PositEncoding<N, WES, Wrapper> operator-(
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 PositProd<N, WES, Wrapper> operator*(
-		PositEncoding<N, WES, Wrapper> const & lhs,
-		PositEncoding<N, WES, Wrapper> const & rhs
+		PositEncoding<N, WES, Wrapper> const lhs,
+		PositEncoding<N, WES, Wrapper> const rhs
 	);
 
 template <unsigned int N, template <unsigned int, bool> class Wrapper>

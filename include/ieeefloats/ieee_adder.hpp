@@ -17,8 +17,8 @@ using std::cerr;
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
 inline IEEENumber<WE, WF, Wrapper> ieee_add_sub_impl(
-	   IEEENumber<WE, WF, Wrapper> const & in0,
-	   IEEENumber<WE, WF, Wrapper> const & in1,
+	   IEEENumber<WE, WF, Wrapper> const in0,
+	   IEEENumber<WE, WF, Wrapper> const in1,
 	   IEEERoundingMode const roundingMode = IEEERoundingMode::RoundNearestTieEven
 	)
 {

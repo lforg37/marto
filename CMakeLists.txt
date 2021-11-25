@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(FetchContent)
+
 set(LIBNAME marto)
 set(INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -20,15 +22,6 @@ FetchContent_Declare(
 	)
 
 FetchContent_MakeAvailable(Hint)
-
-if(DEFINED AP_INT_INCLUDE_DIR)
-	set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
-
-	add_library(VIVADO_AP_INT INTERFACE IMPORTED)
-	target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
-else()
-	MESSAGE(WARNING "AP_INT_INCLUDE_DIR not provided, will not build for vivado ap_int")
-endif()
 
 add_library(${LIBNAME} INTERFACE)
 target_include_directories(${LIBNAME} INTERFACE 
@@ -128,18 +121,11 @@ install(FILES ${PROJECT_NAME}Config.cmake DESTINATION lib/cmake/${PROJECT_NAME})
 install(EXPORT ${PROJECT_NAME}Targets FILE ${PROJECT_NAME}Targets.cmake DESTINATION lib/cmake/${PROJECT_NAME})
 export(PACKAGE ${PROJECT_NAME})
 
-OPTION(BUILD_UNIT_TEST "Build the operators unit tests")
-if(BUILD_UNIT_TEST)
-if(NOT DEFINED AP_INT_INCLUDE_DIR)
-	MESSAGE(FATAL_ERROR "Please provide the path to ap_int include directory in AP_INT_INCLUDE_DIR")
-endif()
-
-	set(AP_INT_INCLUDE_DIR ${AP_INT_INCLUDE_DIR} CACHE PATH "Path to ap_int include directory" FORCE)
-
-	add_library(VIVADO_AP_INT INTERFACE IMPORTED)
-	target_include_directories(VIVADO_AP_INT INTERFACE ${AP_INT_INCLUDE_DIR})
-
-
+OPTION(BUILD_MARTO_UNIT_TEST "Build the operators unit tests")
+if (BUILD_MARTO_UNIT_TEST)
+    if(NOT VIVADO_BACKEND)
+        MESSAGE(FATAL_ERROR "Please provide the path to ap_int include directory in VIVADO_INCLUDES")
+    endif()
 	find_package(Boost 1.55 REQUIRED COMPONENTS unit_test_framework)
 	find_package(OpenMP)
 
@@ -148,19 +134,18 @@ endif()
 	add_executable(testConvert_exe tests/testConvert.cpp  tests/testConversionPosit.cpp)
 	find_library(SOFTPOSIT_LIB softposit)
 	find_path(SOFTPOSIT_H softposit.h)
-	target_link_libraries(testConvert_exe ${LIBNAME} ${Boost_LIBRARIES})
+	target_link_libraries(testConvert_exe ${LIBNAME} HINT_VIVADO_BACKEND ${Boost_LIBRARIES})
 	add_dependencies(testConvert_exe ${LIBNAME})
 	if(SOFTPOSIT_LIB AND SOFTPOSIT_H)
 		MESSAGE(STATUS "softposit found : ${SOFTPOSIT_LIB}, ${SOFTPOSIT_H}")
 		target_compile_definitions(testConvert_exe PRIVATE SOFTPOSIT)
 		target_include_directories(testConvert_exe PRIVATE ${SOFTPOSIT_H})
-		target_link_libraries(testConvert_exe ${SOFTPOSIT_LIB} VIVADO_AP_INT)
+		target_link_libraries(testConvert_exe ${SOFTPOSIT_LIB} HINT_VIVADO_BACKEND)
 		add_test(testConvert testConvert_exe)
 
 		add_executable(testAritOps_exe tests/testArithmeticOp.cpp)
 		target_include_directories(testAritOps_exe PRIVATE ${SOFTPOSIT_H})
-		target_link_libraries(testAritOps_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} ${SOFTPOSIT_LIB} VIVADO_AP_INT -fopenmp)
-		target_compile_definitions(testAritOps_exe PRIVATE VIVADO_BACKEND)
+		target_link_libraries(testAritOps_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} ${SOFTPOSIT_LIB} -fopenmp)
 		add_test(testAritOps testAritOps_exe)
 
 		if(OpenMP_CXX_FOUND)
@@ -171,16 +156,14 @@ endif()
 	endif()
 
 	add_executable(testExpressions_exe tests/testExpression.cpp tests/testExprSum.cpp tests/testExprProduct.cpp tests/testExprRounding.cpp tests/testExprIEEEConvert.cpp)
-	target_link_libraries(testExpressions_exe ${LIBNAME} ${Boost_LIBRARIES} VIVADO_AP_INT)
-	target_compile_definitions(testExpressions_exe PRIVATE VIVADO_BACKEND)
+	target_link_libraries(testExpressions_exe ${LIBNAME} ${Boost_LIBRARIES} HINT_VIVADO_BACKEND)
 
 	find_path(MPFR mpfr.h)
 
 	if(MPFR)
 		MESSAGE(STATUS "MPFR found : ${MPFR}")
 		add_executable(testKulisch_exe tests/testKulisch.cpp)
-		target_link_libraries(testKulisch_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} -lmpfr)
-		target_compile_definitions(testKulisch_exe PRIVATE MPFR VIVADO_BACKEND)
+		target_link_libraries(testKulisch_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} HINT_VIVADO_BACKEND -lmpfr)
 		target_link_libraries(testExpressions_exe -lmpfr)
 		target_compile_definitions(testExpressions_exe PRIVATE MPFR)
 		add_test(testKulisch testKulisch_exe)
@@ -191,13 +174,15 @@ endif()
 	find_path(SOFTFLOAT_INCLUDE_DIR softfloat.h PATH_SUFFIXES softfloat)
 	find_library(SOFTFLOAT libsoftfloat-3.a)
 
-	if (NOT (SOFTFLOAT_INCLUDE_DIR-NOTFOUND OR SOFTFLOAT-NOTFOUND))
+	if (NOT ((SOFTFLOAT_INCLUDE_DIR STREQUAL "SOFTFLOAT_INCLUDE_DIR-NOTFOUND") OR 
+            (SOFTFLOAT STREQUAL "SOFTFLOAT-NOTFOUND")))
 		set(SOFTFLOATTARGET-OK ON)
 		message(STATUS "Softfloat found")
 		message(STATUS "Softfloat lib : ${SOFTFLOAT}")
+		message(STATUS "Softfloat include dir : ${SOFTFLOAT_INCLUDE_DIR}")        
 	else()
 		set(SOFTFLOATTARGET-NOTFOUND)
-		message(warning "Softfloat not found")
+		message(WARNING "Softfloat not found")
 	endif()
 
 	add_library(libnumform INTERFACE)
@@ -208,12 +193,11 @@ endif()
 	add_test(testLibNumForm testLibNumForm_exe)
 
 	add_executable(ieee_adder_exe tests/ieee_adder.cpp)
-	target_link_libraries(ieee_adder_exe PRIVATE VIVADO_AP_INT ${LIBNAME})
+	target_link_libraries(ieee_adder_exe PRIVATE HINT_VIVADO_BACKEND ${LIBNAME})
 	target_compile_definitions(ieee_adder_exe PRIVATE -DIEEE_WE=8 -DIEEE_WF=23)
 
 	add_executable(testIEEElibnum_exe tests/testIEEEMultiplier.cpp tests/testIEEEAdder.cpp)
-	target_compile_definitions(testIEEElibnum_exe PRIVATE VIVADO_BACKEND)
-	target_link_libraries(testIEEElibnum_exe PRIVATE ${LIBNAME} libnumform ${Boost_LIBRARIES} VIVADO_AP_INT)
+	target_link_libraries(testIEEElibnum_exe PRIVATE ${LIBNAME} libnumform ${Boost_LIBRARIES} HINT_VIVADO_BACKEND)
 	add_test(testIEEElibnum testIEEElibnum_exe)
 
 	if(OpenMP_CXX_FOUND)
@@ -226,6 +210,6 @@ endif()
 		target_link_libraries(testIEEElibnum_exe PRIVATE ${SOFTFLOAT})
 		target_include_directories(testIEEElibnum_exe PRIVATE ${SOFTFLOAT_INCLUDE_DIR})
 	else()
-		message(warning "Softfloat not found : impossible to test operator against an external reference")
+		message(WARNING "Softfloat not found : impossible to test operator against an external reference")
 	endif()
 endif()

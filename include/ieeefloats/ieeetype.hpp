@@ -143,7 +143,7 @@ class IEEENumber : public Wrapper<WE + WF + 1, false>
 		static constexpr unsigned int _WF = WF;
 		using rounding_type_t = us_wrapper<3>;
 
-		IEEENumber(Wrapper<WE + WF + 1, false> const & val = {0}):Wrapper<WE+WF+1, false>{val}{}
+		IEEENumber(Wrapper<WE + WF + 1, false> const val = {0}):Wrapper<WE+WF+1, false>{val}{}
 
 		inline us_wrapper<1> getSign() const{
 			return basetype::template get<WE+WF>();

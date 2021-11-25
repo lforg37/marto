@@ -1,5 +1,3 @@
-#define VIVADO_BACKEND
-
 #include <ap_int.h>
 #include "hint.hpp"
 #include "ieeefloats/ieeetype.hpp"

@@ -23,8 +23,8 @@ inline PositEncoding<N, WES, Wrapper>::operator PositProd<N, WES, Wrapper>() con
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 inline PositEncoding<N, WES, Wrapper> operator+(
-		PositEncoding<N, WES, Wrapper> const & lhs,
-		PositEncoding<N, WES, Wrapper> const & rhs
+		PositEncoding<N, WES, Wrapper> const lhs,
+		PositEncoding<N, WES, Wrapper> const rhs
 	)
 {
 	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(lhs);
@@ -34,8 +34,8 @@ inline PositEncoding<N, WES, Wrapper> operator+(
 
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 inline PositEncoding<N, WES, Wrapper> operator-(
-		PositEncoding<N, WES, Wrapper> const & lhs,
-		PositEncoding<N, WES, Wrapper> const & rhs
+		PositEncoding<N, WES, Wrapper> const lhs,
+		PositEncoding<N, WES, Wrapper> const rhs
 	)
 {
 	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(lhs);
@@ -46,8 +46,8 @@ inline PositEncoding<N, WES, Wrapper> operator-(
 #include "posit_mul.hpp"
 template<unsigned int N, unsigned int WES, template <unsigned int, bool> class Wrapper>
 inline PositProd<N, WES, Wrapper> operator*(
-		PositEncoding<N, WES, Wrapper> const & lhs,
-		PositEncoding<N, WES, Wrapper> const & rhs
+		PositEncoding<N, WES, Wrapper> const lhs,
+		PositEncoding<N, WES, Wrapper> const rhs
 	)
 {
 	auto lhs_val = static_cast<PositIntermediateFormat<N, WES, Wrapper, true> >(lhs);
@@ -116,8 +116,8 @@ inline Quire<N, WES, Wrapper, NB_CARRY>::operator PositIntermediateFormat<N, WES
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
 inline Quire<N, WES, Wrapper, NB_CARRY> operator+(
-		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		Quire<N, WES, Wrapper, NB_CARRY> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	)
 {
 	return add_sub_quire(lhs, rhs, 0);
@@ -125,8 +125,8 @@ inline Quire<N, WES, Wrapper, NB_CARRY> operator+(
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY>
 inline Quire<N, WES, Wrapper, NB_CARRY> operator-(
-		Quire<N, WES, Wrapper, NB_CARRY> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		Quire<N, WES, Wrapper, NB_CARRY> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	)
 {
 	return add_sub_quire(lhs, rhs, 1);
@@ -148,16 +148,16 @@ inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize>::operator PositInterm
 
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int banksize>
 inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> operator+(
-		SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	)
 {
 	return segmented_add_sub_quire(lhs, rhs, 0);
 }
 template<unsigned int N, unsigned int WES, template<unsigned int, bool> class Wrapper, unsigned int NB_CARRY, unsigned int banksize>
 inline SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> operator-(
-		SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> const & lhs,
-		PositProd<N, WES, Wrapper> const & rhs
+		SegmentedQuire<N, WES, Wrapper, NB_CARRY, banksize> const lhs,
+		PositProd<N, WES, Wrapper> const rhs
 	)
 {
 	return segmented_add_sub_quire(lhs, rhs, 1);
