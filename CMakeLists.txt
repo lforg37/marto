@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 project(Marto CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Add module to find custom dependencies
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 include(FetchContent)
 
@@ -29,6 +32,11 @@ target_include_directories(${LIBNAME} INTERFACE
 	$<INSTALL_INTERFACE:include/marto>
 	)
 target_link_libraries(${LIBNAME} INTERFACE hint)
+
+OPTION(BUILD_ARCHGENLIB "Build archgenlib" ON)
+if(BUILD_ARCHGENLIB)
+add_subdirectory(archgenlib)
+endif()
 
 
 OPTION(DEBUG_FPEXPR_SUM "Dump all FPExpr sum operator signals")
