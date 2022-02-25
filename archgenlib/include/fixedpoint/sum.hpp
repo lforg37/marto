@@ -12,6 +12,14 @@ public:
 
 template <ExpressionType T1, ExpressionType T2>
 using SumExpr = BinaryOp<T1, T2, SumOp>;
+
+class SunOp {
+public:
+  static constexpr std::string_view FQN{"archgenlib::SubOp"};
+};
+
+template <ExpressionType T1, ExpressionType T2>
+using SubExpr = BinaryOp<T1, T2, SumOp>;
 } // namespace archgenlib
 
 #endif

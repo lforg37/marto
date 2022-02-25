@@ -13,9 +13,10 @@ template <typename T> static constexpr bool ok = false;
 template <archgenlib::ExpressionType T> static constexpr bool ok<T> = true;
 
 int main() {
-  archgenlib::Variable<int> a{17};
+  int val = 17;
+  archgenlib::Variable<int> a{val};
   archgenlib::Constant<std::integral_constant<int, 42>> b{};
-  auto c = a + b;
+  auto c = a + b - b;
   auto res = archgenlib::evaluate<-14>(c);
   std::cout << res << std::endl;
   return 0;

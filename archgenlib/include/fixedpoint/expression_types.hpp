@@ -47,10 +47,10 @@ private:
 
 template <std::integral T> class Variable {
 private:
-  T value;
+  T const & value;
 
 public:
-  Variable(T val) : value{val} {}
+  Variable(T const & val) : value{val} {}
   static constexpr bool constant = false;
 };
 
