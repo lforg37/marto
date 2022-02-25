@@ -1,0 +1,83 @@
+find_package(Boost 1.55 REQUIRED COMPONENTS unit_test_framework)
+find_package(OpenMP)
+
+enable_testing()
+
+add_executable(testConvert_exe src/testConvert.cpp  src/testConversionPosit.cpp)
+find_library(SOFTPOSIT_LIB softposit)
+find_path(SOFTPOSIT_H softposit.h)
+target_link_libraries(testConvert_exe ${LIBNAME} HINT_VIVADO_BACKEND ${Boost_LIBRARIES})
+add_dependencies(testConvert_exe ${LIBNAME})
+if(SOFTPOSIT_LIB AND SOFTPOSIT_H)
+	MESSAGE(STATUS "softposit found : ${SOFTPOSIT_LIB}, ${SOFTPOSIT_H}")
+	target_compile_definitions(testConvert_exe PRIVATE SOFTPOSIT)
+	target_include_directories(testConvert_exe PRIVATE ${SOFTPOSIT_H})
+	target_link_libraries(testConvert_exe ${SOFTPOSIT_LIB} HINT_VIVADO_BACKEND)
+	add_test(testConvert testConvert_exe)
+
+    add_executable(testAritOps_exe src/testArithmeticOp.cpp)
+	target_include_directories(testAritOps_exe PRIVATE ${SOFTPOSIT_H})
+	target_link_libraries(testAritOps_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} ${SOFTPOSIT_LIB})
+	add_test(testAritOps testAritOps_exe)
+
+	if(OpenMP_CXX_FOUND)
+		target_link_libraries(testAritOps_exe PRIVATE OpenMP::OpenMP_CXX)
+	endif()
+else()
+	Message(WARNING "Tests on posit value cannot be run")
+endif()
+
+add_executable(testExpressions_exe src/testExpression.cpp src/testExprSum.cpp src/testExprProduct.cpp src/testExprRounding.cpp src/testExprIEEEConvert.cpp)
+target_link_libraries(testExpressions_exe ${LIBNAME} ${Boost_LIBRARIES} HINT_VIVADO_BACKEND)
+
+find_package(MPFR)
+
+if(MPFR_FOUND)
+	add_executable(testKulisch_exe src/testKulisch.cpp)
+	target_link_libraries(testKulisch_exe PRIVATE ${LIBNAME} ${Boost_LIBRARIES} HINT_VIVADO_BACKEND MPFR::MPFR)
+	target_link_libraries(testExpressions_exe MPFR::MPFR)
+	target_compile_definitions(testExpressions_exe PRIVATE MPFR)
+	add_test(testKulisch testKulisch_exe)
+else()
+	Message(WARNING "Tests on Kulisch value cannot be run")
+endif()
+
+find_path(SOFTFLOAT_INCLUDE_DIR softfloat.h PATH_SUFFIXES softfloat)
+find_library(SOFTFLOAT libsoftfloat-3.a)
+
+if (NOT ((SOFTFLOAT_INCLUDE_DIR STREQUAL "SOFTFLOAT_INCLUDE_DIR-NOTFOUND") OR 
+        (SOFTFLOAT STREQUAL "SOFTFLOAT-NOTFOUND")))
+    set(SOFTFLOATTARGET-OK ON)
+	message(STATUS "Softfloat found")
+	message(STATUS "Softfloat lib : ${SOFTFLOAT}")
+	message(STATUS "Softfloat include dir : ${SOFTFLOAT_INCLUDE_DIR}")        
+else()
+	set(SOFTFLOATTARGET-NOTFOUND)
+	message(WARNING "Softfloat not found")
+endif()
+
+add_executable(testLibNumForm_exe src/testLibNumForm.cpp)
+target_link_libraries(testLibNumForm_exe PRIVATE libnumform ${Boost_LIBRARIES})
+add_test(testLibNumForm testLibNumForm_exe)
+
+add_executable(ieee_adder_exe src/ieee_adder.cpp)
+target_link_libraries(ieee_adder_exe PRIVATE HINT_VIVADO_BACKEND ${LIBNAME})
+target_compile_definitions(ieee_adder_exe PRIVATE -DIEEE_WE=8 -DIEEE_WF=23)
+
+add_executable(testIEEElibnum_exe src/testIEEEMultiplier.cpp src/testIEEEAdder.cpp)
+target_link_libraries(testIEEElibnum_exe PRIVATE ${LIBNAME} libnumform ${Boost_LIBRARIES} HINT_VIVADO_BACKEND)
+add_test(testIEEElibnum testIEEElibnum_exe)
+
+if(OpenMP_CXX_FOUND)
+	target_link_libraries(testIEEElibnum_exe PRIVATE OpenMP::OpenMP_CXX)
+	target_link_libraries(testExpressions_exe OpenMP::OpenMP_CXX)
+	target_compile_definitions(testIEEElibnum_exe PRIVATE HAS_OMP)
+endif()
+
+if(SOFTFLOATTARGET-OK)
+	target_compile_definitions(testIEEElibnum_exe PRIVATE SOFTFLOAT)
+	target_link_libraries(testIEEElibnum_exe PRIVATE ${SOFTFLOAT})
+	target_include_directories(testIEEElibnum_exe PRIVATE ${SOFTFLOAT_INCLUDE_DIR})
+else()
+	message(WARNING "Softfloat not found : impossible to test operator against an external reference")
+endif()

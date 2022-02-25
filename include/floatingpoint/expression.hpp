@@ -1,5 +1,5 @@
-#ifndef EXPRESSION_HPP
-#define EXPRESSION_HPP
+#ifndef FLOATINGPOINT_EXPRESSION_HPP
+#define FLOATINGPOINT_EXPRESSION_HPP
 
 #include <cstddef>
 #include <cstdint>

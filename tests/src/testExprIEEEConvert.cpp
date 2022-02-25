@@ -1,7 +1,9 @@
 #include <cmath>
 #include <cstdint>
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include <boost/test/unit_test.hpp>
 
@@ -78,14 +80,15 @@ BOOST_AUTO_TEST_CASE(TestIEEEBinary32ToFPExpr, *utf::disabled() * utf::label("lo
 
 	#pragma omp parallel
 	{
-		uint64_t inc;
-		uint64_t start;
+		uint64_t inc = 1;
+		uint64_t start = 0;
+		#ifdef _OPENMP
 		#pragma omp critical
 		{
 			inc = omp_get_num_threads();
 			start = omp_get_thread_num();
 		}
-
+		#endif
 
 		for (uint64_t repr_ext = start; repr_ext < limit && total_ok; repr_ext += inc) {
 			uint32_t repr = static_cast<uint32_t>(repr_ext);

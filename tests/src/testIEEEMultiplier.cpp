@@ -11,7 +11,10 @@
 #include "hint.hpp"
 #include "tools/printing.hpp"
 #include "ieeefloats/ieee_multiplier.hpp"
+
+#ifdef HAS_OMP
 #include <omp.h>
+#endif
 
 #include "ieeefloats/ieeetype.hpp"
 
