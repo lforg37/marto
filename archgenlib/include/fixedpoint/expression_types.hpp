@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "operations.hpp"
+
 namespace archgenlib {
 
 namespace detail {
@@ -23,98 +25,83 @@ concept IntegralConstantType = is_integral_cst<T>;
 
 template <typename T>
 concept ExpressionType = requires {
-  {T::constant};
-};
+                           { T::constant };
+                         };
 
-template <ExpressionType op1type, ExpressionType op2type, typename ChildClass>
+template <ExpressionType op1type, ExpressionType op2type, BinaryOpType OpT>
 struct BinaryOp {
 public:
-  using arg_storage = std::pair<op1type const &, op2type const &>;
+  using LeftType = op1type;
+  using RightType = op2type;
+  using operation_t = OpT;
   static constexpr bool constant = op1type::constant || op2type::constant;
-  BinaryOp(op1type const &op1, op2type const &op2) : args{op1, op2} {}
-
-private:
-  arg_storage args;
+  BinaryOp(op1type const &op1, op2type const &op2) : left{op1}, right{op2} {}
+  LeftType const &left;
+  RightType const &right;
 };
 
-template <ExpressionType T, typename ChildClass> class UnaryOp {
+namespace detail {
+template <ExpressionType T> constexpr bool _is_binary_expr = false;
+
+template <ExpressionType ET1, ExpressionType ET2, BinaryOpType OT>
+constexpr bool _is_binary_expr<BinaryOp<ET1, ET2, OT>> = true;
+} // namespace detail
+
+template <typename ET>
+concept BinaryExprType = detail::_is_binary_expr<ET>;
+
+template <ExpressionType T, UnaryOpType Op> class UnaryOp {
 public:
   static constexpr bool constant = T::constant;
+  using operation_t = Op;
+  using ChildType = T;
 
 private:
   T &op;
 };
 
-template <std::integral T> class Variable {
-private:
-  T const & value;
+namespace detail {
+template <ExpressionType T> constexpr bool _is_unary_expr = false;
 
+template <ExpressionType ET, UnaryOpType OT>
+constexpr bool _is_unary_expr<UnaryOp<ET, OT>> = true;
+} // namespace detail
+
+template <typename ET>
+concept UnaryExprType = detail::_is_unary_expr<ET>;
+
+template <std::integral T> class Variable {
 public:
-  Variable(T const & val) : value{val} {}
+  using type = T;
+  Variable(T const &val) : value{val} {}
   static constexpr bool constant = false;
+  T const &value;
 };
 
-template <detail::IntegralConstantType Integral> class Constant {
-private:
-  using type = Integral;
+namespace detail {
+template <typename T> constexpr bool _is_variable_expr = false;
+template <std::integral IT>
+constexpr bool _is_variable_expr<Variable<IT>> = true;
+} // namespace detail
 
+template <typename T>
+concept VariableExprType = detail::_is_variable_expr<T>;
+
+template <detail::IntegralConstantType Integral> class Constant {
 public:
+  using type = Integral;
+  typename Integral::type get() { return type::value; }
   static constexpr bool constant = true;
 };
 
 namespace detail {
-template <ExpressionType> class Introspecter;
-
-template <ExpressionType LeftOpT, ExpressionType RightOpT, typename ChildClass>
-class Introspecter<BinaryOp<LeftOpT, RightOpT, ChildClass>> {
-  using left_op_introspector = Introspecter<LeftOpT>;
-  using right_op_introspector = Introspecter<RightOpT>;
-
-public:
-  static auto get_expression_full_name() {
-    std::stringstream ss;
-    ss << "archgenlib::BinaryOp<"
-       << left_op_introspector::get_expression_full_name() << ", "
-       << right_op_introspector::get_expression_full_name() << ", "
-       << ChildClass::FQN << ">";
-    return ss.str();
-  }
-};
-
-template <ExpressionType OpT, typename ChildClass>
-class Introspecter<UnaryOp<OpT, ChildClass>> {
-  using op_introspector_t = Introspecter<OpT>;
-
-public:
-  static auto get_expression_full_name() {
-    std::stringstream ss;
-    ss << ChildClass::FQN << "<"
-       << op_introspector_t::get_expression_full_name() << ">";
-    return ss.str();
-  }
-};
-
-template <std::integral T> class Introspecter<Variable<T>> {
-public:
-  static auto get_expression_full_name() {
-    // TODO: replace int by real representation
-    constexpr std::string_view ret{"archgenlib::Variable<int>"};
-    return ret;
-  }
-};
-
-template <std::integral T, T value>
-class Introspecter<Constant<std::integral_constant<T, value>>> {
-public:
-  static auto get_expression_full_name() {
-    // TODO: replace int by real representation
-    std::stringstream ss;
-    ss << "archgenlib::Constant<std::integral_constant<int, " << value << ">>";
-    return ss.str();
-  }
-};
-
+template <typename T> constexpr bool _is_constant_expr = false;
+template <detail::IntegralConstantType IT>
+constexpr bool _is_constant_expr<Constant<IT>> = true;
 } // namespace detail
+
+template <typename T>
+concept ConstantExprType = detail::_is_constant_expr<T>;
 
 } // namespace archgenlib
 

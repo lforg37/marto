@@ -7,25 +7,18 @@
 #include <string>
 
 #include "expression_types.hpp"
-
+#include "expression_rt_tree.hpp"
+#include "output_formatter.hpp"
 namespace archgenlib {
-namespace detail {
-class SpecialisationFormatter {
-public:
-  std::ofstream output;
-  SpecialisationFormatter();
-  ~SpecialisationFormatter();
-};
-SpecialisationFormatter &getFormatter();
-} // namespace detail
 
 template <ExpressionType ET, std::int32_t prec> class Evaluator {
 public:
   Evaluator() {
     auto &formatter = detail::getFormatter();
-    using introspector_t = detail::Introspecter<ET>;
+    ExpressionRTRepr erepr{};
+    erepr.template do_init<ET>();
     if (formatter.output) {
-      auto expr_name = introspector_t::get_expression_full_name();
+      auto expr_name = detail::type_name<ET>();
       formatter.output << "template<>\n"
                        << "struct archgenlib::Evaluator<" << expr_name << ", "
                        << prec << "> {\n"
