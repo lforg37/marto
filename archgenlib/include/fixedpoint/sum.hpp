@@ -3,7 +3,6 @@
 
 #include "expression_types.hpp"
 #include "operations.hpp"
-#include <string_view>
 
 namespace archgenlib {
 
@@ -16,6 +15,11 @@ using SubOp = detail::OperationType<OperationKind::SUB>;
 
 template <ExpressionType T1, ExpressionType T2>
 using SubExpr = BinaryOp<T1, T2, SubOp>;
+
+using NegOp = detail::OperationType<OperationKind::NEG>;
+
+template<ExpressionType ET>
+using NegExpr = UnaryOp<ET, NegOp>;
 } // namespace archgenlib
 
 #endif

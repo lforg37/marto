@@ -1,6 +1,7 @@
 #ifndef FIXEDPOINT_EXPRESSION_HPP
 #define FIXEDPOINT_EXPRESSION_HPP
 
+#include "functions.hpp"
 #include "sum.hpp"
 
 #include "evaluator.hpp"
@@ -15,6 +16,10 @@ template <archgenlib::ExpressionType T1, archgenlib::ExpressionType T2>
 auto operator-(T1 const &op1, T2 const &op2) {
   using ret_type = archgenlib::SubExpr<T1, T2>;
   return ret_type{op1, op2};
+}
+
+template <archgenlib::ExpressionType ET> auto operator-(ET const &operand) {
+  return archgenlib::NegExpr<ET>(operand);
 }
 
 namespace archgenlib {

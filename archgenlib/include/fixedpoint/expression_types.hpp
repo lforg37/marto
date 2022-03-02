@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "fixedpoint.hpp"
 #include "operations.hpp"
 
 namespace archgenlib {
@@ -70,8 +71,9 @@ constexpr bool _is_unary_expr<UnaryOp<ET, OT>> = true;
 template <typename ET>
 concept UnaryExprType = detail::_is_unary_expr<ET>;
 
-template <std::integral T> class Variable {
+template <FPNumberType T> class Variable {
 public:
+  using dimension_t = typename T::dimension_t;
   using type = T;
   Variable(T const &val) : value{val} {}
   static constexpr bool constant = false;
@@ -80,24 +82,24 @@ public:
 
 namespace detail {
 template <typename T> constexpr bool _is_variable_expr = false;
-template <std::integral IT>
+template <FPNumberType IT>
 constexpr bool _is_variable_expr<Variable<IT>> = true;
 } // namespace detail
 
 template <typename T>
 concept VariableExprType = detail::_is_variable_expr<T>;
 
-template <detail::IntegralConstantType Integral> class Constant {
+template <FixedConstantType ConstType> class Constant {
 public:
-  using type = Integral;
-  typename Integral::type get() { return type::value; }
+  using dimension_t = typename ConstType::dimension_t;
+  using type = ConstType;
   static constexpr bool constant = true;
 };
 
 namespace detail {
 template <typename T> constexpr bool _is_constant_expr = false;
-template <detail::IntegralConstantType IT>
-constexpr bool _is_constant_expr<Constant<IT>> = true;
+template <FixedConstantType ConstType>
+constexpr bool _is_constant_expr<Constant<ConstType>> = true;
 } // namespace detail
 
 template <typename T>
