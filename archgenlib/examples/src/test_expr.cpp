@@ -8,6 +8,7 @@
 #include "fixedpoint/fixedpoint.hpp"
 
 #ifdef INCLUDE_GENERATED_HEADER
+#include "fixedpoint/operators/value_getter.hpp"
 #include "specialization_header.hpp"
 #endif
 
@@ -17,8 +18,10 @@ template <archgenlib::ExpressionType T> static constexpr bool ok<T> = true;
 
 using archgenlib::bitweight_t;
 
-template<bitweight_t MSBWeight, bitweight_t LSBWeight, bool ISSigned> 
-using fpnum_t = archgenlib::FPNumber<archgenlib::FPDim<MSBWeight, LSBWeight, ISSigned>, hint::BitIntWrapper>; 
+template <bitweight_t MSBWeight, bitweight_t LSBWeight, bool ISSigned>
+using fpnum_t =
+    archgenlib::FPNumber<archgenlib::FPDim<MSBWeight, LSBWeight, ISSigned>,
+                         hint::BitIntWrapper>;
 
 int main() {
   int val = 17;

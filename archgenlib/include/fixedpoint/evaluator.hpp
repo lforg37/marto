@@ -6,8 +6,9 @@
 #include <sstream>
 #include <string>
 
-#include "expression_types.hpp"
 #include "expression_rt_tree.hpp"
+#include "expression_types.hpp"
+#include "operators/value_getter.hpp"
 #include "output_formatter.hpp"
 namespace archgenlib {
 
@@ -17,6 +18,9 @@ public:
     auto &formatter = detail::getFormatter();
     ExpressionRTRepr erepr{};
     erepr.template do_init<ET>();
+    auto getter = ExprLeafGetter::getOperator(
+        erepr.symbol_table.value()[0].path_from_root);
+    auto l = erepr.get_singlevar_dominants();
     if (formatter.output) {
       auto expr_name = detail::type_name<ET>();
       formatter.output << "template<>\n"
@@ -24,7 +28,8 @@ public:
                        << prec << "> {\n"
                        << "  auto evaluate(" << expr_name
                        << " const & expr) {\n"
-                       << "    return 42;\n"
+                       << "    return static_cast<int>(" << getter("expr")
+                       << ".value().unravel()) + " << l.size() << ";\n"
                        << "  }\n"
                        << "};\n";
     }

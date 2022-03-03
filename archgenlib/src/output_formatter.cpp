@@ -1,7 +1,15 @@
 #include "fixedpoint/evaluator.hpp"
+#include <sstream>
 
 namespace archgenlib {
 namespace detail {
+
+std::string doReturn(std::string_view expr) {
+  std::stringstream ss("return ");
+  ss << expr << ";";
+  return ss.str();
+}
+
 SpecialisationFormatter &getFormatter() {
   static SpecialisationFormatter formatter{};
   return formatter;

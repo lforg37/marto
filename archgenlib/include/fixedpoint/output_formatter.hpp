@@ -49,7 +49,13 @@ template <typename T> constexpr auto type_name() {
   return std::string_view{value};
 }
 
+template <typename T> constexpr auto type_name_from_val(T) {
+  return type_name<T>();
+}
+
 /// End of utility
+
+std::string doReturn(std::string_view expr);
 
 class SpecialisationFormatter {
 public:

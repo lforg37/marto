@@ -9,6 +9,7 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 #include "expression_types.hpp"
 #include "fixedpoint.hpp"
@@ -44,6 +45,20 @@ struct ExpressionRTRepr {
     std::optional<LeafDescriptor> leaf_descr;
     std::list<OperationNode> children;
     bool is_constant;
+    void DFS(auto &lambda) const {
+      for (auto const &child : children)
+        child.DFS(lambda);
+      lambda(*this);
+    }
+
+    /*Predicate should return whether the exploration should end on this node */
+    void BFS(auto &lambda) const {
+      if (!lambda(*this)) {
+        for (auto &child : children) {
+          child.BFS(lambda);
+        }
+      }
+    }
   };
 
   using sym_table_t = std::map<std::uint32_t, LeafId>;
@@ -89,8 +104,8 @@ private:
 
   template <VariableExprType ET> auto extract_subtree() {
     OperationNode op_node{};
-    LeafDescriptor ldescr{
-        LeafType::VARIABLE, descriptor_from_fpdim(typename ET::dimension_t{})};
+    LeafDescriptor ldescr{LeafType::VARIABLE,
+                          descriptor_from_fpdim(typename ET::dimension_t{})};
 
     sym_table_t sym_table{};
     sym_table.insert(
@@ -121,7 +136,14 @@ public:
     root.emplace(std::move(root_node));
   }
 
-private:
+  /***
+   * Return a map that associates to each node the number of dependant variables
+   */
+  std::map<OperationNode const *, std::size_t>
+  get_count_for_nodes() const;
+
+  std::list<OperationNode const *> get_singlevar_dominants() const;
+
   std::uint32_t first_available_leaf_id;
   std::optional<sym_table_t> symbol_table;
   std::optional<OperationNode> root;

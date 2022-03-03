@@ -61,6 +61,7 @@ class FPNumber {
 public:
   using dimension_t = Dim;
   FPNumber(storage_t const &val) : value_{val} {}
+  storage_t value() const { return value_;}
 };
 
 namespace detail {
