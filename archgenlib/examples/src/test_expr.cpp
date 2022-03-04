@@ -26,11 +26,11 @@ using fpnum_t =
 int main() {
   int val = 17;
   archgenlib::Variable<fpnum_t<5, -4, false>> a{{val}};
-  using const_valtype = hint::detail::bitint_base_t<false, 18>;
-  using dim_t = archgenlib::FPDim<14, -3, false>;
-  using const_t = archgenlib::FixedConstant<dim_t, const_valtype{165}>;
+  using const_valtype = hint::detail::bitint_base_t<false, 16>;
+  using dim_t = archgenlib::FPDim<14, -1, false>;
+  using const_t = archgenlib::FixedConstant<dim_t, const_valtype{3}>;
   archgenlib::Constant<const_t> b{};
-  auto c = a + b - b;
+  auto c = -a + sin(b) - b;
   auto res = archgenlib::evaluate<-14>(c);
   std::cout << res << std::endl;
   return 0;

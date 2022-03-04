@@ -5,7 +5,7 @@ namespace archgenlib {
 enum struct OperationKind { ADD, SUB, SIN, NEG };
 
 namespace detail {
-template <OperationKind OK> constexpr bool isBinaryOpKind() {
+constexpr bool isBinaryOpKind(OperationKind OK) {
   switch (OK) {
   case OperationKind::ADD:
   case OperationKind::SUB:
@@ -18,9 +18,13 @@ template <OperationKind OK> constexpr bool isBinaryOpKind() {
   }
 }
 
+constexpr bool isUnaryOpKind(OperationKind OK) {
+  return !isBinaryOpKind(OK);
+}
+
 template <OperationKind OK> struct OperationType {
-  static constexpr bool is_binary = isBinaryOpKind<OK>();
-  static constexpr bool is_unary = !isBinaryOpKind<OK>();
+  static constexpr bool is_binary = isBinaryOpKind(OK);
+  static constexpr bool is_unary = !isBinaryOpKind(OK);
   static constexpr OperationKind operation_kind = OK;
 };
 
@@ -29,11 +33,11 @@ template <typename T> constexpr bool _is_unary_op = false;
 
 template <OperationKind OK>
 constexpr bool
-    _is_binary_op<detail::OperationType<OK>> = detail::isBinaryOpKind<OK>();
+    _is_binary_op<detail::OperationType<OK>> = detail::isBinaryOpKind(OK);
 
 template <OperationKind OK>
 constexpr bool
-    _is_unary_op<detail::OperationType<OK>> = !detail::isBinaryOpKind<OK>();    
+    _is_unary_op<detail::OperationType<OK>> = !detail::isBinaryOpKind(OK);    
 } // namespace detail
 
 template<typename T>

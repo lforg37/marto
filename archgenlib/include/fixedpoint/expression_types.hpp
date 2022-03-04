@@ -56,9 +56,8 @@ public:
   static constexpr bool constant = T::constant;
   using operation_t = Op;
   using ChildType = T;
-
-private:
-  T &op;
+  UnaryOp(T const & op):op{op}{}
+  T const & op;
 };
 
 namespace detail {

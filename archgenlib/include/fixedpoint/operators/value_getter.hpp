@@ -1,8 +1,8 @@
 #ifndef FIXEDPOINT_OPERATORS_VALUE_GETTER_HPP
 #define FIXEDPOINT_OPERATORS_VALUE_GETTER_HPP
 
-#include "fixedpoint/expression_rt_tree.hpp"
-#include "fixedpoint/output_formatter.hpp"
+#include "runtime/expression_tree.hpp"
+#include "runtime/output_formatter.hpp"
 #include <sstream>
 #include <string_view>
 

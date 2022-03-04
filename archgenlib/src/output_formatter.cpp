@@ -18,8 +18,8 @@ SpecialisationFormatter &getFormatter() {
 SpecialisationFormatter::SpecialisationFormatter()
     : output{"specialization_header.hpp"} {
   if (output) {
-    output << "#ifndef SPECIALIzATION_HEADER_HPP\n#define "
-              "SPECIALIzATION_HEADER_HPP\n";
+    output << "#ifndef SPECIALIZATION_HEADER_HPP\n#define "
+              "SPECIALIZATION_HEADER_HPP\n";
   }
 }
 

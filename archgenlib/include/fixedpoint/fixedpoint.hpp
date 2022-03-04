@@ -82,6 +82,7 @@ template<FPDimType Dim, hint::detail::bitint_base_t<Dim::is_signed, Dim::width> 
 struct FixedConstant {
   using dimension_t = Dim;
   using value_type = hint::detail::bitint_base_t<Dim::is_signed, Dim::width>;
+  static constexpr value_type value = Val; 
 };
 
 namespace detail {
