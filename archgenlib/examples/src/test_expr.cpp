@@ -30,8 +30,8 @@ int main() {
   using dim_t = archgenlib::FPDim<14, -1, false>;
   using const_t = archgenlib::FixedConstant<dim_t, const_valtype{3}>;
   archgenlib::Constant<const_t> b{};
-  auto c = -a + sin(b) - b;
-  auto res = archgenlib::evaluate<-14>(c);
+  auto c = sin(a) * b;
+  auto res = archgenlib::evaluate<-4>(c);
   std::cout << res << std::endl;
   return 0;
 }

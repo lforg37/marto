@@ -9,10 +9,13 @@
 
 #include "expression_types.hpp"
 #include "operators/value_getter.hpp"
+#include "operators/tabled_expr.hpp"
 #include "runtime/expression_tree.hpp"
 #include "runtime/output_formatter.hpp"
 #include "runtime/sollya_handler.hpp"
 #include "runtime/sollya_operation.hpp"
+#include "runtime/sollya_fix_function.hpp"
+
 namespace archgenlib {
 
 template <ExpressionType ET, std::int32_t prec> class Evaluator {
@@ -25,6 +28,9 @@ public:
     auto l = erepr.get_singlevar_dominants();
     SollyaHandler topnode{sollyaFunctionFromNode(*erepr.root)};
     sollya_lib_printf("sollya_repr: %b\n", static_cast<sollya_obj_t>(topnode));
+    FPDimRTRepr repr{5, prec, true};
+    SollyaFunction sf{topnode, repr};
+    auto reprvec = sf.faithful_at_weight(prec);
     if (formatter.output) {
       auto expr_name = detail::type_name<ET>();
       formatter.output << "template<>\n"
@@ -32,8 +38,9 @@ public:
                        << prec << "> {\n"
                        << "  auto evaluate(" << expr_name
                        << " const & expr) {\n"
-                       << "    return static_cast<int>(" << getter("expr")
-                       << ".value().unravel()) + " << l.size() << ";\n"
+                       << "    " << emit_tabled_expr("table", reprvec)
+                       << "    return table(static_cast<int>(" << getter("expr")
+                       << ".value().unravel()));\n"
                        << "  }\n"
                        << "};\n";
     }

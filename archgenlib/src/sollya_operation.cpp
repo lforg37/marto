@@ -31,6 +31,8 @@ sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
     return sollya_lib_build_function_add;
     case OperationKind::SUB:
     return sollya_lib_build_function_sub;
+    case OperationKind::MUL:
+    return sollya_lib_build_function_mul;
     default:
     __builtin_unreachable();
   }

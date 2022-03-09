@@ -2,7 +2,7 @@ add_executable(hello_world src/hello_world)
 target_link_libraries(hello_world archgenlib Sollya::Sollya)
 
 add_executable(test_expr src/test_expr)
-target_link_libraries(test_expr archgenlib Sollya::Sollya HINT_BITINT_BACKEND)
+target_link_libraries(test_expr archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
 
 add_executable(test_func_table src/test_func_table)
 target_link_libraries(test_func_table archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
