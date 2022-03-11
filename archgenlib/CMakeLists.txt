@@ -4,6 +4,7 @@ find_package(MPFR)
 
 add_library(archgenlib SHARED
     src/expression_tree
+    src/fixfunction_multipartite
     src/mpfr_handler
     src/operators
     src/output_formatter
