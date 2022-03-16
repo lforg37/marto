@@ -30,6 +30,7 @@ struct FPDimRTRepr {
     assert((msb >= lsb) && "MSB should have a greater weight than LSB");
     width = static_cast<vecwidth_t>(msb - lsb + 1);
   }
+  std::string toFPDimName() const;
 };
 
 template <ExpressionType ET> struct ExprTypeHolder {};

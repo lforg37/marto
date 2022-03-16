@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cstdint>
+#include <sstream>
 #include <utility>
 #include <variant>
 
@@ -114,6 +115,21 @@ std::vector<RTNode const *> ExpressionRTRepr::get_singlevar_dominants() const {
   };
   HierarchicalVisitor{pred}(*root);
   return ret_list;
+}
+
+std::string FPDimRTRepr::toFPDimName() const {
+  using fpdim_t = FPDim<37, -12, false>;
+  constexpr auto fpdim_name = detail::type_name<fpdim_t>();
+  constexpr auto indicator = fpdim_name.find("37");
+  constexpr auto prefix = fpdim_name.substr(0, indicator);
+  std::stringstream ss;
+  ss << prefix << msb_weight << ", " << lsb_weight <<", ";
+  if (is_signed) {
+    ss << "true>";
+  } else {
+    ss << "false>";
+  }
+  return ss.str();
 }
 
 } // namespace archgenlib

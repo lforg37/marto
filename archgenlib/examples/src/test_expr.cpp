@@ -8,7 +8,6 @@
 #include "fixedpoint/fixedpoint.hpp"
 
 #ifdef INCLUDE_GENERATED_HEADER
-#include "fixedpoint/operators/value_getter.hpp"
 #include "specialization_header.hpp"
 #endif
 
@@ -20,11 +19,10 @@ using archgenlib::bitweight_t;
 
 template <bitweight_t MSBWeight, bitweight_t LSBWeight, bool ISSigned>
 using fpnum_t =
-    archgenlib::FPNumber<archgenlib::FPDim<MSBWeight, LSBWeight, ISSigned>,
-                         hint::BitIntWrapper>;
+    archgenlib::FPNumber<archgenlib::FPDim<MSBWeight, LSBWeight, ISSigned>>;
 
 int main() {
-  int val = 17;
+  unsigned _BitInt(10) val = 17;
   archgenlib::Variable<fpnum_t<5, -4, false>> a{{val}};
   using const_valtype = hint::detail::bitint_base_t<false, 16>;
   using dim_t = archgenlib::FPDim<14, -1, false>;
@@ -32,6 +30,6 @@ int main() {
   archgenlib::Constant<const_t> b{};
   auto c = sin(a) * b;
   auto res = archgenlib::evaluate<-4>(c);
-  std::cout << res << std::endl;
+  std::cout << static_cast<int>(res.value()) << std::endl;
   return 0;
 }

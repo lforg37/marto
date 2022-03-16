@@ -1,13 +1,15 @@
 #ifndef FIXEDPOINT_FIXEDPOINT_HPP
 #define FIXEDPOINT_FIXEDPOINT_HPP
 
-
+#include <algorithm>
 #include <concepts>
 #include <cstdint>
 #include <limits>
+#include <string_view>
 #include <type_traits>
 
 #include "bitint_tools/bitint_constant.hpp"
+#include "bitint_tools/type_helpers.hpp"
 
 namespace archgenlib {
 using bitweight_t = std::int32_t;
@@ -52,23 +54,23 @@ concept FPDimType = detail::is_fpdim<T>;
 template<std::integral IT>
 using fpdim_from_integral = FPDim<std::numeric_limits<IT>::digits + std::is_signed_v<IT>, 0, std::is_signed_v<IT>>;
 
-template <FPDimType Dim, template <unsigned int, bool> class Wrapper>
+template <FPDimType Dim>
 class FPNumber {
-  using storage_t = Wrapper<Dim::width, Dim::is_signed>;
+  using storage_t = hint::detail::bitint_base_t<Dim::is_signed, Dim::width>;
 
   storage_t value_;
 
 public:
   using dimension_t = Dim;
-  FPNumber(storage_t const &val) : value_{val} {}
+  constexpr FPNumber(storage_t const &val) : value_{val} {}
   storage_t value() const { return value_;}
 };
 
 namespace detail {
 template <typename T> constexpr bool is_fp_num = false;
 
-template <FPDimType Dim, template <unsigned int, bool> class Wrapper>
-constexpr bool is_fp_num<FPNumber<Dim, Wrapper>> = true;
+template <FPDimType Dim>
+constexpr bool is_fp_num<FPNumber<Dim>> = true;
 } // namespace detail
 
 template <typename T>
@@ -93,6 +95,9 @@ namespace detail {
 
 template<typename T>
 concept FixedConstantType = detail::_is_fixed_constant<T>;
+
+namespace detail {
+}
 
 } // namespace archgenlib
 
