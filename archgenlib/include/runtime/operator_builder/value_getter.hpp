@@ -2,25 +2,12 @@
 #define RUNTIME_OPERATOR_BUILDER_VALUE_GETTER_HPP
 
 #include "runtime/expression_tree.hpp"
-#include <ostream>
+#include "runtime/operator_builder/operator.hpp"
 
 namespace archgenlib {
 
-namespace detail {
-std::ostream& print_path(std::ostream& os, ExpressionRTRepr::path_t const & path);
-}
-
-template<typename SubExprType>
-struct ExprLeafGetter {
-  ExpressionRTRepr::path_t const & path;
-  SubExprType const & subexpr;
-  friend std::ostream& operator<<(std::ostream& os, ExprLeafGetter const & elg) {
-    os << elg.subexpr;
-    return detail::print_path(os, elg.path);
-  }
-  ExprLeafGetter(ExpressionRTRepr::path_t const & path, SubExprType const & subexpr):path{path}, subexpr{subexpr}
-  {}
-};
+detail::cpp_expr_ptr get_path(ExpressionRTRepr::path_t const &path,
+                              detail::cpp_expr_ptr);
 } // namespace archgenlib
 
 #endif

@@ -132,4 +132,15 @@ std::string FPDimRTRepr::toFPDimName() const {
   return ss.str();
 }
 
+std::string FPDimRTRepr::toFPNumName() const {
+  using fpdim_t = FPDim<37, -12, false>;
+  using fpnum_t = FPNumber<fpdim_t>;
+  constexpr auto fpdim_name = detail::type_name<fpnum_t>();
+  constexpr auto indicator = fpdim_name.find("<");
+  constexpr auto prefix = fpdim_name.substr(0, indicator + 1);
+  std::stringstream ss;
+  ss << prefix << toFPDimName() << ">" ;
+  return ss.str();
+}
+
 } // namespace archgenlib

@@ -31,6 +31,7 @@ struct FPDimRTRepr {
     width = static_cast<vecwidth_t>(msb - lsb + 1);
   }
   std::string toFPDimName() const;
+  std::string toFPNumName() const;
 };
 
 template <ExpressionType ET> struct ExprTypeHolder {};

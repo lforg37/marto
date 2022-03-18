@@ -1,11 +1,16 @@
 #include <cstdint>
-#include <gmpxx.h>
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include <gmpxx.h>
+
 #include "fixedpoint/fixedpoint.hpp"
+#include "runtime/expression_tree.hpp"
 #include "runtime/fixfunction_multipartite.hpp"
+#include "runtime/operator_builder/table_builder.hpp"
 #include "runtime/sollya_fix_function.hpp"
 
 __attribute((used)) void print_mpz_class(mpz_class const &val) {
@@ -43,7 +48,6 @@ void init_bin_stats(auto &values, std::vector<BinStatsHolder> &stats) {
 }
 
 void merge_stats_2by2(auto &stats) {
-  mpz_class max_error{0};
   for (size_t i = 0; i < (stats.size() >> 1); ++i) {
     auto low = stats[2 * i];
     auto high = stats[2 * i + 1];
@@ -200,21 +204,19 @@ MultipartiteFunction::MultipartiteConfiguration::MultipartiteConfiguration(
   mpz_class round_val{1};
   // The init tiv value is scaled by 2, so
   // extra_precision + 1 will reach the bit that corresponds to LSBout
-  round_val <<= extra_precision - guard_bits; // reaches below guard bit (round bit)
+  round_val <<=
+      extra_precision - guard_bits; // reaches below guard bit (round bit)
   initial_values_table.reserve(stats.size());
 
   mpz_class truncation_error_bound{1};
-  // LSBout -2 but comared to scaled value
+  // LSBout -2 but compared to scaled value
   truncation_error_bound <<= extra_precision - 1;
 
   for (auto &stat : stats) {
-    mpz_class scaled_res{(stat.scaled_init_value + round_val) >>
+    mpz_class scaled_res{(stat.scaled_init_value + round_val - 1) >>
                          (extra_precision - guard_bits + 1)};
+
     initial_values_table.emplace_back(scaled_res); // TODO ADD one ?
-
-    mpz_class rescaled_tiv = initial_values_table.back() << (extra_precision - guard_bits + 1);
-    assert(abs(rescaled_tiv - stat.scaled_init_value) < truncation_error_bound);
-
   }
 
   // TODO: For now we have only one table of offset
@@ -230,10 +232,10 @@ MultipartiteFunction::MultipartiteConfiguration::MultipartiteConfiguration(
       auto tiv_idx = c << (alpha - gamma);
       auto value_idx = (c << (input_width - gamma)) | b;
       mpz_class scaled_min =
-          (precise_values[value_idx] << 1) - (stats[tiv_idx].scaled_init_value);
+          (precise_values[value_idx] << 1) - stats[tiv_idx].scaled_init_value;
       mpz_class scaled_max = scaled_min;
       for (std::size_t i = 1; i < (1 << (alpha - gamma)); ++i) {
-        ++tiv_idx;// why
+        ++tiv_idx;
         value_idx += 1 << beta;
         auto scaled_offset = (precise_values[value_idx] << 1) -
                              (stats[tiv_idx].scaled_init_value);
@@ -243,36 +245,75 @@ MultipartiteFunction::MultipartiteConfiguration::MultipartiteConfiguration(
           scaled_min = scaled_offset;
       }
       mpz_class scaled_mean = scaled_max + scaled_min;
+      mpz_class mean = (scaled_mean + round_val - 1) >> (extra_precision - guard_bits + 2);
+      to.emplace_back(mean);
+      mpz_class rescaled_to = to.back() << (extra_precision - guard_bits + 2);
+
+      // Error computation :
+      //   err = f - (Tiv + To)
+      //       = f - fapprox + fapprox - (Tiv* + To*) + (Tiv* + To*) - (Tiv + To)
+      // 
+      // |err| <= |f - fapprox| + |fapprox - (Tiv* + To*)| + |(Tiv* + To*) - (Tiv + To)|
+      //
+      // We want to ensure that |err| < 2 ^ lsbout
+      //
+      //  |f - fapprox| < 2^(lsbout - extra_precision) by precision requirement on Sollya
+      //  
+      // Let's ensure that: 
+      //  -) |fapprox - (Tiv* + To*)| < 2^(lsbout - 1) - 2^(lsbout - extra_precision)
+      //  -) |Tiv* + To* - Tiv - To|  < 2^(lsbout - 1)
       {
         mpz_class allowed_error{1};
-        allowed_error <<= extra_precision - 1;
-        allowed_error -= 2;
+        // LSBOut - 1, but all comparison expressed as i * 2^(lsbout - extra_precision - 2)
+        allowed_error <<= (extra_precision - 1 + 2);  
+
+        mpz_class approx_error = allowed_error - (2 << 2); // Take care of approximation function 
 
         auto tiv_idx = c << (alpha - gamma);
         auto value_idx = (c << (input_width - gamma)) | b;
         for (std::size_t i = 0; i < (1 << (alpha - gamma)); ++i) {
-          mpz_class scaled_reconstruction =
+          mpz_class scaled_reconstruction = // Tiv* + To* 
               scaled_mean + (stats[tiv_idx].scaled_init_value << 1);
           mpz_class scaled_ref = precise_values[value_idx] << 2;
           mpz_class diff = abs(scaled_ref - scaled_reconstruction);
-          assert(diff < (allowed_error << 2));
+          // Check that |TIV* + TO* - fapprox| < 2^(lsbout - 1) - approx_err
+          assert(diff < approx_error);
+
+          // Check that |TIV* + TO* - TI - TO| < 2^(lsbout - 1)
+          mpz_class mp_reconstruction = ((initial_values_table[tiv_idx]) << (extra_precision - guard_bits + 2)) + rescaled_to;
+          diff = abs(scaled_reconstruction - mp_reconstruction);
+          if ( diff >= allowed_error) {
+            std::cout << "tiv*: " << (stats[tiv_idx].scaled_init_value << 1)
+                    << "\ntiv: " << (initial_values_table[tiv_idx] << (extra_precision - guard_bits + 2))
+                    << "\nto*: " << scaled_mean 
+                    << "\nto: " << rescaled_to
+                    << "\nscaled_reconstruction: " << scaled_reconstruction
+                    << "\nmp_reconstruction: " << mp_reconstruction
+                    << "\ndiff: " << diff 
+                    << "\nextra_prec: " << extra_precision
+                    << "\nallowed_error: " << allowed_error << std::endl;
+          }
+          assert( diff < allowed_error);
+
+
+          // Check all except truncation
+          diff = abs(scaled_ref - mp_reconstruction);
+          assert(diff < (2*allowed_error - 8));
+
           ++tiv_idx;
           value_idx += 1 << beta;
         }
       }
 
-      mpz_class mean =
-          (scaled_mean + round_val) >> (extra_precision - guard_bits + 2);
-      to.emplace_back(mean);
-      mpz_class rescaled_to = to.back() << (extra_precision - guard_bits + 2);
-      assert(abs(rescaled_to - scaled_mean) < truncation_error_bound);
     }
   }
+  // TODO Embed the rounding bit inside the TIV TODO
+
+
   offset_tables.emplace_back(to);
 }
 
-MultipartiteFunction::MultipartiteConfiguration
-MultipartiteFunction::find_best_config() {
+void MultipartiteFunction::find_best_config() {
   vecwidth_t required_output_width = function.msb_output - lsb_out + 1;
   auto input_width = function.input_format.width;
   uint64_t best_cost{required_output_width};
@@ -303,12 +344,12 @@ MultipartiteFunction::find_best_config() {
           break;
       }
       MultipartiteConfiguration{function,   alpha,
-          1,          {{gamma, input_width - alpha, 0}},
-          extra_Prec, {precise_value}};
-      std::uint64_t TIVCost{required_output_width + 1};
+                                1,          {{gamma, input_width - alpha, 0}},
+                                extra_Prec, {precise_value}};
+      std::uint64_t TIVCost{required_output_width + 2};
       TIVCost <<= alpha;
-      std::uint64_t TOCost{required_output_width + 1};
-      TOCost <<= gamma;
+      std::uint64_t TOCost{required_output_width + 2};
+      TOCost <<= gamma + beta;
       auto total_cost = TIVCost + TOCost;
       if (total_cost < best_cost) {
         best_cost = total_cost;
@@ -318,42 +359,53 @@ MultipartiteFunction::find_best_config() {
     }
   }
 
-  return {function,   best_alpha,
-          1,          {{best_gamma, input_width - best_alpha, 0}},
-          extra_Prec, {precise_value}};
+  std::optional<MultipartiteConfiguration> ret;
+
+  if (best_alpha < input_width) {
+    best_config = MultipartiteConfiguration(
+        function, best_alpha, 2, {{best_gamma, input_width - best_alpha, 0}},
+        extra_Prec, {precise_value});
+  }
 };
 
 MultipartiteFunction::MultipartiteFunction(SollyaFunction &func,
                                            bitweight_t LSBOut)
-    : max_sub_tables{7}, function{func}, lsb_out{LSBOut},
-      best_config{find_best_config()} {}
+    : max_sub_tables{7}, function{func}, lsb_out{LSBOut} {
+  find_best_config();
+}
 
 bool MultipartiteFunction::check_best_config(bitweight_t prec) const {
-  assert(prec < lsb_out);
-  auto reference = function.faithful_at_weight(prec);
-  mpz_class error_bound{1};
-  error_bound <<= (lsb_out - prec);
-  error_bound += 1;
+  if (best_config.has_value()) {
+    assert(prec < lsb_out);
+    auto reference = function.faithful_at_weight(prec);
+    mpz_class error_bound{1};
+    error_bound <<= (lsb_out - prec);
+    error_bound += 1;
 
-  uint64_t nb_inputs = uint64_t{1} << function.input_format.width;
+    uint64_t nb_inputs = uint64_t{1} << function.input_format.width;
 
-  auto alpha = best_config.alpha;
-  auto beta = best_config.offset_configs[0].beta;
-  auto gamma = best_config.offset_configs[0].gamma;
-  auto const &tiv = best_config.initial_values_table;
-  auto const &to = best_config.offset_tables[0];
-  auto input_width = function.input_format.width;
-  auto beta_mask = (1 << beta) - 1;
+    auto alpha = best_config->alpha;
+    auto beta = best_config->offset_configs[0].beta;
+    auto gamma = best_config->offset_configs[0].gamma;
+    auto const &tiv = best_config->initial_values_table;
+    auto const &to = best_config->offset_tables[0];
+    auto input_width = function.input_format.width;
+    auto beta_mask = (1 << beta) - 1;
 
-  for (std::uint64_t i = 0; i < nb_inputs; ++i) {
-    mpz_class iv = tiv[i >> beta];
-    auto offset_idx = ((i >> (input_width - gamma)) << beta) | (i & beta_mask);
-    mpz_class offset = to[offset_idx];
-    mpz_class res = (iv + offset) >> 1; // 1 for the guard bit
-    mpz_class scaled_res = res << (lsb_out - prec);
-    mpz_class diff = abs(scaled_res - reference[i]);
-    assert(diff < error_bound);
+    for (std::uint64_t i = 0; i < nb_inputs; ++i) {
+      mpz_class iv = tiv[i >> beta];
+      auto offset_idx =
+          ((i >> (input_width - gamma)) << beta) | (i & beta_mask);
+      mpz_class offset = to[offset_idx];
+      mpz_class res = (iv + offset + 1) >> 2; // 1 for the guard bit
+      mpz_class scaled_res = res << (lsb_out - prec);
+      mpz_class diff = abs(scaled_res - reference[i]);
+      assert(diff < error_bound);
+    }
+    return true;
+  } else {
+    return true;
   }
-  return true;
 }
+
 } // namespace archgenlib

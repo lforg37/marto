@@ -1,3 +1,5 @@
+include(CTest)
+
 find_package(Sollya)
 find_package(GMPXX)
 find_package(MPFR)
@@ -18,4 +20,6 @@ target_include_directories(archgenlib PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(archgenlib PUBLIC hint)
 target_link_libraries(archgenlib PRIVATE Sollya::Sollya GMPXX::GMPXX MPFR::MPFR)
 
+if (BUILD_TESTING)
 add_subdirectory(examples)
+endif()

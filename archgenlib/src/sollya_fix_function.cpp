@@ -30,6 +30,7 @@ SollyaFunction::SollyaFunction(SollyaHandler& f, FPDimRTRepr input_f):function{f
   mpfr_log2(supMPFR, supMPFR, MPFR_RNDU);
   mpfr_floor(supMPFR, supMPFR);
   msb_output = mpfr_get_si(supMPFR, MPFR_RNDU);
+  if (signed_output) msb_output +=1 ;
 }
 
 mpz_class SollyaFunction::getmpz(mpfr_t evaluationpoint, bitweight_t LSBOut, mpfr_t intermResHolder) {

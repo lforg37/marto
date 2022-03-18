@@ -53,7 +53,7 @@ private:
   using error_t = ErrorTracker;
   vecwidth_t max_sub_tables;
 
-  MultipartiteConfiguration find_best_config();
+  void find_best_config();
 
 public:
   SollyaFunction &function;
@@ -61,9 +61,7 @@ public:
 
   MultipartiteFunction(SollyaFunction &func, bitweight_t LSBOut);
   bool check_best_config(bitweight_t prec) const;
-
-private:
-  MultipartiteConfiguration best_config;
+  std::optional<MultipartiteConfiguration> best_config;
 };
 } // namespace archgenlib
 
