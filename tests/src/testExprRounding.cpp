@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(TestRounderLargerformat)
 	using dim1 = FixedFormat<WE1, WF1>;
 	using dim2 = FixedFormat<WE2, WF2>;
 
-	using fpnum1 = FPNumber<dim1, VivadoWrapper>;
+	using fpnum1 = FixedNumber<dim1, VivadoWrapper>;
 
 	using rounder = Rounder<dim2, dim1, true>;
 
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(TestRounderSmallerformat)
 	using dim1 = FixedFormat<WE1, WF1>;
 	using dim2 = FixedFormat<WE2, WF2>;
 
-	using fpnum = FPNumber<dim2, VivadoWrapper>;
+	using fpnum = FixedNumber<dim2, VivadoWrapper>;
 
 	using rounder = Rounder<dim1, dim2>;
 

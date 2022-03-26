@@ -48,6 +48,8 @@ cpp_expr_ptr CPPExpr::use_to_build(std::string_view type_desc) {
 }
 
 std::ostream &operator<<(std::ostream &os, TypeSpecifier const &ts) {
+  if (ts.is_static)
+    os << "static ";
   if (ts.is_constexpr) {
     os << "constexpr ";
   }
@@ -219,7 +221,7 @@ CPPOperator TableBuilder::build_table() {
   detail::cpp_expr_ptr tab_init_list{
       new detail::CPPTableInitialization(values, output_dim)};
   auto tab_val = tab_init_list->use_to_build(s.str())->assign_to(
-      "values", detail::TypeSpecifier{.is_constexpr = true});
+      "values", detail::TypeSpecifier{.is_constexpr = true, .is_static = true});
   ret.instructions.emplace_back(tab_val);
   auto tab_key = input->get("value()")->assign_to("to_num_key");
   ret.instructions.emplace_back(tab_key);

@@ -20,8 +20,31 @@ namespace archgenlib {
 using bitweight_t = std::int32_t;
 using vecwidth_t = std::uint32_t;
 
-template <bitweight_t MSBWeight, bitweight_t LSBWeight, bool IsSigned>
+template<bool>
+struct is_signed_to_type {
+  using type = unsigned;
+};
+
+template<>
+struct is_signed_to_type<true> {
+  using type = signed;
+};
+
+template<bool b>
+using is_signed_to_type_t = typename is_signed_to_type<b>::type;
+
+template<bool b>
+using is_unsigned_to_type_t = typename is_signed_to_type<!b>::type;
+
+template<typename T>
+using same_sign_t = is_signed_to_type_t<std::is_signed_v<T>>;
+
+template <bitweight_t MSBWeight, bitweight_t LSBWeight, typename sign_t>
 struct FixedFormat {
+  static constexpr bool IsUnsigned = std::is_same<unsigned, sign_t>::value;
+  static constexpr bool IsSigned = std::is_same<signed, sign_t>::value;
+  static_assert(IsUnsigned || IsSigned,
+                "invalid sign type expected signed or unsigned");
   static_assert(MSBWeight >= LSBWeight,
                 "MSB weight cannot be smaller than LSBs");
 
@@ -57,9 +80,8 @@ struct FixedFormat {
 namespace detail {
 template <typename T> constexpr bool is_fixed_format = false;
 
-template <bitweight_t MSBWeight, bitweight_t LSBWeight, bool IsSigned>
-constexpr bool is_fixed_format<FixedFormat<MSBWeight, LSBWeight, IsSigned>> =
-    true;
+template <bitweight_t MSBWeight, bitweight_t LSBWeight, typename T>
+constexpr bool is_fixed_format<FixedFormat<MSBWeight, LSBWeight, T>> = true;
 } // namespace detail
 
 template <typename T>
@@ -90,13 +112,13 @@ constexpr auto operator+(FF1 format1, FF2 format2) {
   constexpr auto one_signed = format1.is_signed || format2.is_signed;
   constexpr auto msb =
       1 + (((max_msb == max_pos_msb) && one_signed) ? max_msb + 1 : max_msb);
-  return FixedFormat<msb, lsb_out, one_signed>{};
+  return FixedFormat<msb, lsb_out, is_signed_to_type_t<one_signed>>{};
 }
 
 template <std::integral IT>
 using fixedformat_from_integral =
     FixedFormat<std::numeric_limits<IT>::digits + std::is_signed_v<IT>, 0,
-                std::is_signed_v<IT>>;
+          same_sign_t<IT>>;
 
 template <FixedFormatType Format> class FixedNumber {
 public:
@@ -114,6 +136,8 @@ public:
   template <FixedFormatType FT>
   constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
 
+  explicit constexpr FixedNumber(hint::BitIntWrapper<Format::width, Format::is_signed> const &val)
+      : value_{val.unravel()} {}
   storage_t value() const { return value_; }
   hint::BitIntWrapper<Format::width, Format::is_signed> as_hint() const {
     return {value_};

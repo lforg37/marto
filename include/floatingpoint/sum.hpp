@@ -74,9 +74,9 @@ struct RoundedFPSum
 		static constexpr vec_width lzoc_size = Static_Val<lzoc_count>::_storage;
 
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<partial_sum_dim, Wrapper> compute_truncated_sum(
-				FPNumber<Dim1, Wrapper> const & op1,
-				FPNumber<Dim2, Wrapper> const & op2
+		static inline FixedNumber<partial_sum_dim, Wrapper> compute_truncated_sum(
+				FixedNumber<Dim1, Wrapper> const & op1,
+				FixedNumber<Dim2, Wrapper> const & op2
 			)
 		{
 			auto op1IsZero = op1.isZero();
@@ -222,7 +222,7 @@ struct RoundedFPSum
 			cerr << "============" << endl;
 #endif
 
-			return FPNumber<partial_sum_dim, Wrapper>(
+			return FixedNumber<partial_sum_dim, Wrapper>(
 						final_frac,
 						final_exp,
 						s_res,
@@ -235,7 +235,7 @@ struct RoundedFPSum
 	public:
 		using dim = typename rounding_helper::dim;
 		template<template<unsigned int, bool> class Wrapper>
-		static FPNumber<dim, Wrapper> compute(FPNumber<Dim1, Wrapper> const & op1, FPNumber<Dim2, Wrapper> const & op2)
+		static FixedNumber<dim, Wrapper> compute(FixedNumber<Dim1, Wrapper> const & op1, FixedNumber<Dim2, Wrapper> const & op2)
 		{
 			return Rounder<dim, partial_sum_dim>::compute(compute_truncated_sum(op1, op2));
 		}

@@ -50,6 +50,10 @@ public:
     account_holder.emplace(val.id, 1);
   }
 
+  void visit(archgenlib::NullaryOpLeafRTNode const &val) {
+    account_holder.emplace(val.id, 0);
+  }
+
   void visit(archgenlib::UnaryOpRTNode const &val) {
     visit(val->operand);
     auto childval = account_holder.at(id(val->operand));
@@ -86,7 +90,7 @@ ExpressionRTRepr::get_count_for_nodes() const {
 
 std::string
 ExpressionRTRepr::extract_constant_repr(std::string_view const_tname) {
-  using fpdim_t = FixedFormat<37, -12, false>;
+  using fpdim_t = FixedFormat<37, -12, unsigned>;
   using indicator_t =
       FixedConstant<fpdim_t,
                     hint::detail::bitint_base_t<false, 37 + 12 + 1>{94}>;
@@ -118,22 +122,22 @@ std::vector<RTNode const *> ExpressionRTRepr::get_singlevar_dominants() const {
 }
 
 std::string FixedFormatRTRepr::toFixedFormatName() const {
-  using fpdim_t = FixedFormat<37, -12, false>;
+  using fpdim_t = FixedFormat<37, -12, unsigned>;
   constexpr auto fpdim_name = detail::type_name<fpdim_t>();
   constexpr auto indicator = fpdim_name.find("37");
   constexpr auto prefix = fpdim_name.substr(0, indicator);
   std::stringstream ss;
   ss << prefix << msb_weight << ", " << lsb_weight <<", ";
   if (is_signed) {
-    ss << "true>";
+    ss << "signed>";
   } else {
-    ss << "false>";
+    ss << "unsigned>";
   }
   return ss.str();
 }
 
 std::string FixedFormatRTRepr::toFPNumName() const {
-  using fpdim_t = FixedFormat<37, -12, false>;
+  using fpdim_t = FixedFormat<37, -12, unsigned>;
   using fpnum_t = FixedNumber<fpdim_t>;
   constexpr auto fpdim_name = detail::type_name<fpnum_t>();
   constexpr auto indicator = fpdim_name.find("<");

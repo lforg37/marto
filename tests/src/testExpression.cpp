@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(TestOpposite) {
 	constexpr vec_width WE = 5;
 	using dim = FixedFormat<WE, WF>;
 	using fpexpr = FPExpr<dim, VivadoWrapper>;
-	using fpnum = FPNumber<dim, VivadoWrapper>;
+	using fpnum = FixedNumber<dim, VivadoWrapper>;
 	VivadoWrapper<WE, true> exp{{3}};
 	VivadoWrapper<WF, false> signif {{(1 << WF) - 1}};
 	VivadoWrapper<1, false> zero{{0}};

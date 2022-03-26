@@ -22,8 +22,8 @@ BOOST_AUTO_TEST_CASE(TestSumCompilation)
 	using vardim = TightFixedFormat<EXTERNAL_WF, 20, -20>;
 	using const_dim = FixedFormat<CONST_WE, CONST_WF>;
 
-	using fpnum = FPNumber<vardim, VivadoWrapper>;
-	using constnum = FPNumber<const_dim, VivadoWrapper>;
+	using fpnum = FixedNumber<vardim, VivadoWrapper>;
+	using constnum = FixedNumber<const_dim, VivadoWrapper>;
 
 	auto x = to_expr(fpnum::getZero());
 	auto y = to_expr(fpnum::getZero());
@@ -45,8 +45,8 @@ inline bool check_addition_standard(int64_t s1, int64_t s2, int64_t exp1, int64_
 {
 	/**** Using expr ********/
 
-	using fpnum1 = FPNumber<Dim1, VivadoWrapper>;
-	using fpnum2 = FPNumber<Dim2, VivadoWrapper>;
+	using fpnum1 = FixedNumber<Dim1, VivadoWrapper>;
+	using fpnum2 = FixedNumber<Dim2, VivadoWrapper>;
 
 	fpnum1 op1{{{frac1}}, {{exp1}}, {{s1}}, {{0}}, {{0}}, {{0}}};
 	fpnum2 op2{{{frac2}}, {{exp2}}, {{s2}}, {{0}}, {{0}}, {{0}}};
@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(TestAdditionCompleteFormat, *utf::disabled() * utf::label("
 
 	/**** Using expr ********/
 
-	using fpnum = FPNumber<dim, VivadoWrapper>;
+	using fpnum = FixedNumber<dim, VivadoWrapper>;
 
 
 	/**** Using mpfr ****/
@@ -281,8 +281,8 @@ BOOST_AUTO_TEST_CASE(TestAdditionCompleteInequalFormats, *utf::disabled() * utf:
 
 	/**** Using expr ********/
 
-	using fpnum1 = FPNumber<dim1, VivadoWrapper>;
-	using fpnum2 = FPNumber<dim2, VivadoWrapper>;
+	using fpnum1 = FixedNumber<dim1, VivadoWrapper>;
+	using fpnum2 = FixedNumber<dim2, VivadoWrapper>;
 
 
 	/**** Using mpfr ****/

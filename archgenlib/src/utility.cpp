@@ -21,7 +21,7 @@ sollya_obj_t sollya_interval_from_rtfpdim(FixedFormatRTRepr dim) {
     mpfr_clear(lsb);
   } else {
     mpfr_set_uj_2exp(min, 1, dim.lsb_weight, MPFR_RNDZ);
-    mpfr_set_uj_2exp(max, 1, dim.msb_weight, MPFR_RNDU);
+    mpfr_set_uj_2exp(max, 1, dim.msb_weight + 1, MPFR_RNDU);
     mpfr_sub(max, max, min, MPFR_RNDNA);
     mpfr_set_uj(min, 0, MPFR_RNDZ);
   }

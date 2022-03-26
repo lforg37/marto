@@ -51,6 +51,7 @@ struct CPPExpr : std::enable_shared_from_this<CPPExpr> {
 
 struct TypeSpecifier {
   bool is_constexpr = false;
+  bool is_static = false;
   std::optional<std::string> type_name;
   friend std::ostream& operator<<(std::ostream& os, TypeSpecifier const &);
 };

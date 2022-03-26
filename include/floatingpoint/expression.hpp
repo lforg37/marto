@@ -39,7 +39,7 @@ struct BinaryOp
 		using roundedDim = typename round_op<targetPrecision>::dim;
 
 		template<vec_width maxInternalPrecision>
-		static inline FPNumber<roundedDim<maxInternalPrecision>, Wrapper> computeWithTargetPrecision(arg_storage & args)
+		static inline FixedNumber<roundedDim<maxInternalPrecision>, Wrapper> computeWithTargetPrecision(arg_storage & args)
 		{
 			auto op1 = args.first.template computeWithTargetPrecision<maxInternalPrecision>();
 			auto op2 = args.second.template computeWithTargetPrecision<maxInternalPrecision>();
@@ -71,7 +71,7 @@ struct UnaryOp
 		using roundedDim = typename round_op<targetPrecision>::dim;
 
 		template<vec_width maxInternalPrecision>
-		static inline FPNumber<roundedDim<maxInternalPrecision>, Wrapper> computeWithTargetPrecision(arg_storage & arg)
+		static inline FixedNumber<roundedDim<maxInternalPrecision>, Wrapper> computeWithTargetPrecision(arg_storage & arg)
 		{
 			auto op1 = arg.template computeWithTargetPrecision<maxInternalPrecision>();
 			return round_op<maxInternalPrecision>::compute(op1);
@@ -92,13 +92,13 @@ using IdentityExpr = UnaryOp<optype, Wrapper, IdentityOp>;
 template<typename dim, template<unsigned int, bool> class Wrapper>
 struct LeafFP {
 	public:
-		using arg_storage = const FPNumber<dim, Wrapper>;
+		using arg_storage = const FixedNumber<dim, Wrapper>;
 		using resizer = TightResize<dim>;
 		template <vec_width targetPrecision>
 		using roundedDim = typename resizer::dim;
 
 		template<vec_width maxInternalPrecision>
-		static inline FPNumber<roundedDim<maxInternalPrecision>, Wrapper> computeWithTargetPrecision(arg_storage & arg)
+		static inline FixedNumber<roundedDim<maxInternalPrecision>, Wrapper> computeWithTargetPrecision(arg_storage & arg)
 		{
 			return resizer::compute(arg);
 		}
@@ -118,13 +118,13 @@ struct Expr : public T::arg_storage {
 		{}
 
 		template<vec_width targetWF>
-		inline FPNumber<roundedDim<targetWF>, Wrapper> computeWithTargetPrecision() const
+		inline FixedNumber<roundedDim<targetWF>, Wrapper> computeWithTargetPrecision() const
 		{
 			return T::template computeWithTargetPrecision<targetWF>(static_cast<arg_storage &>(*this));
 		}
 
 		template<typename targetDim, vec_width internalWF>
-		inline FPNumber<targetDim, Wrapper> roundTo() const
+		inline FixedNumber<targetDim, Wrapper> roundTo() const
 		{
 			auto intermediary = T::template computeWithTargetPrecision<internalWF>(static_cast<arg_storage &>(*this));
 			return Rounder<targetDim, roundedDim<internalWF>, true>::compute(intermediary);
@@ -160,7 +160,7 @@ inline Expr<ExprSum<Expr<T1, Wrapper>, Expr<OppositeExpr<Expr<T2, Wrapper>, Wrap
 }
 
 template<typename Dim, template<vec_width, bool> class Wrapper>
-FPExpr<Dim, Wrapper> inline to_expr(FPNumber<Dim, Wrapper> const & val)
+FPExpr<Dim, Wrapper> inline to_expr(FixedNumber<Dim, Wrapper> const & val)
 {
 	return {val};
 }

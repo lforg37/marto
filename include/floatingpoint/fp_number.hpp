@@ -91,7 +91,7 @@ struct RoundDimHelper {
 };
 
 template <typename _dim, template<unsigned int, bool> class Wrapper>
-class FPNumber {
+class FixedNumber {
 	public:
 		using dim = _dim;
 	private:
@@ -109,14 +109,14 @@ class FPNumber {
 		flag_t Inf;
 		flag_t nonZero;
 	public:
-		FPNumber(normal_value_t const & val):NaN{{0}}, Inf{{0}}, nonZero{{1}}
+		FixedNumber(normal_value_t const & val):NaN{{0}}, Inf{{0}}, nonZero{{1}}
 		{
 			fraction = val.template slice<dim::WF-1, 0>();
 			exponent = val.template slice<dim::WF + dim::WE -1, dim::WF>();
 			sign = val.template get<dim::WF+dim::WE>();
 		}
 
-		FPNumber(
+		FixedNumber(
 				frac_t const & frac,
 				exp_t const & exp,
 				sign_t const & s,
@@ -132,7 +132,7 @@ class FPNumber {
 			nonZero = isZero.invert();
 		}
 
-		inline FPNumber opposite() const {
+		inline FixedNumber opposite() const {
 			return {fraction, exponent, sign.invert(), NaN, Inf, nonZero};
 		}
 
@@ -144,21 +144,21 @@ class FPNumber {
 		inline flag_t isNaN() const {return NaN;}
 		inline significand_t getSignificand() const {return nonZero.concatenate(fraction);}
 
-		static inline FPNumber getZero(sign_t s = {{0}}) {
-			return FPNumber{{{0}}, {{0}}, s, {{0}}, {{0}}, {{1}}};
+		static inline FixedNumber getZero(sign_t s = {{0}}) {
+			return FixedNumber{{{0}}, {{0}}, s, {{0}}, {{0}}, {{1}}};
 		}
 
-		static inline FPNumber getInf(sign_t s = {{0}}) {
-			return FPNumber{{{0}}, {{0}}, s, {{1}}, {{0}}, {{0}}};
+		static inline FixedNumber getInf(sign_t s = {{0}}) {
+			return FixedNumber{{{0}}, {{0}}, s, {{1}}, {{0}}, {{0}}};
 		}
 
-		static inline FPNumber getNaN() {
-			return FPNumber{{{0}}, {{0}}, {{0}}, {{0}}, {{1}}, {{0}}};
+		static inline FixedNumber getNaN() {
+			return FixedNumber{{{0}}, {{0}}, {{0}}, {{0}}, {{1}}, {{0}}};
 		}
 };
 
 template<typename dim, template<unsigned int, bool> class Wrapper>
-Wrapper<1, false> operator==(FPNumber<dim, Wrapper> const & op1, FPNumber<dim, Wrapper> const & op2)
+Wrapper<1, false> operator==(FixedNumber<dim, Wrapper> const & op1, FixedNumber<dim, Wrapper> const & op2)
 {
 	auto exp_frac_ok = (op1.getFraction() == op2.getFraction()) & (op1.getExponent() == op2.getExponent());
 	auto s_ok = (op1.getSign() == op2.getSign());
@@ -182,7 +182,7 @@ struct Rounder {
 		// target WF < source WF
 		template<vec_width target_wf, vec_width source_wf, template<unsigned int, bool> class Wrapper>
 		static inline pair<Wrapper<TargetDim::WF, false>, Wrapper<1, false>> fp_round_frac(
-				FPNumber<SourceDim, Wrapper> const & source,
+				FixedNumber<SourceDim, Wrapper> const & source,
 				typename enable_if<(target_wf > source_wf)>::type* = 0
 				)
 		{
@@ -191,7 +191,7 @@ struct Rounder {
 
 		template<vec_width target_wf, vec_width source_wf, template<unsigned int, bool> class Wrapper>
 		static inline pair<Wrapper<TargetDim::WF, false>, Wrapper<1, false>> fp_round_frac(
-				FPNumber<SourceDim, Wrapper> const & source,
+				FixedNumber<SourceDim, Wrapper> const & source,
 				typename enable_if<(target_wf == source_wf)>::type* = 0
 				)
 		{
@@ -200,7 +200,7 @@ struct Rounder {
 
 		template<vec_width target_wf, vec_width source_wf, template<unsigned int, bool> class Wrapper>
 		static inline pair<Wrapper<TargetDim::WF, false>, Wrapper<1, false>> fp_round_frac(
-				FPNumber<SourceDim, Wrapper> const & source,
+				FixedNumber<SourceDim, Wrapper> const & source,
 				typename enable_if<(target_wf == (source_wf - 1))>::type* = 0
 				)
 		{
@@ -213,7 +213,7 @@ struct Rounder {
 
 		template<vec_width target_wf, vec_width source_wf, template<unsigned int, bool> class Wrapper>
 		static inline pair<Wrapper<TargetDim::WF, false>, Wrapper<1, false>> fp_round_frac(
-				FPNumber<SourceDim, Wrapper> const & source,
+				FixedNumber<SourceDim, Wrapper> const & source,
 				typename enable_if<(target_wf < source_wf - 1)>::type* = 0
 				)
 		{
@@ -312,8 +312,8 @@ struct Rounder {
 
 	public:
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<TargetDim, Wrapper>
-		compute(FPNumber<SourceDim, Wrapper> const & source)
+		static inline FixedNumber<TargetDim, Wrapper>
+		compute(FixedNumber<SourceDim, Wrapper> const & source)
 		{
 			auto roundFrac_ov = fp_round_frac<TargetDim::WF, SourceDim::WF>(source);
 			auto roundedFrac = roundFrac_ov.first;
@@ -362,8 +362,8 @@ struct strictRounderOp {
 	public:
 		using dim = typename round_helper::dim;
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper>
-		compute(FPNumber<sourceDim, Wrapper> const & source)
+		static inline FixedNumber<dim, Wrapper>
+		compute(FixedNumber<sourceDim, Wrapper> const & source)
 		{
 			return Rounder<dim, sourceDim>::compute(source);
 		}
@@ -379,8 +379,8 @@ struct TightResize {
 		using dim = typename conditional<isReduce, tightdim, sourceDim>::type;
 	private:
 		template<bool reduction, template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper> do_compute(
-				FPNumber<sourceDim, Wrapper> const & in,
+		static inline FixedNumber<dim, Wrapper> do_compute(
+				FixedNumber<sourceDim, Wrapper> const & in,
 				typename enable_if<reduction>::type* = 0
 		) {
 			auto exp = in.getExponent().template slice<dim::WE-1, 0>().as_signed();
@@ -395,16 +395,16 @@ struct TightResize {
 		}
 
 		template<bool reduction, template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper> do_compute(
-				FPNumber<sourceDim, Wrapper> const & in,
+		static inline FixedNumber<dim, Wrapper> do_compute(
+				FixedNumber<sourceDim, Wrapper> const & in,
 				typename enable_if<not reduction>::type* = 0
 		) {
 			return in;
 		}
 	public:
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper>
-		compute(FPNumber<sourceDim, Wrapper> const & source)
+		static inline FixedNumber<dim, Wrapper>
+		compute(FixedNumber<sourceDim, Wrapper> const & source)
 		{
 			return do_compute<isReduce>(source);
 		}
@@ -415,10 +415,10 @@ struct OppositeOp {
 	public:
 		using dim = sourceDim;
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper>
-		compute(FPNumber<sourceDim, Wrapper> const & source)
+		static inline FixedNumber<dim, Wrapper>
+		compute(FixedNumber<sourceDim, Wrapper> const & source)
 		{
-			return FPNumber<sourceDim, Wrapper>(
+			return FixedNumber<sourceDim, Wrapper>(
 						source.getFraction(),
 						source.getExponent(),
 						source.getSign().invert(),
@@ -434,8 +434,8 @@ struct IdentityOp {
 	public:
 		using dim = sourceDim;
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper>
-		compute(FPNumber<sourceDim, Wrapper> const & source)
+		static inline FixedNumber<dim, Wrapper>
+		compute(FixedNumber<sourceDim, Wrapper> const & source)
 		{
 			return source;
 		}

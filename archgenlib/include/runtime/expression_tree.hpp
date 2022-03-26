@@ -38,6 +38,7 @@ template <ExpressionType ET> struct ExprTypeHolder {};
 
 struct BinaryOpRTNodeContent;
 struct UnaryOpRTNodeContent;
+struct NullaryOpLeafRTNodeContent;
 struct ConstantLeafRTNodeContent;
 struct VariableLeafRTNodeContent;
 
@@ -56,11 +57,12 @@ public:
 
 using BinaryOpRTNode = OpNodePrototype<BinaryOpRTNodeContent>;
 using UnaryOpRTNode = OpNodePrototype<UnaryOpRTNodeContent>;
+using NullaryOpLeafRTNode = OpNodePrototype<NullaryOpLeafRTNodeContent>;
 using ConstantLeafRTNode = OpNodePrototype<ConstantLeafRTNodeContent>;
 using VariableLeafRTNode = OpNodePrototype<VariableLeafRTNodeContent>;
 
-using RTNode = std::variant<BinaryOpRTNode, UnaryOpRTNode, ConstantLeafRTNode,
-                            VariableLeafRTNode>;
+using RTNode = std::variant<BinaryOpRTNode, UnaryOpRTNode, NullaryOpLeafRTNode,
+                            ConstantLeafRTNode, VariableLeafRTNode>;
 
 struct BinaryOpRTNodeContent {
   RTNode left;
@@ -75,6 +77,11 @@ struct UnaryOpRTNodeContent {
   OperationKind const operation_kind;
   UnaryOpRTNodeContent(RTNode &operand, OperationKind op_type)
       : operand{std::move(operand)}, operation_kind{op_type} {}
+};
+
+struct NullaryOpLeafRTNodeContent {
+  OperationKind const operation_kind;
+  NullaryOpLeafRTNodeContent(OperationKind op_type) : operation_kind{op_type} {}
 };
 
 struct ConstantLeafRTNodeContent {
@@ -146,6 +153,13 @@ private:
                           child_op_node, ET::operation_t::operation_kind),
                       first_available_node_id++}};
     return std::make_tuple(std::move(op_node), child_sym_table);
+  }
+
+  template <NullaryOpExprType ET> auto extract_subtree() {
+    RTNode res{NullaryOpLeafRTNode{std::make_unique<NullaryOpLeafRTNodeContent>(
+                                       ET::operation_t::operation_kind),
+                                   first_available_node_id++}};
+    return std::make_tuple(std::move(res), sym_table_t{});
   }
 
   template <VariableExprType ET> auto extract_subtree() {

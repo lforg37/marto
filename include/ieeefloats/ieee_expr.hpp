@@ -24,7 +24,7 @@ struct IEEEtoFPNum
 	private:
 		using retdim = typename IEEEToFixedFormat<WE, WF>::dim;
 		template<template<unsigned int, bool> class Wrapper>
-		using rettype = FPNumber<retdim, Wrapper>;
+		using rettype = FixedNumber<retdim, Wrapper>;
 		using ieeedim = IEEEDim<WE, WF>;
 
 	public:

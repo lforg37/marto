@@ -29,8 +29,8 @@ BOOST_AUTO_TEST_CASE(TestRoundedProductFull, *utf::disabled() * utf::label("long
 
 	/**** Using expr ********/
 
-	using fpnum1 = FPNumber<dim1, VivadoWrapper>;
-	using fpnum2 = FPNumber<dim2, VivadoWrapper>;
+	using fpnum1 = FixedNumber<dim1, VivadoWrapper>;
+	using fpnum2 = FixedNumber<dim2, VivadoWrapper>;
 
 
 	/**** Using mpfr ****/
@@ -142,8 +142,8 @@ BOOST_AUTO_TEST_CASE(TestProduct)
 	VivadoWrapper<WE1, true> wexp1{{exp1}};
 	VivadoWrapper<WE2, true> wexp2{{exp2}};
 
-	FPNumber<dim1, VivadoWrapper> op1 {wfrac1, wexp1, {{0}}, {{0}}, {{0}}, {{0}}};
-	FPNumber<dim2, VivadoWrapper> op2 {wfrac2, wexp2, {{1}}, {{0}}, {{0}}, {{0}}};
+	FixedNumber<dim1, VivadoWrapper> op1 {wfrac1, wexp1, {{0}}, {{0}}, {{0}}, {{0}}};
+	FixedNumber<dim2, VivadoWrapper> op2 {wfrac2, wexp2, {{1}}, {{0}}, {{0}}, {{0}}};
 
 	auto eop1 = to_expr(op1);
 	auto eop2 = to_expr(op2);
@@ -180,8 +180,8 @@ BOOST_AUTO_TEST_CASE(TestProductFull, *utf::disabled() * utf::label("long"))
 
 	/**** Using expr ********/
 
-	using fpnum1 = FPNumber<dim1, VivadoWrapper>;
-	using fpnum2 = FPNumber<dim2, VivadoWrapper>;
+	using fpnum1 = FixedNumber<dim1, VivadoWrapper>;
+	using fpnum2 = FixedNumber<dim2, VivadoWrapper>;
 
 	bool keep_going = true;
 

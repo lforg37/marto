@@ -79,6 +79,24 @@ public:
   T const &value;
 };
 
+template<NullaryOpType Op>
+class NullaryOp {
+  public:
+  static constexpr bool constant = true;
+  using operation_t = Op;
+  NullaryOp() {}
+};
+
+namespace detail {
+template <ExpressionType T> constexpr bool _is_nullary_op_expr = false;
+
+template <NullaryOpType OT>
+constexpr bool _is_nullary_op_expr<NullaryOp<OT>> = true;
+} // namespace detail
+
+template <typename ET>
+concept NullaryOpExprType = detail::_is_nullary_op_expr<ET>;
+
 namespace detail {
 template <typename T> constexpr bool _is_variable_expr = false;
 template <FixedNumberType IT>

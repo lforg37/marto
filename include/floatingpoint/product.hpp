@@ -24,7 +24,7 @@ struct RoundedFPProd {
 
 	private:
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<ExactProdDim, Wrapper> do_exact_prod(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2)
+		static inline FixedNumber<ExactProdDim, Wrapper> do_exact_prod(FixedNumber<DIM1, Wrapper> const & op1, FixedNumber<DIM2, Wrapper> const & op2)
 		{
 			auto exp_1_extended = op1.getExponent().template sign_extend<ExactProdDim::WE>();
 			auto exp_2_extended = op2.getExponent().template sign_extend<ExactProdDim::WE>();
@@ -55,18 +55,18 @@ struct RoundedFPProd {
 			auto isInf = oneIsInf & isNaN.invert();
 			auto res_sign = op1.getSign() ^ op2.getSign();
 
-			return FPNumber<ExactProdDim, Wrapper>(signif, exp, res_sign, isInf, isNaN, isZero);
+			return FixedNumber<ExactProdDim, Wrapper>(signif, exp, res_sign, isInf, isNaN, isZero);
 		}
 
 		template<bool can_round, template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper> do_compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2,
+		static inline FixedNumber<dim, Wrapper> do_compute(FixedNumber<DIM1, Wrapper> const & op1, FixedNumber<DIM2, Wrapper> const & op2,
 											  typename enable_if<not can_round>::type* = 0)
 		{
 			return do_exact_prod(op1, op2);
 		}
 
 		template<bool can_round, template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper> do_compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2,
+		static inline FixedNumber<dim, Wrapper> do_compute(FixedNumber<DIM1, Wrapper> const & op1, FixedNumber<DIM2, Wrapper> const & op2,
 											  typename enable_if<can_round>::type* = 0)
 		{
 			using rounder = Rounder<dim, ExactProdDim>;
@@ -76,7 +76,7 @@ struct RoundedFPProd {
 
 		public:
 		template<template<unsigned int, bool> class Wrapper>
-		static inline FPNumber<dim, Wrapper> compute(FPNumber<DIM1, Wrapper> const & op1, FPNumber<DIM2, Wrapper> const & op2)
+		static inline FixedNumber<dim, Wrapper> compute(FixedNumber<DIM1, Wrapper> const & op1, FixedNumber<DIM2, Wrapper> const & op2)
 		{
 			return do_compute<round_helper::CAN_ROUND>(op1, op2);
 		}

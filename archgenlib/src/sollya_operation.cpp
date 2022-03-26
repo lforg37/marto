@@ -16,6 +16,7 @@ sollya_obj_t build_sollya_node(ConstantLeafRTNode const & val);
 sollya_obj_t build_sollya_node(VariableLeafRTNode const & val);
 sollya_obj_t build_sollya_node(BinaryOpRTNode const & val);
 sollya_obj_t build_sollya_node(UnaryOpRTNode const & val);
+sollya_obj_t build_sollya_node(NullaryOpLeafRTNode const & val);
 
 auto sollya_node_builder_visitor = []<typename T>(const T & val) {
   return build_sollya_node(val);
@@ -23,6 +24,7 @@ auto sollya_node_builder_visitor = []<typename T>(const T & val) {
 
 using sollya_binary_op_t = sollya_obj_t(sollya_obj_t, sollya_obj_t);
 using sollya_unary_op_t = sollya_obj_t(sollya_obj_t);
+using sollya_nullary_op_t = sollya_obj_t();
 
 sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
   assert(detail::isBinaryOpKind(op_kind));
@@ -33,6 +35,8 @@ sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
     return sollya_lib_build_function_sub;
     case OperationKind::MUL:
     return sollya_lib_build_function_mul;
+    case OperationKind::POW:
+    return sollya_lib_build_function_pow;
     default:
     __builtin_unreachable();
   }
@@ -45,6 +49,20 @@ sollya_unary_op_t* get_unary_op(OperationKind op_kind) {
       return sollya_lib_build_function_neg;
     case OperationKind::SIN:
       return sollya_lib_build_function_sin;
+    case OperationKind::LOG2:
+      return sollya_lib_build_function_log2;
+    case OperationKind::ABS:
+      return sollya_lib_build_function_abs;
+    default:
+    __builtin_unreachable();
+  }
+}
+
+sollya_nullary_op_t* get_nullary_op(OperationKind op_kind) {
+  assert(detail::isNullaryOpKind(op_kind));
+  switch (op_kind) {
+    case OperationKind::PI:
+      return sollya_lib_build_function_pi;
     default:
     __builtin_unreachable();
   }
@@ -79,6 +97,12 @@ sollya_obj_t build_sollya_node(UnaryOpRTNode const & op_node) {
   auto sollya_func = get_unary_op(op_node->operation_kind);
   return sollya_func(op);
 }
+
+sollya_obj_t build_sollya_node(NullaryOpLeafRTNode const & op_node) {
+  auto sollya_func = get_nullary_op(op_node->operation_kind);
+  return sollya_func();
+}
+
 } // namespace
 namespace archgenlib {
 sollya_obj_t

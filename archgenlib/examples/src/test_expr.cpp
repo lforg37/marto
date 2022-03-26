@@ -2,6 +2,7 @@
 #include <iostream>
 #include <math.h>
 #include <type_traits>
+#include <cassert>
 
 #include "bitint_tools/type_helpers.hpp"
 #include "hint.hpp"
@@ -11,7 +12,6 @@
 #include "fixedpoint/fixedpoint.hpp"
 
 #ifdef INCLUDE_GENERATED_HEADER
-#include "specialization_header.hpp"
 static constexpr bool has_specialization = true;
 #else
 static constexpr bool has_specialization = false;
@@ -23,7 +23,7 @@ template <archgenlib::ExpressionType T> static constexpr bool ok<T> = true;
 
 using archgenlib::bitweight_t;
 
-using fpdim_t = archgenlib::FixedFormat<5, -10, false>;
+using fpdim_t = archgenlib::FixedFormat<5, -10, unsigned>;
 using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 
 using storage_t =
@@ -62,7 +62,7 @@ int main() {
     auto val = static_cast<storage_t>(i);
     archgenlib::Variable<fpnum_t> a{{val}};
     using const_valtype = hint::detail::bitint_base_t<false, 16>;
-    using dim_t = archgenlib::FixedFormat<14, -1, false>;
+    using dim_t = archgenlib::FixedFormat<14, -1, unsigned>;
     using const_t = archgenlib::FixedConstant<dim_t, const_valtype{3}>;
     archgenlib::Constant<const_t> b{};
     auto c = archgenlib::sin(a) * b;

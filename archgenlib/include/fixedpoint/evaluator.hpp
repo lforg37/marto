@@ -1,6 +1,7 @@
 #ifndef FIXEDPOINT_EVALUATOR_HPP
 #define FIXEDPOINT_EVALUATOR_HPP
 
+#ifndef INCLUDE_GENERATED_HEADER
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -21,16 +22,20 @@
 #include "runtime/sollya_fix_function.hpp"
 #include "runtime/sollya_handler.hpp"
 #include "runtime/sollya_operation.hpp"
+#endif
 
 namespace archgenlib {
 
-template <ExpressionType ET, std::int32_t prec> class Evaluator {
+template <typename ET, std::int32_t prec> class Evaluator {
 public:
   Evaluator() {
+#ifndef INCLUDE_GENERATED_HEADER
     auto &formatter = detail::getFormatter();
     ExpressionRTRepr erepr{ExprTypeHolder<ET>{}};
     detail::cpp_expr_ptr input_var{new detail::NamedExpression{"expr"}};
-    auto input_val= get_path(erepr.symbol_table.at(0).path_from_root, input_var);
+    auto& variable_desc = erepr.symbol_table.begin()->second;
+    auto input_val =
+        get_path(variable_desc.path_from_root, input_var);
     auto freevar = input_val->assign_to("input0");
     auto l = erepr.get_singlevar_dominants();
     auto it = find(l.begin(), l.end(), &erepr.root.value());
@@ -41,7 +46,7 @@ public:
     }
     SollyaHandler topnode{sollyaFunctionFromNode(*erepr.root)};
     sollya_lib_printf("sollya_repr: %b\n", static_cast<sollya_obj_t>(topnode));
-    FixedFormatRTRepr repr = erepr.symbol_table.at(0).description.dim;
+    FixedFormatRTRepr repr = variable_desc.description.dim;
     SollyaFunction sf{topnode, repr};
     auto reprvec = sf.faithful_at_weight(prec);
     MultipartiteFunction mpf{sf, prec};
@@ -73,9 +78,17 @@ public:
                        << "  }\n"
                        << "};\n";
     }
+#endif
   }
-  auto evaluate(ET const &expr) { return FixedNumber<FixedFormat<4, -7, false>>{42}; }
+  auto evaluate(ET const &expr) { return FixedNumber<FixedFormat<4, -7, unsigned>>{42}; }
 };
 } // namespace archgenlib
+
+#define STRINGIFY(X) STRINGIFY2(X)
+#define STRINGIFY2(X) #X
+
+#ifdef INCLUDE_GENERATED_HEADER
+#include STRINGIFY(INCLUDE_GENERATED_HEADER)
+#endif
 
 #endif
