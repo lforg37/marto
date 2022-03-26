@@ -8,7 +8,7 @@
 using std::enable_if;
 
 template<typename DIM1, typename DIM2>
-using FPProdDim = TightFPDim<
+using FPProdDim = TightFixedFormat<
 		DIM1::WF + DIM2::WF + 1,
 		DIM1::MAX_EXP + DIM2::MAX_EXP,
 		DIM1::MIN_EXP + DIM1::MIN_EXP

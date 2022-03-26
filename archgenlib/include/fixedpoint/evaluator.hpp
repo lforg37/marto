@@ -41,7 +41,7 @@ public:
     }
     SollyaHandler topnode{sollyaFunctionFromNode(*erepr.root)};
     sollya_lib_printf("sollya_repr: %b\n", static_cast<sollya_obj_t>(topnode));
-    FPDimRTRepr repr = erepr.symbol_table.at(0).description.dim;
+    FixedFormatRTRepr repr = erepr.symbol_table.at(0).description.dim;
     SollyaFunction sf{topnode, repr};
     auto reprvec = sf.faithful_at_weight(prec);
     MultipartiteFunction mpf{sf, prec};
@@ -74,7 +74,7 @@ public:
                        << "};\n";
     }
   }
-  auto evaluate(ET const &expr) { return FPNumber<FPDim<4, -7, false>>{42}; }
+  auto evaluate(ET const &expr) { return FixedNumber<FixedFormat<4, -7, false>>{42}; }
 };
 } // namespace archgenlib
 

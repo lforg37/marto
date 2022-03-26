@@ -23,8 +23,8 @@ template <archgenlib::ExpressionType T> static constexpr bool ok<T> = true;
 
 using archgenlib::bitweight_t;
 
-using fpdim_t = archgenlib::FPDim<5, -10, false>;
-using fpnum_t = archgenlib::FPNumber<fpdim_t>;
+using fpdim_t = archgenlib::FixedFormat<5, -10, false>;
+using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 
 using storage_t =
     hint::detail::bitint_base_t<fpdim_t::is_signed, fpdim_t::width>;
@@ -62,7 +62,7 @@ int main() {
     auto val = static_cast<storage_t>(i);
     archgenlib::Variable<fpnum_t> a{{val}};
     using const_valtype = hint::detail::bitint_base_t<false, 16>;
-    using dim_t = archgenlib::FPDim<14, -1, false>;
+    using dim_t = archgenlib::FixedFormat<14, -1, false>;
     using const_t = archgenlib::FixedConstant<dim_t, const_valtype{3}>;
     archgenlib::Constant<const_t> b{};
     auto c = archgenlib::sin(a) * b;

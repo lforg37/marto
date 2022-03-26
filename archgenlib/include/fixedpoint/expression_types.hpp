@@ -70,9 +70,9 @@ constexpr bool _is_unary_expr<UnaryOp<ET, OT>> = true;
 template <typename ET>
 concept UnaryExprType = detail::_is_unary_expr<ET>;
 
-template <FPNumberType T> class Variable {
+template <FixedNumberType T> class Variable {
 public:
-  using dimension_t = typename T::dimension_t;
+  using dimension_t = typename T::format_t;
   using type = T;
   Variable(T const &val) : value{val} {}
   static constexpr bool constant = false;
@@ -81,7 +81,7 @@ public:
 
 namespace detail {
 template <typename T> constexpr bool _is_variable_expr = false;
-template <FPNumberType IT>
+template <FixedNumberType IT>
 constexpr bool _is_variable_expr<Variable<IT>> = true;
 } // namespace detail
 

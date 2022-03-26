@@ -101,10 +101,10 @@ struct Construction : public CPPExpr {
 struct InputDesc : public CPPExpr {
   bool is_declaration;
   std::string name;
-  std::optional<FPDimRTRepr> dimension;
+  std::optional<FixedFormatRTRepr> dimension;
   virtual void to_stream(std::ostream &os);
   InputDesc(std::string_view name):name{name}, is_declaration(true){}
-  InputDesc(std::string_view name, FPDimRTRepr dim):name{name},dimension{dim},is_declaration{true}{}
+  InputDesc(std::string_view name, FixedFormatRTRepr dim):name{name},dimension{dim},is_declaration{true}{}
 };
 
 struct MemberCall : public CPPExpr {
@@ -135,7 +135,7 @@ struct CPPOperator : public detail::CPPExpr {
   // TODO find something cleaner to ensure only InputDesc are here
   std::vector<detail::cpp_expr_ptr> inputs;
 
-  std::optional<FPDimRTRepr> output_dim;
+  std::optional<FixedFormatRTRepr> output_dim;
   std::vector<detail::cpp_expr_ptr> instructions;
   virtual void to_stream(std::ostream &);
 };

@@ -23,8 +23,8 @@ BOOST_AUTO_TEST_CASE(TestRoundedProductFull, *utf::disabled() * utf::label("long
 
 	constexpr vec_width targetWF = WF1+3;
 
-	using dim1 = FPDim<WE1, WF1>;
-	using dim2 = FPDim<WE2, WF2>;
+	using dim1 = FixedFormat<WE1, WF1>;
+	using dim2 = FixedFormat<WE2, WF2>;
 	constexpr int64_t min_significand{0}, max_ex_significand1{1 << WF1}, max_ex_significand2{1 << WF2};
 
 	/**** Using expr ********/
@@ -115,8 +115,8 @@ BOOST_AUTO_TEST_CASE(TestProduct)
 	constexpr vec_width WF1 = 15, WF2=12;
 	constexpr int64_t maxExp1 = 6, minExp1 = -2, maxExp2=1, minExp2=-2;
 
-	using dim1 = TightFPDim<WF1, maxExp1, minExp1>;
-	using dim2 = TightFPDim<WF2, maxExp2, minExp2>;
+	using dim1 = TightFixedFormat<WF1, maxExp1, minExp1>;
+	using dim2 = TightFixedFormat<WF2, maxExp2, minExp2>;
 
 	constexpr vec_width WE1 = dim1::WE, WE2 = dim2::WE;
 
@@ -167,8 +167,8 @@ BOOST_AUTO_TEST_CASE(TestProductFull, *utf::disabled() * utf::label("long"))
 	constexpr vec_width WE2 = 5;
 	constexpr vec_width WF2 = 6;
 
-	using dim1 = FPDim<WE1, WF1>;
-	using dim2 = FPDim<WE2, WF2>;
+	using dim1 = FixedFormat<WE1, WF1>;
+	using dim2 = FixedFormat<WE2, WF2>;
 
 	constexpr int64_t min_significand{0}, max_ex_significand1{1 << WF1}, max_ex_significand2{1 << WF2};
 

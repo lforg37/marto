@@ -9,7 +9,7 @@ using namespace archgenlib;
 
 int main() {
   SollyaHandler sinus{SOLLYA_SIN(SOLLYA_X_)};
-  FPDimRTRepr repr{5, -4, false};
+  FixedFormatRTRepr repr{5, -4, false};
   SollyaFunction sf{sinus, repr};
   auto reprvec = sf.faithful_at_weight(-4);
 

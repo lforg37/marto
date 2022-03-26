@@ -12,7 +12,7 @@ int main() {
   auto b = archgenlib::SollyaHandler{sollya_lib_build_function_sqrt(a)};
   double res;
   sollya_lib_get_constant_as_double(&res, b);
-  using constant_t = archgenlib::FixedConstant<archgenlib::FPDim<14, -23, false>, 0x1111>;
+  using constant_t = archgenlib::FixedConstant<archgenlib::FixedFormat<14, -23, false>, 0x1111>;
   std::cout << archgenlib::detail::type_name<constant_t>() << std::endl;
   return 0;
 }

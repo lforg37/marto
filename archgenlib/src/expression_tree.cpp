@@ -86,14 +86,14 @@ ExpressionRTRepr::get_count_for_nodes() const {
 
 std::string
 ExpressionRTRepr::extract_constant_repr(std::string_view const_tname) {
-  using fpdim_t = FPDim<37, -12, false>;
+  using fpdim_t = FixedFormat<37, -12, false>;
   using indicator_t =
       FixedConstant<fpdim_t,
                     hint::detail::bitint_base_t<false, 37 + 12 + 1>{94}>;
   constexpr auto fpdim_name = detail::type_name<fpdim_t>();
   constexpr auto indicator_name = detail::type_name<indicator_t>();
   constexpr auto start_idx = indicator_name.find(fpdim_name);
-  // End of the FPDim type representation
+  // End of the FixedFormat type representation
   auto fdim_endpos = const_tname.find('>', start_idx);
   auto number_start_pos = const_tname.find_first_of("0123456789-", fdim_endpos);
   auto number_end_pos = const_tname.find_first_not_of("0123456789xabcdefABCDEF",
@@ -117,8 +117,8 @@ std::vector<RTNode const *> ExpressionRTRepr::get_singlevar_dominants() const {
   return ret_list;
 }
 
-std::string FPDimRTRepr::toFPDimName() const {
-  using fpdim_t = FPDim<37, -12, false>;
+std::string FixedFormatRTRepr::toFixedFormatName() const {
+  using fpdim_t = FixedFormat<37, -12, false>;
   constexpr auto fpdim_name = detail::type_name<fpdim_t>();
   constexpr auto indicator = fpdim_name.find("37");
   constexpr auto prefix = fpdim_name.substr(0, indicator);
@@ -132,14 +132,14 @@ std::string FPDimRTRepr::toFPDimName() const {
   return ss.str();
 }
 
-std::string FPDimRTRepr::toFPNumName() const {
-  using fpdim_t = FPDim<37, -12, false>;
-  using fpnum_t = FPNumber<fpdim_t>;
+std::string FixedFormatRTRepr::toFPNumName() const {
+  using fpdim_t = FixedFormat<37, -12, false>;
+  using fpnum_t = FixedNumber<fpdim_t>;
   constexpr auto fpdim_name = detail::type_name<fpnum_t>();
   constexpr auto indicator = fpdim_name.find("<");
   constexpr auto prefix = fpdim_name.substr(0, indicator + 1);
   std::stringstream ss;
-  ss << prefix << toFPDimName() << ">" ;
+  ss << prefix << toFixedFormatName() << ">" ;
   return ss.str();
 }
 

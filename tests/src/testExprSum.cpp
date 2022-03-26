@@ -19,8 +19,8 @@ BOOST_AUTO_TEST_CASE(TestSumCompilation)
 	constexpr vec_width INTERNAL_WF = 42;
 	constexpr vec_width CONST_WF = 23;
 
-	using vardim = TightFPDim<EXTERNAL_WF, 20, -20>;
-	using const_dim = FPDim<CONST_WE, CONST_WF>;
+	using vardim = TightFixedFormat<EXTERNAL_WF, 20, -20>;
+	using const_dim = FixedFormat<CONST_WE, CONST_WF>;
 
 	using fpnum = FPNumber<vardim, VivadoWrapper>;
 	using constnum = FPNumber<const_dim, VivadoWrapper>;
@@ -126,15 +126,15 @@ inline bool check_addition_standard(int64_t s1, int64_t s2, int64_t exp1, int64_
 
 BOOST_AUTO_TEST_CASE(TestAdditionNoOverlap)
 {
-	using dim1 = TightFPDim<15, 18, -5>;
-	using dim2 = TightFPDim<8, 7, -26>;
+	using dim1 = TightFixedFormat<15, 18, -5>;
+	using dim2 = TightFixedFormat<8, 7, -26>;
 	check_addition_standard<dim1, dim2, 15>(0, 0, 15, -2, 0, 0);
 }
 
 BOOST_AUTO_TEST_CASE(TestAdditionSimpleOverlap)
 {
-	using dim1 = TightFPDim<15, 18, -5>;
-	using dim2 = TightFPDim<8, 7, -26>;
+	using dim1 = TightFixedFormat<15, 18, -5>;
+	using dim2 = TightFixedFormat<8, 7, -26>;
 	check_addition_standard<dim1, dim2, 15>(0, 0, 6, 4, 0, 0);
 }
 
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(AdditionOpposite)
 	constexpr vec_width WE = 5;
 	constexpr vec_width WF = 9;
 	constexpr vec_width targetWF = WF;
-	using dim = FPDim<WE, WF>;
+	using dim = FixedFormat<WE, WF>;
 
 	bool res = check_addition_standard<dim, dim, targetWF>(
 				0, 1, -16, -16, 0, 0
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(AdditionDoubleNeg)
 	constexpr vec_width WE = 5;
 	constexpr vec_width WF = 9;
 	constexpr vec_width targetWF = WF;
-	using dim = FPDim<WE, WF>;
+	using dim = FixedFormat<WE, WF>;
 
 	bool res = check_addition_standard<dim, dim, targetWF>(
 				1, 1, -16, -16, 0, 0
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(AddOpSignOneBitCancel)
 	constexpr vec_width WE = 5;
 	constexpr vec_width WF = 9;
 	constexpr vec_width targetWF = WF;
-	using dim = FPDim<WE, WF>;
+	using dim = FixedFormat<WE, WF>;
 
 	bool res = check_addition_standard<dim, dim, targetWF>(
 				0, 1, -16, -14, 0, 0
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(TestAdditionCompleteFormat, *utf::disabled() * utf::label("
 	constexpr vec_width WE = 5;
 	constexpr vec_width WF = 7;
 	constexpr vec_width targetWF = WF;
-	using dim = FPDim<WE, WF>;
+	using dim = FixedFormat<WE, WF>;
 	constexpr int64_t min_significand{0}, max_ex_significand{1 << WF};
 
 	/**** Using expr ********/
@@ -275,8 +275,8 @@ BOOST_AUTO_TEST_CASE(TestAdditionCompleteInequalFormats, *utf::disabled() * utf:
 
 	constexpr vec_width targetWF = WF1+2;
 
-	using dim1 = FPDim<WE1, WF1>;
-	using dim2 = FPDim<WE2, WF2>;
+	using dim1 = FixedFormat<WE1, WF1>;
+	using dim2 = FixedFormat<WE2, WF2>;
 	constexpr int64_t min_significand{0}, max_ex_significand1{1 << WF1}, max_ex_significand2{1 << WF2};
 
 	/**** Using expr ********/

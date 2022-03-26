@@ -18,7 +18,7 @@ sollya_obj_t compute_output_domain(sollya_obj_t function, sollya_obj_t input_dom
 
 
 namespace archgenlib {
-SollyaFunction::SollyaFunction(SollyaHandler& f, FPDimRTRepr input_f):function{f}, input_format{input_f},domain{sollya_interval_from_rtfpdim(input_f)}, output_domain{compute_output_domain(f, domain, 100*input_f.width)}{
+SollyaFunction::SollyaFunction(SollyaHandler& f, FixedFormatRTRepr input_f):function{f}, input_format{input_f},domain{sollya_interval_from_rtfpdim(input_f)}, output_domain{compute_output_domain(f, domain, 100*input_f.width)}{
   SollyaHandler sup{sollya_lib_sup(output_domain)}, inf{sollya_lib_inf(output_domain)};
   MPFRHandler supMPFR{100*input_f.width}, infMPFR{100*input_f.width};
   sollya_lib_get_constant(supMPFR, sup);

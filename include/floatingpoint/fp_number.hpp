@@ -40,7 +40,7 @@ struct TightWEHelper
 };
 
 template <vec_width _WE, vec_width _WF, int64_t _maxExp = 0, int64_t _minExp = 0>
-struct FPDim {
+struct FixedFormat {
 		/**
 		 * @brief WE Exponent field width
 		 */
@@ -80,14 +80,14 @@ struct FPDim {
 };
 
 template<vec_width WF, int64_t maxExp, int64_t minExp>
-using TightFPDim = FPDim<TightWEHelper<maxExp, minExp>::requiredWidth, WF, maxExp, minExp>;
+using TightFixedFormat = FixedFormat<TightWEHelper<maxExp, minExp>::requiredWidth, WF, maxExp, minExp>;
 
 template<typename sourceDim, vec_width targetWF>
 struct RoundDimHelper {
 		static constexpr bool CAN_ROUND = (targetWF < sourceDim::WF);
 		static constexpr int64_t MAX_EXP = (CAN_ROUND) ? sourceDim::MAX_EXP + 1 : sourceDim::MAX_EXP;
 		static constexpr vec_width WF = (CAN_ROUND) ? targetWF : sourceDim::WF;
-		using dim = TightFPDim<WF, MAX_EXP, sourceDim::MIN_EXP>;
+		using dim = TightFixedFormat<WF, MAX_EXP, sourceDim::MIN_EXP>;
 };
 
 template <typename _dim, template<unsigned int, bool> class Wrapper>
@@ -372,7 +372,7 @@ struct strictRounderOp {
 template<typename sourceDim>
 struct TightResize {
 	private:
-		using tightdim = TightFPDim<sourceDim::WF, sourceDim::MAX_EXP, sourceDim::MIN_EXP>;
+		using tightdim = TightFixedFormat<sourceDim::WF, sourceDim::MAX_EXP, sourceDim::MIN_EXP>;
 		static_assert(tightdim::WE <= sourceDim::WE, "TightResize should only be used with complete exponent range fp dim");
 		static constexpr bool isReduce = (tightdim::WE < sourceDim::WE);
 	public:

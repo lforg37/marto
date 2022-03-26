@@ -8,7 +8,7 @@ using namespace archgenlib;
 
 int main() {
   SollyaHandler identity{sollya_lib_build_function_free_variable()};
-  FPDimRTRepr repr{5, -4, true};
+  FixedFormatRTRepr repr{5, -4, true};
   SollyaFunction sf{identity, repr};
   auto reprvec = sf.faithful_at_weight(-4);
   for (auto & val : reprvec) {

@@ -8,21 +8,21 @@ using hint::LZOC_shift;
 #include "floatingpoint/expression.hpp"
 
 template<unsigned int WE, unsigned int WF>
-struct IEEEToFPDim
+struct IEEEToFixedFormat
 {
 	private:
 		using ieeedim = IEEEDim<WE, WF>;
 		static constexpr int64_t minexp = ieeedim::MIN_NORMAL_UNBIASED_EXP - static_cast<int>(WF);
 		static constexpr int64_t maxexp = ieeedim::MAX_NORMAL_UNBIASED_EXP;
 	public:
-		using dim = TightFPDim<WF, maxexp, minexp>;
+		using dim = TightFixedFormat<WF, maxexp, minexp>;
 };
 
 template<unsigned int WE, unsigned int WF>
 struct IEEEtoFPNum
 {
 	private:
-		using retdim = typename IEEEToFPDim<WE, WF>::dim;
+		using retdim = typename IEEEToFixedFormat<WE, WF>::dim;
 		template<template<unsigned int, bool> class Wrapper>
 		using rettype = FPNumber<retdim, Wrapper>;
 		using ieeedim = IEEEDim<WE, WF>;
@@ -59,7 +59,7 @@ struct IEEEtoFPNum
 };
 
 template<unsigned int WE, unsigned int WF, template<unsigned int, bool> class Wrapper>
-FPExpr<typename IEEEToFPDim<WE, WF>::type, Wrapper> inline to_expr(IEEENumber<WE, WF, Wrapper> const in)
+FPExpr<typename IEEEToFixedFormat<WE, WF>::type, Wrapper> inline to_expr(IEEENumber<WE, WF, Wrapper> const in)
 {
 	return to_expr(IEEEtoFPNum<WE, WF>::compute(in));
 }

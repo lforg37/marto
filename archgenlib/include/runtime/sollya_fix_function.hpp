@@ -17,7 +17,7 @@ namespace archgenlib {
 struct SollyaFunction {
   SollyaHandler& function;
   SollyaHandler domain;
-  const FPDimRTRepr input_format;
+  const FixedFormatRTRepr input_format;
   SollyaHandler output_domain;
   bool signed_output;
   bitweight_t msb_output;
@@ -30,7 +30,7 @@ struct SollyaFunction {
   ///@return std::vector<mpz_class> 
   std::vector<mpz_class> faithful_at_weight(bitweight_t LSBOut);
 
-  SollyaFunction(SollyaHandler& f, FPDimRTRepr input_f);
+  SollyaFunction(SollyaHandler& f, FixedFormatRTRepr input_f);
   
   private:
   mpz_class getmpz(mpfr_t evalPoint, bitweight_t LSBOut, mpfr_t intermResHolder);

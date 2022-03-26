@@ -178,7 +178,7 @@ void CPPOperator::to_stream(std::ostream &os) {
     os << ") ";
   }
   if (output_dim.has_value()) {
-    os << "->" << output_dim->toFPDimName() << " ";
+    os << "->" << output_dim->toFixedFormatName() << " ";
   }
   os << "{\n";
   for (auto &instr_ptr : instructions) {
@@ -215,7 +215,7 @@ CPPOperator TableBuilder::build_table() {
   detail::cpp_expr_ptr input{new detail::InputDesc{"point", input_dim}};
   ret.inputs.emplace_back(input);
   s << "archgenlib::Table<" << input_dim.width << ", "
-    << output_dim.toFPDimName() << ">";
+    << output_dim.toFixedFormatName() << ">";
   detail::cpp_expr_ptr tab_init_list{
       new detail::CPPTableInitialization(values, output_dim)};
   auto tab_val = tab_init_list->use_to_build(s.str())->assign_to(
@@ -243,13 +243,13 @@ CPPOperator MultipartiteOperator::get_operator() {
     return val->call(ss.str());
   };
 
-  FPDimRTRepr output_dim{mpf.function.msb_output, mpf.lsb_out, mpf.function.signed_output};
+  FixedFormatRTRepr output_dim{mpf.function.msb_output, mpf.lsb_out, mpf.function.signed_output};
 
   // TIV
   auto &config = mpf.best_config.value();
-  FPDimRTRepr table_output_dim{mpf.function.msb_output, mpf.lsb_out - 2, // Two guard bits
+  FixedFormatRTRepr table_output_dim{mpf.function.msb_output, mpf.lsb_out - 2, // Two guard bits
                                mpf.function.signed_output};
-  FPDimRTRepr tiv_input_dim{static_cast<bitweight_t>(config.alpha) - 1, 0,
+  FixedFormatRTRepr tiv_input_dim{static_cast<bitweight_t>(config.alpha) - 1, 0,
                             false};
   auto tiv_builder = TableBuilder{tiv_input_dim, table_output_dim,
                                   config.initial_values_table};
@@ -275,7 +275,7 @@ CPPOperator MultipartiteOperator::get_operator() {
                     ->assign_to("to_key");
   ret.instructions.emplace_back(to_key);
   auto &to_config = config.offset_configs[0];
-  FPDimRTRepr to_input_dim{
+  FixedFormatRTRepr to_input_dim{
       static_cast<bitweight_t>(to_config.gamma + to_config.beta) - 1, 0, false};
   auto to_builder =
       TableBuilder{to_input_dim, table_output_dim, config.offset_tables[0]};

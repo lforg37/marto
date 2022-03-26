@@ -21,8 +21,8 @@ BOOST_AUTO_TEST_CASE(TestRounderLargerformat)
 	constexpr vec_width WE2 = 5;
 	constexpr vec_width WF2 = 9;
 
-	using dim1 = FPDim<WE1, WF1>;
-	using dim2 = FPDim<WE2, WF2>;
+	using dim1 = FixedFormat<WE1, WF1>;
+	using dim2 = FixedFormat<WE2, WF2>;
 
 	using fpnum1 = FPNumber<dim1, VivadoWrapper>;
 
@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_CASE(TestRounderSmallerformat)
 	constexpr vec_width WE2 = 5;
 	constexpr vec_width WF2 = 9;
 
-	using dim1 = FPDim<WE1, WF1>;
-	using dim2 = FPDim<WE2, WF2>;
+	using dim1 = FixedFormat<WE1, WF1>;
+	using dim2 = FixedFormat<WE2, WF2>;
 
 	using fpnum = FPNumber<dim2, VivadoWrapper>;
 

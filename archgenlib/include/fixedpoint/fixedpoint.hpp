@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
+#include <initializer_list>
 #include <limits>
 #include <string_view>
 #include <type_traits>
@@ -11,16 +12,16 @@
 #ifndef BITINT_BACKEND
 #define BITINT_BACKEND
 #endif
-#include "hint.hpp"
 #include "bitint_tools/bitint_constant.hpp"
 #include "bitint_tools/type_helpers.hpp"
+#include "hint.hpp"
 
 namespace archgenlib {
 using bitweight_t = std::int32_t;
 using vecwidth_t = std::uint32_t;
 
 template <bitweight_t MSBWeight, bitweight_t LSBWeight, bool IsSigned>
-struct FPDim {
+struct FixedFormat {
   static_assert(MSBWeight >= LSBWeight,
                 "MSB weight cannot be smaller than LSBs");
 
@@ -43,53 +44,116 @@ struct FPDim {
    * @brief is_signed is the number signed
    */
   static constexpr bool is_signed = IsSigned;
+
+  /**
+   * @brief max_positive_bitweight maximum bitweight for which associated bit is
+   * positive.
+   *
+   */
+  static constexpr bitweight_t max_positive_bitweight =
+      is_signed ? msb_weight - 1 : msb_weight;
 };
 
 namespace detail {
-template <typename T> constexpr bool is_fpdim = false;
+template <typename T> constexpr bool is_fixed_format = false;
 
 template <bitweight_t MSBWeight, bitweight_t LSBWeight, bool IsSigned>
-constexpr bool is_fpdim<FPDim<MSBWeight, LSBWeight, IsSigned>> = true;
+constexpr bool is_fixed_format<FixedFormat<MSBWeight, LSBWeight, IsSigned>> =
+    true;
 } // namespace detail
 
 template <typename T>
-concept FPDimType = detail::is_fpdim<T>;
+concept FixedFormatType = detail::is_fixed_format<T>;
+
+namespace detail {
+template <FixedFormatType T1, FixedFormatType T2>
+constexpr bool can_extend_to(T1 source = {}, T2 dest = {}) {
+  if (T1::msb_weight > T2::msb_weight || T1::lsb_weight < T2::lsb_weight ||
+      T1::is_signed && !T2::is_signed) {
+    return false;
+  }
+  // We can extend an unsigned value to signed value, but only if the signed
+  // value msb weight is strictly greater
+  if (!T1::is_signed && T2::is_signed && T1::msb_weight == T2::msb_weight) {
+    return false;
+  }
+  return true;
+}
+}; // namespace detail
+
+template <FixedFormatType FF1, FixedFormatType FF2>
+constexpr auto operator+(FF1 format1, FF2 format2) {
+  constexpr auto lsb_out = std::min(format1.lsb_weight, format2.lsb_weight);
+  constexpr auto max_msb = std::max(format1.msb_weight, format2.msb_weight);
+  constexpr auto max_pos_msb =
+      std::max(format1.max_positive_bitweight, format2.max_positive_bitweight);
+  constexpr auto one_signed = format1.is_signed || format2.is_signed;
+  constexpr auto msb =
+      1 + (((max_msb == max_pos_msb) && one_signed) ? max_msb + 1 : max_msb);
+  return FixedFormat<msb, lsb_out, one_signed>{};
+}
 
 template <std::integral IT>
-using fpdim_from_integral =
-    FPDim<std::numeric_limits<IT>::digits + std::is_signed_v<IT>, 0,
-          std::is_signed_v<IT>>;
+using fixedformat_from_integral =
+    FixedFormat<std::numeric_limits<IT>::digits + std::is_signed_v<IT>, 0,
+                std::is_signed_v<IT>>;
 
-template <FPDimType Dim> class FPNumber {
-  using storage_t = hint::detail::bitint_base_t<Dim::is_signed, Dim::width>;
+template <FixedFormatType Format> class FixedNumber {
+public:
+  using storage_t =
+      hint::detail::bitint_base_t<Format::is_signed, Format::width>;
 
+private:
   storage_t value_;
 
 public:
-  using dimension_t = Dim;
-  static constexpr auto width = Dim::width;
-  constexpr FPNumber(storage_t const &val) : value_{val} {}
+  using format_t = Format;
+  static constexpr auto width = Format::width;
+  constexpr FixedNumber(storage_t const &val) : value_{val} {}
+
+  template <FixedFormatType FT>
+  constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
+
   storage_t value() const { return value_; }
-  hint::BitIntWrapper<Dim::width, Dim::is_signed> as_hint() const {
+  hint::BitIntWrapper<Format::width, Format::is_signed> as_hint() const {
     return {value_};
+  }
+
+  static constexpr format_t format{};
+
+  template <FixedFormatType NewFormat>
+  FixedNumber<NewFormat> extend_to(NewFormat new_format = {}) const {
+    static_assert(detail::can_extend_to(format, new_format),
+                  "Trying to extend value to a format that is not a superset "
+                  "of current format");
+    auto new_value =
+        static_cast<typename FixedNumber<NewFormat>::storage_t>(value_);
+    return {new_value << (format.lsb_weight - new_format.lsb_weight)};
   }
 };
 
-namespace detail {
-template <typename T> constexpr bool is_fp_num = false;
+template <FixedFormatType FT> FixedNumber(FT, auto) -> FixedNumber<FT>;
 
-template <FPDimType Dim> constexpr bool is_fp_num<FPNumber<Dim>> = true;
+template <FixedFormatType FT, typename T>
+FixedNumber(FT, std::initializer_list<T>) -> FixedNumber<FT>;
+
+namespace detail {
+template <typename T> constexpr bool is_fixed_num = false;
+
+template <FixedFormatType Dim>
+constexpr bool is_fixed_num<FixedNumber<Dim>> = true;
 } // namespace detail
 
 template <typename T>
-concept FPNumberType = detail::is_fp_num<T>;
+concept FixedNumberType = detail::is_fixed_num<T>;
 
 // FixedPointConstant
 template <typename T, typename Dim>
-concept FixedBitIntCst = hint::BitIntConstT<T> && FPDimType<Dim> && T::width ==
+concept FixedBitIntCst =
+    hint::BitIntConstT<T> && FixedFormatType<Dim> && T::width ==
 Dim::width &&T::isSigned == Dim::is_signed;
 
-template <FPDimType Dim,
+template <FixedFormatType Dim,
           hint::detail::bitint_base_t<Dim::is_signed, Dim::width> Val>
 struct FixedConstant {
   using dimension_t = Dim;
@@ -99,7 +163,7 @@ struct FixedConstant {
 
 namespace detail {
 template <typename T> constexpr bool _is_fixed_constant = false;
-template <FPDimType Dim,
+template <FixedFormatType Dim,
           hint::detail::bitint_base_t<Dim::is_signed, Dim::width> Val>
 constexpr bool _is_fixed_constant<FixedConstant<Dim, Val>> = true;
 } // namespace detail
@@ -107,7 +171,18 @@ constexpr bool _is_fixed_constant<FixedConstant<Dim, Val>> = true;
 template <typename T>
 concept FixedConstantType = detail::_is_fixed_constant<T>;
 
-namespace detail {}
+template <FixedNumberType T1, FixedNumberType T2>
+auto operator+(T1 const &op1, T2 const &op2) {
+  constexpr auto res_format = T1::format + T2::format;
+  auto resized_1 = op1.extend_to(res_format);
+  auto resized_2 = op2.extend_to(res_format);
+  auto res_val = resized_1.value() + resized_2.value();
+  return FixedNumber(res_format, res_val);
+}
+
+template <FixedNumberType FT> bool operator==(FT const &op1, FT const &op2) {
+  return op1.value() == op2.value();
+}
 
 } // namespace archgenlib
 

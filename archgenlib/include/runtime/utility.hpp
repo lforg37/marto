@@ -6,7 +6,7 @@
 #include "runtime/expression_tree.hpp"
 
 namespace archgenlib {
-sollya_obj_t sollya_interval_from_rtfpdim(FPDimRTRepr dim);
+sollya_obj_t sollya_interval_from_rtfpdim(FixedFormatRTRepr dim);
 }
 
 #endif

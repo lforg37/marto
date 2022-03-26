@@ -47,7 +47,7 @@ struct FPSumDim
 		static constexpr vec_width WFmax = (range1 > range2) ? range1 : range2;
 
 	public:
-		using type = TightFPDim<WFmax, maxExp, minExp>;
+		using type = TightFixedFormat<WFmax, maxExp, minExp>;
 };
 
 template<vec_width TargetWF, typename Dim1, typename Dim2>
@@ -64,7 +64,7 @@ struct RoundedFPSum
 		static constexpr vec_width max_signif_width = max_wf + 1;
 		//static_assert (not isExact, "exact  sum is buggy at the moment");
 
-		using partial_sum_dim = FPDim<ExactSumDim::WE, partialWF, ExactSumDim::MAX_EXP, ExactSumDim::MIN_EXP>;
+		using partial_sum_dim = FixedFormat<ExactSumDim::WE, partialWF, ExactSumDim::MAX_EXP, ExactSumDim::MIN_EXP>;
 		static constexpr vec_width partial_we = partial_sum_dim::WE;
 		using rounding_helper = RoundDimHelper<partial_sum_dim, TargetWF>;
 		static constexpr vec_width sum_op_align = (TruncatingWidth > max_wf) ? TruncatingWidth : max_wf; //take at minimum maxWF bits

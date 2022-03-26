@@ -20,17 +20,17 @@
 #include "output_formatter.hpp"
 
 namespace archgenlib {
-struct FPDimRTRepr {
+struct FixedFormatRTRepr {
   bitweight_t const msb_weight;
   bitweight_t const lsb_weight;
   vecwidth_t width;
   bool const is_signed;
-  FPDimRTRepr(bitweight_t msb, bitweight_t lsb, bool signedness)
+  FixedFormatRTRepr(bitweight_t msb, bitweight_t lsb, bool signedness)
       : msb_weight{msb}, lsb_weight{lsb}, is_signed{signedness} {
     assert((msb >= lsb) && "MSB should have a greater weight than LSB");
     width = static_cast<vecwidth_t>(msb - lsb + 1);
   }
-  std::string toFPDimName() const;
+  std::string toFixedFormatName() const;
   std::string toFPNumName() const;
 };
 
@@ -78,15 +78,16 @@ struct UnaryOpRTNodeContent {
 };
 
 struct ConstantLeafRTNodeContent {
-  FPDimRTRepr const dim;
+  FixedFormatRTRepr const dim;
   std::string const constant_representation;
-  ConstantLeafRTNodeContent(FPDimRTRepr const &fpdim, std::string_view repres)
+  ConstantLeafRTNodeContent(FixedFormatRTRepr const &fpdim,
+                            std::string_view repres)
       : dim{fpdim}, constant_representation{repres} {}
 };
 
 struct VariableLeafRTNodeContent {
-  FPDimRTRepr const dim;
-  VariableLeafRTNodeContent(FPDimRTRepr const &fpdim) : dim{fpdim} {}
+  FixedFormatRTRepr const dim;
+  VariableLeafRTNodeContent(FixedFormatRTRepr const &fpdim) : dim{fpdim} {}
 };
 
 struct ExpressionRTRepr {
@@ -103,8 +104,8 @@ struct ExpressionRTRepr {
   using sym_table_t = std::map<std::uint32_t, SymbolRecord>;
 
 private:
-  template <FPDimType T> auto descriptor_from_fpdim(T const &dim) {
-    return FPDimRTRepr{dim.msb_weight, dim.lsb_weight, dim.is_signed};
+  template <FixedFormatType T> auto descriptor_from_fpdim(T const &dim) {
+    return FixedFormatRTRepr{dim.msb_weight, dim.lsb_weight, dim.is_signed};
   }
 
   ///

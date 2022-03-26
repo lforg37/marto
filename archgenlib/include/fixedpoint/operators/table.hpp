@@ -7,8 +7,8 @@
 
 namespace archgenlib {
 
-template<vecwidth_t inputwidth, FPDimType OutputDimT>
-using Table = std::array<FPNumber<OutputDimT>, 1 << inputwidth>;
+template<vecwidth_t inputwidth, FixedFormatType OutputDimT>
+using Table = std::array<FixedNumber<OutputDimT>, 1 << inputwidth>;
 
 }
 #endif

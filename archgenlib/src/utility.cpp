@@ -6,7 +6,7 @@
 #include "runtime/utility.hpp"
 
 namespace archgenlib {
-sollya_obj_t sollya_interval_from_rtfpdim(FPDimRTRepr dim) {
+sollya_obj_t sollya_interval_from_rtfpdim(FixedFormatRTRepr dim) {
   mpfr_t min, max;
   mpfr_init2(min, dim.width);
   mpfr_init2(max, dim.width);
