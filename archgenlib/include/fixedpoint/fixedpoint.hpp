@@ -15,6 +15,7 @@
 #include "bitint_tools/bitint_constant.hpp"
 #include "bitint_tools/type_helpers.hpp"
 #include "hint.hpp"
+#include "tools/static_math.hpp"
 
 namespace archgenlib {
 using bitweight_t = std::int32_t;
@@ -75,6 +76,12 @@ struct FixedFormat {
    */
   static constexpr bitweight_t max_positive_bitweight =
       is_signed ? msb_weight - 1 : msb_weight;
+
+  using bitint_type = hint::detail::bitint_base_t<is_signed, width>;
+
+  constexpr auto get_bit_int(auto const & val) const {
+    return static_cast<bitint_type>(val);
+  }
 };
 
 namespace detail {
@@ -115,6 +122,14 @@ constexpr auto operator+(FF1 format1, FF2 format2) {
   return FixedFormat<msb, lsb_out, is_signed_to_type_t<one_signed>>{};
 }
 
+template <FixedFormatType FF1, FixedFormatType FF2>
+constexpr auto operator*(FF1 format1, FF2 format2) {
+  using arith_prop = hint::Arithmetic_Prop<FF1::width, FF2::width, FF1::is_signed, FF2::is_signed>;
+  constexpr auto lsb_out = FF1::lsb_weight + FF2::lsb_weight;
+  constexpr auto msb_out = lsb_out + arith_prop::_prodSize - 1;
+  return FixedFormat<msb_out, lsb_out, is_signed_to_type_t<arith_prop::_prodSigned>>{};
+}
+
 template <std::integral IT>
 using fixedformat_from_integral =
     FixedFormat<std::numeric_limits<IT>::digits + std::is_signed_v<IT>, 0,
@@ -124,11 +139,8 @@ template <FixedFormatType Format> class FixedNumber {
 public:
   using storage_t =
       hint::detail::bitint_base_t<Format::is_signed, Format::width>;
+  storage_t const value_;
 
-private:
-  storage_t value_;
-
-public:
   using format_t = Format;
   static constexpr auto width = Format::width;
   constexpr FixedNumber(storage_t const &val) : value_{val} {}
@@ -138,7 +150,7 @@ public:
 
   explicit constexpr FixedNumber(hint::BitIntWrapper<Format::width, Format::is_signed> const &val)
       : value_{val.unravel()} {}
-  storage_t value() const { return value_; }
+  constexpr storage_t value() const { return value_; }
   hint::BitIntWrapper<Format::width, Format::is_signed> as_hint() const {
     return {value_};
   }
@@ -146,7 +158,7 @@ public:
   static constexpr format_t format{};
 
   template <FixedFormatType NewFormat>
-  FixedNumber<NewFormat> extend_to(NewFormat new_format = {}) const {
+  constexpr FixedNumber<NewFormat> extend_to(NewFormat new_format = {}) const {
     static_assert(detail::can_extend_to(format, new_format),
                   "Trying to extend value to a format that is not a superset "
                   "of current format");
@@ -196,7 +208,7 @@ template <typename T>
 concept FixedConstantType = detail::_is_fixed_constant<T>;
 
 template <FixedNumberType T1, FixedNumberType T2>
-auto operator+(T1 const &op1, T2 const &op2) {
+constexpr auto operator+(T1 const &op1, T2 const &op2) {
   constexpr auto res_format = T1::format + T2::format;
   auto resized_1 = op1.extend_to(res_format);
   auto resized_2 = op2.extend_to(res_format);
@@ -204,7 +216,24 @@ auto operator+(T1 const &op1, T2 const &op2) {
   return FixedNumber(res_format, res_val);
 }
 
-template <FixedNumberType FT> bool operator==(FT const &op1, FT const &op2) {
+template <FixedNumberType T1, FixedNumberType T2>
+constexpr auto operator-(T1 const &op1, T2 const &op2) {
+  constexpr auto res_format = T1::format + T2::format;
+  auto resized_1 = op1.extend_to(res_format);
+  auto resized_2 = op2.extend_to(res_format);
+  auto res_val = resized_1.value() - resized_2.value();
+  return FixedNumber(res_format, res_val);
+}
+
+template <FixedNumberType T1, FixedNumberType T2>
+constexpr auto operator*(T1 const &op1, T2 const &op2) {
+  constexpr auto res_format = T1::format * T2::format;
+  auto val1 =  res_format.get_bit_int(op1.value());
+  auto val2 = res_format.get_bit_int(op2.value());
+  return FixedNumber(res_format, val1 * val2);
+}
+
+template <FixedNumberType FT> constexpr bool operator==(FT const &op1, FT const &op2) {
   return op1.value() == op2.value();
 }
 
