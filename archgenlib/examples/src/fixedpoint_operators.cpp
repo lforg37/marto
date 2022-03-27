@@ -82,7 +82,7 @@ int main() {
   using fpnum_3 = FixedNumber<format_3>;
   static_assert(fpnum_3::get_from_value(0b1000) == fpnum_3{0b1});
   // Ties toward 0
-  static_assert(fpnum_3::get_from_value(0b1100) == fpnum_3{0b1});
+  static_assert(fpnum_3::get_from_value(0b1100) == fpnum_3{0b10});
   static_assert(fpnum_3::get_from_value(0b1101) == fpnum_3{0b10});
 
   static_assert(fpnum_3::get_from_value(0b11111111111101) == fpnum_3{0b111111});
@@ -94,18 +94,21 @@ int main() {
   // Floats
   auto from_val_0 = fpnum_0::get_from_value(2.);
   assert(from_val_0 == fpnum_0{0b1000});
+  assert(from_val_0.get_as<double>() == 2.);
   auto from_val_1 = fpnum_0::get_from_value(.5);
   assert(from_val_1 == fpnum_0{0b10});
+  assert(from_val_1.get_as<double>() == .5);
 
   auto from_val_2 = fpnum_0::get_from_value(3. / 16.);
   // round up
   assert(from_val_2 == fpnum_0{0b01});
+  assert(from_val_2.get_as<double>() == .25);
 
   auto from_val_3 = fpnum_0::get_from_value(static_cast<double>(0b101101) / 16);
   assert(from_val_3 == fpnum_0{0b1011});
 
   auto from_val_4 = fpnum_0::get_from_value(static_cast<double>(0b101110) / 16);
-  assert(from_val_4 == fpnum_0{0b1011});
+  assert(from_val_4 == fpnum_0{0b1100});
 
   auto from_val_5 = fpnum_0::get_from_value(static_cast<double>(0b101111) / 16);
   assert(from_val_5 == fpnum_0{0b1100});
@@ -114,14 +117,16 @@ int main() {
   assert(from_val_6 == fpnum_0{0b0});
 
   auto from_val_7 =
-      fpnum_0::get_from_value(static_cast<double>(0b11010110101) / 4);
-  assert(from_val_7 == fpnum_0{0b11010110101});
+      fpnum_0::get_from_value(static_cast<double>(0b101011010) / 4);
+  assert(from_val_7 == fpnum_0{0b101011010});
 
-  auto from_val_8 = fpnum_0::get_from_value(static_cast<double>(0b11010110101) /
+  auto from_val_8 = fpnum_0::get_from_value(static_cast<double>(0b111010110101) /
                                             2); // Overflow
-  assert(from_val_8 == fpnum_0{0b11111111111});
+  assert(from_val_8 == fpnum_0{0b111111111});
 
   // TODO check inf and negative numbers... Not an emergency
+
+
 
   return 0;
 }

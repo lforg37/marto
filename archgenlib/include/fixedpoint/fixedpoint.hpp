@@ -174,9 +174,10 @@ public:
     constexpr auto fp_width = limits::digits;
     int exp_get;
     auto normalized = std::frexp(in_val, &exp_get);
-    int exp = exp_get - fp_width; // Get the weight of the LSB
-    if (exp > format.msb_weight ||
-        (format.is_signed && exp == format.msb_weight)) {
+    int exp_msb = exp_get - 1; // Get the weight of the LSB
+    int exp_lsb = exp_get - fp_width; // Get the weight of the LSB
+    if (exp_msb > format.msb_weight ||
+        (format.is_signed && exp_msb == format.msb_weight)) {
       if (in_val < 0) {
         return min_val();
       } else {
@@ -184,17 +185,15 @@ public:
       }
     }
 
-    if (exp + fp_width - 1 < format.lsb_weight - 1) {
+    if (exp_msb < format.lsb_weight - 1) {
       return 0;
     }
 
-    if (exp + fp_width - 1 == format.lsb_weight - 1) {
-      if (normalized == FT{.5}) {
-        return 0;
-      } else if (normalized < 0) {
-        return min_neg();
-      } else {
+    if (exp_msb == format.lsb_weight - 1) {
+      if (normalized > 0) {
         return min_pos();
+      } else {
+        return min_neg();
       }
     }
 
@@ -208,8 +207,7 @@ public:
         hint::detail::bitint_base_t<format.is_signed,
                                     fp_width + (format.is_signed)>;
     auto scaled = std::ldexp(normalized, fp_width);
-    auto fp_bitint_val = static_cast<fp_storage_t>(
-        (format.is_signed) ? scaled : std::abs(scaled));
+    auto fp_bitint_val = static_cast<fp_storage_t>(scaled);
     constexpr auto extended_format_lsb_weight = format.lsb_weight - fp_width;
     using extended_fixed_dim =
         FixedFormat<format.msb_weight, extended_format_lsb_weight,
@@ -217,20 +215,9 @@ public:
     using extended_storage = typename extended_fixed_dim::bitint_type;
     FixedNumber<extended_fixed_dim> extended{
         static_cast<extended_storage>(fp_bitint_val)
-        << (exp - extended_format_lsb_weight)};
+        << (exp_lsb - extended_format_lsb_weight)};
 
-    auto round_bit =
-        extended
-            .template extract<format.lsb_weight - 1, format.lsb_weight - 1>();
-    auto round = round_bit.value() != 0;
-    auto sticky_bits = extended.template extract<format.lsb_weight - 2,
-                                                 extended_format_lsb_weight>();
-    auto sticky = sticky_bits.value() != 0;
-
-    auto unrounded =
-        extended.template extract<format.msb_weight, format.lsb_weight>();
-    auto round_up = sticky && round && !(unrounded == max_val());
-    return round_up ? unrounded.value() + 1 : unrounded;
+    return extended.template round_to<format.lsb_weight>();
   }
 
   template <std::integral IT>
@@ -285,17 +272,71 @@ public:
           return FixedNumber<full_int_format>(val).extend_to(format).value();
         } else if constexpr (get_shift >= 1) {
           constexpr auto round_bit_mask = IT{1} << (get_shift - 1);
-          constexpr auto sticky_mask = round_bit_mask - 1;
-          bool round_up = (in_val & round_bit_mask) && (in_val & sticky_mask);
           using fui_storage_t = typename full_int_format::bitint_type;
-          auto val = static_cast<fui_storage_t>((in_val >> get_shift) +
-                                                (round_up ? 1 : 0));
-          return val;
+          auto val = static_cast<fui_storage_t>((in_val >> get_shift));
+          bool round_up = (in_val & round_bit_mask) && (val != ~fui_storage_t{0});
+          return val + round_up;
         }
       }
     }
   }
 
+  template<bitweight_t RoundingPos>
+  constexpr auto round_to() const {
+    static_assert(RoundingPos < format.msb_weight);
+    if constexpr (RoundingPos <= format.lsb_weight) {
+      return *this;
+    } else {
+      auto round = extract<RoundingPos - 1, RoundingPos - 1>();
+      bool round_up = round.value_ != 0;
+      auto up = extract<format.msb_weight, RoundingPos>();
+      using res_t = decltype(up);
+      return res_t{up.value_ + (round_up && up != res_t::max_val())};
+    }
+  }
+
+  template<bitweight_t ShiftVal>
+  constexpr auto shift() const {
+    using out_format = FixedFormat<Format::msb_weight + ShiftVal, Format::lsb_weight + ShiftVal, typename Format::sign_t>;
+    return out_format{value_};
+  }
+
+  /**
+   * @brief Get the FT value nearest to represented value.
+   *        Ties are rounded toward +infinity (with saturation).          
+   * 
+   * @tparam FT type of the converted result
+   * @return constexpr FT 
+   */
+  template <std::floating_point FT> constexpr FT get_as() const {
+    using limits = std::numeric_limits<FT>;
+    static_assert(limits::max_exponent > format.msb_weight, "Overflow to infinity are not handled yet");
+    static_assert(limits::min_exponent < format.lsb_weight);
+    static_assert(limits::radix == 2);
+    constexpr bool extra_bits = std::max(static_cast<int>(format.width - format.is_signed) - static_cast<int>(limits::digits), 0);
+    if constexpr (extra_bits == 0) {  
+      auto unscaled = static_cast<FT>(value_);
+      auto scaled = std::ldexp(unscaled, format.lsb_weight);
+      return scaled;
+    } else {
+      auto round = extract<format.lsb_weight + extra_bits - 1, format.lsb_weight + extra_bits - 1>();
+      auto up = extract<format.msb_weight, format.lsb_weight + extra_bits>();
+      using extended_format = FixedFormat<format.msb_weight + 1, format.lsb_weight, typename Format::sign_t>;
+      auto val = up.as_hint();
+      auto rounded = val.add_with_carry({0}, {round.value_});
+      auto unscaled = static_cast<FT>(rounded.unravel());
+      auto scaled = std::ldexp(unscaled, format.lsb_weight);
+      return scaled;
+    }
+  }
+
+  /**
+   * @brief Get the OT nearest to represented value.
+   *        Ties are rounded toward +infinity.
+   * 
+   * @tparam IT type of the converted result
+   * @return constexpr IT 
+   */
   template <std::integral IT> constexpr IT get_as() const {
     using limits = std::numeric_limits<IT>;
     static_assert(limits::radix == 2);
@@ -317,7 +358,8 @@ public:
       }
       // Max positive value: 1 << pos_bits - 1
       constexpr auto pos_bits_msb = limits::digits - 1;
-      constexpr auto output_format_msb = pos_bits_msb + (limits::is_signed ? 1 : 0);
+      constexpr auto output_format_msb =
+          pos_bits_msb + (limits::is_signed ? 1 : 0);
       constexpr auto format_pos_msb = format.msb_weight - format.is_signed;
       constexpr bool can_overflow = format_pos_msb > pos_bits_msb;
       if constexpr (can_overflow) {
