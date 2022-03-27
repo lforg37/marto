@@ -151,8 +151,23 @@ public:
   explicit constexpr FixedNumber(hint::BitIntWrapper<Format::width, Format::is_signed> const &val)
       : value_{val.unravel()} {}
   constexpr storage_t value() const { return value_; }
-  hint::BitIntWrapper<Format::width, Format::is_signed> as_hint() const {
+  constexpr hint::BitIntWrapper<Format::width, Format::is_signed> as_hint() const {
     return {value_};
+  }
+
+  template<bitweight_t high, bitweight_t low>
+  constexpr auto extract() const {
+    static_assert(high <= Format::msb_weight);
+    static_assert(low >= Format::lsb_weight);
+    constexpr bool signed_ret = Format::is_signed && high == Format::msb_weight;
+    using ret_dim = FixedFormat<high, low, is_signed_to_type_t<signed_ret>>;
+    auto val_hint = this->as_hint();
+    auto ret_val = val_hint.template slice<high - Format::lsb_weight, low - Format::lsb_weight>();
+    if constexpr (signed_ret) {
+      return FixedNumber<ret_dim>(ret_val.as_signed().unravel());
+    } else {
+      return FixedNumber<ret_dim>(ret_val.unravel());
+    }
   }
 
   static constexpr format_t format{};

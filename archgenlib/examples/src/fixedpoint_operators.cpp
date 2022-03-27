@@ -26,5 +26,12 @@ int main() {
   */
   constexpr FixedNumber<FixedFormat<8, -7, unsigned>> res_mul{0b100110110};
   static_assert(res_mul == (op1 * op2));
+
+
+  constexpr FixedNumber<FixedFormat<5, -3, signed>> pattern {0b101101110};
+  constexpr auto high_bits = pattern.template extract<5, 1>();
+  static_assert(high_bits == FixedNumber<FixedFormat<5, 1, signed>>{0b10110});
+  static_assert(pattern.template extract<0, -3>() == FixedNumber<FixedFormat<0, -3, unsigned>>{0b1110});
+
   return 0;
 }
