@@ -152,6 +152,12 @@ public:
   constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
 
   template <std::floating_point FT>
+  /**
+   * @brief Get the fixed number with the value closest to input
+   *
+   * @param in_val value to convert to FixedNumber
+   * @return FixedNumber read above
+   */
   static FixedNumber get_from_value(FT const in_val) {
     using limits = std::numeric_limits<FT>;
     static_assert(limits::is_iec559);
@@ -229,7 +235,7 @@ public:
 
   template <std::integral IT>
   /**
-   * @brief Get the fixed number with the value closest to what input
+   * @brief Get the fixed number with the value closest to input
    *
    * @param in_val value to convert to FixedNumber
    * @return FixedNumber read above
@@ -290,6 +296,60 @@ public:
     }
   }
 
+  template <std::integral IT> constexpr IT get_as() const {
+    using limits = std::numeric_limits<IT>;
+    static_assert(limits::radix == 2);
+
+    if constexpr (format.msb_weight < 0) {
+      // No integer part
+      if constexpr (format.msb_weight < -1 || format.is_signed) {
+        // If format is signed : values are in [-.5; .5) so ties toward zero
+        // always return 0
+        return 0;
+      }
+      constexpr auto val_mask = storage_t{1} << (format.width) - 1;
+      return (value_ > val_mask) ? 1 : 0;
+    } else {
+
+      if constexpr (!limits::is_signed && format.is_signed) {
+        if (value_ < 0)
+          return 0;
+      }
+      // Max positive value: 1 << pos_bits - 1
+      constexpr auto pos_bits_msb = limits::digits - 1;
+      constexpr auto output_format_msb = pos_bits_msb + (limits::is_signed ? 1 : 0);
+      constexpr auto format_pos_msb = format.msb_weight - format.is_signed;
+      constexpr bool can_overflow = format_pos_msb > pos_bits_msb;
+      if constexpr (can_overflow) {
+        auto top_bits = extract<format.msb_weight, pos_bits_msb + 1>().value();
+        if (top_bits < 0) {
+          return limits::min();
+        } else if (top_bits > 0) {
+          return limits::max();
+        }
+      }
+      constexpr bool needs_rounding_management = format.lsb_weight < 0;
+      constexpr auto slice_msb = std::min(output_format_msb, format.msb_weight);
+      constexpr auto slice_lsb = std::max(0, format.lsb_weight);
+      auto int_slice = extract<slice_msb, slice_lsb>();
+      using slice_sign_t =
+          std::conditional_t<slice_msb == format.msb_weight,
+                             typename Format::sign_t, unsigned>;
+      if constexpr (needs_rounding_management) {
+        // No need of extension
+        auto frac_slice = extract<-1, format.lsb_weight>();
+        constexpr auto cut_val = typename decltype(frac_slice)::storage_t{1}
+                                 << -(frac_slice.format.lsb_weight + 1);
+        bool round_up =
+            frac_slice.value() > cut_val && int_slice != int_slice.max_val();
+        return static_cast<IT>(int_slice.value_ + (round_up ? 1 : 0));
+      } else {
+        using out_format = FixedFormat<slice_msb, 0, slice_sign_t>;
+        return static_cast<IT>(int_slice.extend_to(out_format{}).value());
+      }
+    }
+  }
+
   static constexpr FixedNumber min_val() {
     return (Format::is_signed) ? storage_t{1} << (Format::width - 1)
                                : storage_t{0};
@@ -332,6 +392,10 @@ public:
     } else {
       return FixedNumber<ret_dim>(ret_val.unravel());
     }
+  }
+
+  constexpr auto operator<=>(FixedNumber const &val) {
+    return value_ <=> val.value_;
   }
 
   static constexpr format_t format{};
