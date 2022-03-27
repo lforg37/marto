@@ -21,29 +21,27 @@ namespace archgenlib {
 using bitweight_t = std::int32_t;
 using vecwidth_t = std::uint32_t;
 
-template<bool>
-struct is_signed_to_type {
+template <bool> struct is_signed_to_type {
   using type = unsigned;
 };
 
-template<>
-struct is_signed_to_type<true> {
+template <> struct is_signed_to_type<true> {
   using type = signed;
 };
 
-template<bool b>
+template <bool b>
 using is_signed_to_type_t = typename is_signed_to_type<b>::type;
 
-template<bool b>
+template <bool b>
 using is_unsigned_to_type_t = typename is_signed_to_type<!b>::type;
 
-template<typename T>
+template <typename T>
 using same_sign_t = is_signed_to_type_t<std::is_signed_v<T>>;
 
-template <bitweight_t MSBWeight, bitweight_t LSBWeight, typename sign_t>
+template <bitweight_t MSBWeight, bitweight_t LSBWeight, typename SignT>
 struct FixedFormat {
-  static constexpr bool IsUnsigned = std::is_same<unsigned, sign_t>::value;
-  static constexpr bool IsSigned = std::is_same<signed, sign_t>::value;
+  static constexpr bool IsUnsigned = std::is_same<unsigned, SignT>::value;
+  static constexpr bool IsSigned = std::is_same<signed, SignT>::value;
   static_assert(IsUnsigned || IsSigned,
                 "invalid sign type expected signed or unsigned");
   static_assert(MSBWeight >= LSBWeight,
@@ -79,9 +77,11 @@ struct FixedFormat {
 
   using bitint_type = hint::detail::bitint_base_t<is_signed, width>;
 
-  constexpr auto get_bit_int(auto const & val) const {
+  constexpr auto get_bit_int(auto const &val) const {
     return static_cast<bitint_type>(val);
   }
+
+  using sign_t = SignT;
 };
 
 namespace detail {
@@ -124,21 +124,23 @@ constexpr auto operator+(FF1 format1, FF2 format2) {
 
 template <FixedFormatType FF1, FixedFormatType FF2>
 constexpr auto operator*(FF1 format1, FF2 format2) {
-  using arith_prop = hint::Arithmetic_Prop<FF1::width, FF2::width, FF1::is_signed, FF2::is_signed>;
+  using arith_prop = hint::Arithmetic_Prop<FF1::width, FF2::width,
+                                           FF1::is_signed, FF2::is_signed>;
   constexpr auto lsb_out = FF1::lsb_weight + FF2::lsb_weight;
   constexpr auto msb_out = lsb_out + arith_prop::_prodSize - 1;
-  return FixedFormat<msb_out, lsb_out, is_signed_to_type_t<arith_prop::_prodSigned>>{};
+  return FixedFormat<msb_out, lsb_out,
+                     is_signed_to_type_t<arith_prop::_prodSigned>>{};
 }
 
 template <std::integral IT>
 using fixedformat_from_integral =
     FixedFormat<std::numeric_limits<IT>::digits + std::is_signed_v<IT>, 0,
-          same_sign_t<IT>>;
+                same_sign_t<IT>>;
 
 template <FixedFormatType Format> class FixedNumber {
 public:
   using storage_t =
-      hint::detail::bitint_base_t<Format::is_signed, Format::width>;
+      typename Format::bitint_type;
   storage_t const value_;
 
   using format_t = Format;
@@ -148,21 +150,99 @@ public:
   template <FixedFormatType FT>
   constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
 
-  explicit constexpr FixedNumber(hint::BitIntWrapper<Format::width, Format::is_signed> const &val)
+  template <std::integral IT>
+  /**
+   * @brief Get the fixed number with the value closest to what input
+   *
+   * @param in_val value to convert to FixedNumber
+   * @return FixedNumber read above
+   */
+  static constexpr FixedNumber get_from_value(IT const in_val) {
+    using limits = std::numeric_limits<IT>;
+    if constexpr (Format::msb_weight < 0) {
+      // Only fractional bits
+      if (in_val >= 1) {
+        return max_val();
+      } else if (in_val < 0) {
+        return min_val();
+      } else {
+        return 0;
+      }
+    } else if constexpr (limits::max() < min_pos().value_) {
+      // We have a lsb which is above the maximum representable value
+      constexpr auto half_val =
+          hint::detail::bitint_base_t<true, Format::lsb_weight - 1>{1}
+          << (Format::lsb_weight - 2);
+      if constexpr (Format::isSigned) {
+        if (in_val < 0) {
+          return (-in_val > half_val) ? -1 : 0;
+          return;
+        }
+      }
+      return (in_val > half_val) ? 1 : 0;
+    } else {
+      using full_int_format =
+          FixedFormat<Format::msb_weight, 0, typename Format::sign_t>;
+
+      constexpr auto get_shift = std::max(Format::lsb_weight, 0);
+      constexpr auto min_val_as_int =
+          min_val().template extract<Format::msb_weight, get_shift>().extend_to(
+              full_int_format{});
+      constexpr auto max_val_as_int =
+          max_val().template extract<Format::msb_weight, get_shift>().extend_to(
+              full_int_format{});
+      if (in_val < min_val_as_int.value()) {
+        return min_val();
+      } else if (in_val > max_val_as_int.value()) {
+        return max_val();
+      } else {
+        if constexpr (get_shift == 0) {
+          auto val = static_cast<
+              hint::detail::bitint_base_t<Format::is_signed, Format::msb_weight + 1>>(
+              in_val);
+          return FixedNumber<full_int_format>(val).extend_to(format).value();
+        } else if constexpr (get_shift >= 1) {
+          constexpr auto round_bit_mask = IT{1} << (get_shift - 1);
+          constexpr auto sticky_mask = round_bit_mask - 1;
+          bool round_up = (in_val & round_bit_mask) && (in_val & sticky_mask);
+          using fui_storage_t = typename full_int_format::bitint_type;
+          auto val = static_cast<fui_storage_t>((in_val >> get_shift) + (round_up ? 1 : 0));
+          return val;
+        }
+      }
+    }
+  }
+
+  static constexpr FixedNumber min_val() {
+    return (Format::is_signed) ? storage_t{1} << (Format::width - 1)
+                               : storage_t{0};
+  }
+  static constexpr FixedNumber max_val() {
+    if constexpr (Format::is_signed) {
+      return -(min_val().value_ + storage_t{1});
+    } else {
+      return ~storage_t{0};
+    }
+  }
+  static constexpr FixedNumber min_pos() { return {1}; }
+
+  explicit constexpr FixedNumber(
+      hint::BitIntWrapper<Format::width, Format::is_signed> const &val)
       : value_{val.unravel()} {}
   constexpr storage_t value() const { return value_; }
-  constexpr hint::BitIntWrapper<Format::width, Format::is_signed> as_hint() const {
+  constexpr hint::BitIntWrapper<Format::width, Format::is_signed>
+  as_hint() const {
     return {value_};
   }
 
-  template<bitweight_t high, bitweight_t low>
-  constexpr auto extract() const {
+  template <bitweight_t high, bitweight_t low> constexpr auto extract() const {
     static_assert(high <= Format::msb_weight);
     static_assert(low >= Format::lsb_weight);
     constexpr bool signed_ret = Format::is_signed && high == Format::msb_weight;
     using ret_dim = FixedFormat<high, low, is_signed_to_type_t<signed_ret>>;
     auto val_hint = this->as_hint();
-    auto ret_val = val_hint.template slice<high - Format::lsb_weight, low - Format::lsb_weight>();
+    auto ret_val = val_hint.template slice<high - Format::lsb_weight,
+                                           low - Format::lsb_weight>();
     if constexpr (signed_ret) {
       return FixedNumber<ret_dim>(ret_val.as_signed().unravel());
     } else {
@@ -243,12 +323,13 @@ constexpr auto operator-(T1 const &op1, T2 const &op2) {
 template <FixedNumberType T1, FixedNumberType T2>
 constexpr auto operator*(T1 const &op1, T2 const &op2) {
   constexpr auto res_format = T1::format * T2::format;
-  auto val1 =  res_format.get_bit_int(op1.value());
+  auto val1 = res_format.get_bit_int(op1.value());
   auto val2 = res_format.get_bit_int(op2.value());
   return FixedNumber(res_format, val1 * val2);
 }
 
-template <FixedNumberType FT> constexpr bool operator==(FT const &op1, FT const &op2) {
+template <FixedNumberType FT>
+constexpr bool operator==(FT const &op1, FT const &op2) {
   return op1.value() == op2.value();
 }
 
