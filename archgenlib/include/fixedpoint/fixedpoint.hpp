@@ -2,6 +2,8 @@
 #define FIXEDPOINT_FIXEDPOINT_HPP
 
 #include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <concepts>
 #include <cstdint>
 #include <initializer_list>
@@ -139,8 +141,7 @@ using fixedformat_from_integral =
 
 template <FixedFormatType Format> class FixedNumber {
 public:
-  using storage_t =
-      typename Format::bitint_type;
+  using storage_t = typename Format::bitint_type;
   storage_t const value_;
 
   using format_t = Format;
@@ -149,6 +150,82 @@ public:
 
   template <FixedFormatType FT>
   constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
+
+  template <std::floating_point FT>
+  static FixedNumber get_from_value(FT const in_val) {
+    using limits = std::numeric_limits<FT>;
+    static_assert(limits::is_iec559);
+    static_assert(limits::radix == 2,
+                  "The library only handles radix 2 floats.");
+    assert(!std::isnan(in_val)); // No good value for NaN;
+    if (in_val == 0) {
+      return {0};
+    } else if (in_val == limits::max()) {
+      return max_val();
+    } else if (in_val == limits::min()) {
+      return min_val();
+    }
+    constexpr auto fp_width = limits::digits;
+    int exp_get;
+    auto normalized = std::frexp(in_val, &exp_get);
+    int exp = exp_get - fp_width; // Get the weight of the LSB
+    if (exp > format.msb_weight ||
+        (format.is_signed && exp == format.msb_weight)) {
+      if (in_val < 0) {
+        return min_val();
+      } else {
+        return max_val();
+      }
+    }
+
+    if (exp + fp_width - 1 < format.lsb_weight - 1) {
+      return 0;
+    }
+
+    if (exp + fp_width - 1 == format.lsb_weight - 1) {
+      if (normalized == FT{.5}) {
+        return 0;
+      } else if (normalized < 0) {
+        return min_neg();
+      } else {
+        return min_pos();
+      }
+    }
+
+    if (!format.is_signed && in_val < 0) {
+      return {0};
+    }
+
+    // Now there should be at least some overlap;
+    constexpr auto scaler_width = fp_width + format.width;
+    using fp_storage_t =
+        hint::detail::bitint_base_t<format.is_signed,
+                                    fp_width + (format.is_signed)>;
+    auto scaled = std::ldexp(normalized, fp_width);
+    auto fp_bitint_val = static_cast<fp_storage_t>(
+        (format.is_signed) ? scaled : std::abs(scaled));
+    constexpr auto extended_format_lsb_weight = format.lsb_weight - fp_width;
+    using extended_fixed_dim =
+        FixedFormat<format.msb_weight, extended_format_lsb_weight,
+                    typename Format::sign_t>;
+    using extended_storage = typename extended_fixed_dim::bitint_type;
+    FixedNumber<extended_fixed_dim> extended{
+        static_cast<extended_storage>(fp_bitint_val)
+        << (exp - extended_format_lsb_weight)};
+
+    auto round_bit =
+        extended
+            .template extract<format.lsb_weight - 1, format.lsb_weight - 1>();
+    auto round = round_bit.value() != 0;
+    auto sticky_bits = extended.template extract<format.lsb_weight - 2,
+                                                 extended_format_lsb_weight>();
+    auto sticky = sticky_bits.value() != 0;
+
+    auto unrounded =
+        extended.template extract<format.msb_weight, format.lsb_weight>();
+    auto round_up = sticky && round && !(unrounded == max_val());
+    return round_up ? unrounded.value() + 1 : unrounded;
+  }
 
   template <std::integral IT>
   /**
@@ -197,16 +274,16 @@ public:
         return max_val();
       } else {
         if constexpr (get_shift == 0) {
-          auto val = static_cast<
-              hint::detail::bitint_base_t<Format::is_signed, Format::msb_weight + 1>>(
-              in_val);
+          auto val = static_cast<hint::detail::bitint_base_t<
+              Format::is_signed, Format::msb_weight + 1>>(in_val);
           return FixedNumber<full_int_format>(val).extend_to(format).value();
         } else if constexpr (get_shift >= 1) {
           constexpr auto round_bit_mask = IT{1} << (get_shift - 1);
           constexpr auto sticky_mask = round_bit_mask - 1;
           bool round_up = (in_val & round_bit_mask) && (in_val & sticky_mask);
           using fui_storage_t = typename full_int_format::bitint_type;
-          auto val = static_cast<fui_storage_t>((in_val >> get_shift) + (round_up ? 1 : 0));
+          auto val = static_cast<fui_storage_t>((in_val >> get_shift) +
+                                                (round_up ? 1 : 0));
           return val;
         }
       }
@@ -224,7 +301,14 @@ public:
       return ~storage_t{0};
     }
   }
-  static constexpr FixedNumber min_pos() { return {1}; }
+  static constexpr FixedNumber min_pos() { return 1; }
+  static constexpr FixedNumber min_neg() {
+    if constexpr (format.is_signed) {
+      return ~storage_t{0};
+    } else {
+      return 0;
+    }
+  }
 
   explicit constexpr FixedNumber(
       hint::BitIntWrapper<Format::width, Format::is_signed> const &val)
