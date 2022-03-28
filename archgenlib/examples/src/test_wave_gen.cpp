@@ -33,6 +33,7 @@ struct wave_gen {
       archgenlib::FixedFormat<table_size, 0, unsigned>, 1 << table_size>>;
   FPTy val;
   FPTy step;
+  wave_gen() : val{0}, step{0} {}
   wave_gen(FPTy phase, FPTy freq) : val{phase}, step{freq} {}
   auto lookup(TableFPTy v) {
     auto c =
@@ -71,9 +72,33 @@ struct wave_gen {
 using fpdim_t = archgenlib::FixedFormat<9, -2, unsigned>;
 using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 
-__VITIS_KERNEL auto test(int i) {
-  wave_gen<-5, fpnum_t, 10> wave(0, 1 << 5);
-  return wave.get_next();
+using mul_t = archgenlib::FixedNumber<archgenlib::FixedFormat<-1, -8, unsigned>>;
+
+template<int prec, typename FPTy, unsigned table_size, unsigned osc_log2 , unsigned max_freq>
+struct additive_synt {
+  static constexpr auto osc_count = 1 << osc_log2;
+  std::array<wave_gen<prec, FPTy, table_size>, osc_count> oscs;
+  additive_synt(int i) {
+    for (int i = 0; i < oscs.size(); i++) {
+      auto freq = (max_freq * (i + 1)) / osc_count;
+      oscs[i] = wave_gen<prec, FPTy, table_size>(i * freq, freq);
+    }
+  }
+  auto get_next(std::array<mul_t, 256> coef) {
+    using rs_t = decltype(oscs[0].get_next());
+    constexpr auto res_fmt = mul_t::format * rs_t::format;
+    using acc_fmt = archgenlib::FixedFormat<res_fmt.msb_weight + osc_log2, res_fmt.lsb_weight, typename decltype(res_fmt)::sign_t>;
+    using acc_t = archgenlib::FixedNumber<acc_fmt>;
+    acc_t acc{0};
+    for (int i = 0; i < oscs.size(); i++)
+      acc += oscs[i].get_next() * coef[i];
+    return acc;
+  }
+};
+
+__VITIS_KERNEL auto test(int i, std::array<mul_t, 256> coef) {
+  additive_synt<-5, archgenlib::FixedNumber<archgenlib::FixedFormat<9, -2, unsigned>>, 10, 8, 512> synt(i);
+  return synt.get_next(coef);
 }
 #else
 

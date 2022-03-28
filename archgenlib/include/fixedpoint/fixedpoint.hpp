@@ -64,6 +64,8 @@ struct FixedFormat {
    */
   static constexpr vecwidth_t width = MSBWeight - LSBWeight + 1;
 
+  static_assert(width != 277, "");
+
   /**
    * @brief is_signed is the number signed
    */
