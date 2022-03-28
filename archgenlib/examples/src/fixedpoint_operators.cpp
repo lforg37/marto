@@ -129,6 +129,16 @@ int main() {
 
   // TODO check inf and negative numbers... Not an emergency
 
+  using acc_fmt = FixedFormat<8, -4, unsigned>;
+  using acc_type = FixedNumber<acc_fmt>;
+
+  acc_type acc{0};
+  //fpnum_0 format : FixedFormat<7, -2, signed>;
+  acc += fpnum_0{0b10};
+  assert(acc == acc_type{0b1000});
+  acc += fpnum_0{0b1111111100};
+  assert(acc == acc_type{0b1111111111000});
+
 
 
   return 0;

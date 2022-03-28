@@ -99,13 +99,7 @@ concept FixedFormatType = detail::is_fixed_format<T>;
 namespace detail {
 template <FixedFormatType T1, FixedFormatType T2>
 constexpr bool can_extend_to(T1 source = {}, T2 dest = {}) {
-  if (T1::msb_weight > T2::msb_weight || T1::lsb_weight < T2::lsb_weight ||
-      T1::is_signed && !T2::is_signed) {
-    return false;
-  }
-  // We can extend an unsigned value to signed value, but only if the signed
-  // value msb weight is strictly greater
-  if (!T1::is_signed && T2::is_signed && T1::msb_weight == T2::msb_weight) {
+  if (T1::msb_weight > T2::msb_weight || T1::lsb_weight < T2::lsb_weight) {
     return false;
   }
   return true;
@@ -155,6 +149,38 @@ public:
 
   template <FixedFormatType FT>
   constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
+
+  /**
+   * @brief Performs accumulation operation
+   * 
+   * @tparam FT 
+   * @param val 
+   * @return constexpr FixedNumber& 
+   */
+  template <FixedFormatType FT>
+  FixedNumber & operator+=(FixedNumber<FT> const & val) {
+    static_assert(FT::msb_weight < format.msb_weight);
+    static_assert(FT::lsb_weight >= format.lsb_weight);
+    auto aligned = val.extend_to(format);
+    value_ += aligned.value_;
+    return *this;
+  }
+
+    /**
+   * @brief Performs accumulation operation
+   * 
+   * @tparam FT 
+   * @param val 
+   * @return constexpr FixedNumber& 
+   */
+  template <FixedFormatType FT>
+  FixedNumber & operator-=(FixedNumber<FT> const & val) {
+    static_assert(FT::msb_weight < format.msb_weight);
+    static_assert(FT::lsb_weight >= format.lsb_weight);
+    auto aligned = val.extend_to(format);
+    value_ -= aligned.value_;
+    return *this;
+  }
 
   template <std::floating_point FT>
   /**
@@ -452,6 +478,8 @@ public:
     static_assert(detail::can_extend_to(format, new_format),
                   "Trying to extend value to a format that is not a superset "
                   "of current format");
+    using interm_format = hint::detail::bitint_base_t<format.is_signed, NewFormat::width>;
+    auto interm_val = interm_format{value_};
     auto new_value =
         static_cast<typename FixedNumber<NewFormat>::storage_t>(value_);
     return {new_value << (format.lsb_weight - new_format.lsb_weight)};
