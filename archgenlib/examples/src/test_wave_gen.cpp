@@ -23,12 +23,13 @@ template <typename FixedTy> inline auto convert_to_double(FixedTy val) {
   return val_d;
 }
 
-template <int prec, typename FPTy, unsigned table_size, FPTy freq> struct wave_gen {
+template <int prec, typename FPTy, unsigned table_size, auto f> struct wave_gen {
   using TableDim = archgenlib::FixedFormat<table_size - 1, 0, unsigned>;
   using TableFPTy = archgenlib::FixedNumber<TableDim>;
   using TableSizeCst = archgenlib::Constant<archgenlib::FixedConstant<
       archgenlib::FixedFormat<table_size, table_size, unsigned>, 1>>;
   FPTy phase;
+  static constexpr auto freq = FPTy{f};
   wave_gen(FPTy phase) : phase{phase} {}
   auto lookup(TableFPTy v) {
     auto table_size_cst = TableSizeCst{};
@@ -54,9 +55,10 @@ template <int prec, typename FPTy, unsigned table_size, FPTy freq> struct wave_g
       //           << convert_to_double(complement_low_bits) << " + "
       //           << convert_to_double(out2) << " * "
       //           << convert_to_double(low_bits) << " ";
-      decltype(out1) res{0};
-      res += out1 * complement_low_bits + out2 * low_bits;
-      return res;
+      out1 *= complement_low_bits;
+      out2 *= low_bits;
+      out1 += out2;
+      return out1;
     }
   }
   auto get_from_time(FPTy time) {
@@ -74,10 +76,10 @@ struct OscillatorBench;
 template<unsigned start_idx, unsigned last_idx, unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto max_frequency>
 struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_frequency, std::enable_if_t<start_idx == last_idx>>
 {
-  static constexpr auto freq = FPTy::get_from_value((max_frequency * start_idx) / NBOsc);
+  static constexpr auto freq = max_frequency * start_idx / NBOsc;
   using osc = wave_gen<prec, FPTy, table_size, freq>;
-  auto result(FPTy inval) {
-    return osc{0}.get_from_time(inval);
+  auto result(FPTy inval, const auto& coef) {
+    return osc{0}.get_from_time(inval) * coef[start_idx - 1];
   }
 };
 
@@ -87,9 +89,10 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_f
   static constexpr unsigned mid_point = (last_idx + start_idx) / 2;
   using low_type = OscillatorBench<start_idx, mid_point, NBOsc, prec, FPTy, table_size, max_frequency>;
   using high_type = OscillatorBench<mid_point + 1, last_idx, NBOsc, prec, FPTy, table_size, max_frequency>;
-  auto result(FPTy inval) {
-    auto res_low = low_type{}.get_value(inval);
-    res_low += high_type{}.get_value(inval);
+  auto result(FPTy inval, const auto& coef) {
+    auto res_low = low_type{}.result(inval, coef);
+    res_low += high_type{}.result(inval, coef);
+    return res_low;
   }
 };
 
@@ -98,8 +101,8 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_f
 template<unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto max_frequency>
 struct AdditiveSynthesizer {
   using ul_type = detail::OscillatorBench<1, NBOsc, NBOsc, prec, FPTy, table_size, max_frequency>;
-  auto get_value(FPTy time) {
-    return ul_type{}.result(time);
+  auto get_value(FPTy time, const auto& coef) {
+    return ul_type{}.result(time, coef);
   }
 };
 
@@ -110,37 +113,42 @@ using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 using mul_t =
     archgenlib::FixedNumber<archgenlib::FixedFormat<-1, -8, unsigned>>;
 
-template <int prec, typename FPTy, unsigned table_size, unsigned osc_log2,
-          unsigned max_freq>
-struct additive_synt {
-  static constexpr auto osc_count = 1 << osc_log2;
-  std::array<wave_gen<prec, FPTy, table_size>, osc_count> oscs;
-  additive_synt(int i) {
-    for (int i = 0; i < oscs.size(); i++) {
-      auto freq = (max_freq * (i + 1)) / osc_count;
-      oscs[i] = wave_gen<prec, FPTy, table_size>(i * freq, freq);
-    }
-  }
-  auto get_next(std::array<mul_t, 256> coef) {
-    using rs_t = decltype(oscs[0].get_next());
-    constexpr auto res_fmt = mul_t::format * rs_t::format;
-    using acc_fmt = archgenlib::FixedFormat<res_fmt.msb_weight + osc_log2,
-                                            res_fmt.lsb_weight,
-                                            typename decltype(res_fmt)::sign_t>;
-    using acc_t = archgenlib::FixedNumber<acc_fmt>;
-    acc_t acc{0};
-    for (int i = 0; i < oscs.size(); i++)
-      acc += oscs[i].get_next() * coef[i];
-    return acc;
-  }
-};
+// template <int prec, typename FPTy, unsigned table_size, unsigned osc_log2,
+//           unsigned max_freq>
+// struct additive_synt {
+//   static constexpr auto osc_count = 1 << osc_log2;
+//   std::array<wave_gen<prec, FPTy, table_size>, osc_count> oscs;
+//   additive_synt(int i) {
+//     for (int i = 0; i < oscs.size(); i++) {
+//       auto freq = (max_freq * (i + 1)) / osc_count;
+//       oscs[i] = wave_gen<prec, FPTy, table_size>(i * freq, freq);
+//     }
+//   }
+//   auto get_next(std::array<mul_t, 256> coef) {
+//     using rs_t = decltype(oscs[0].get_next());
+//     constexpr auto res_fmt = mul_t::format * rs_t::format;
+//     using acc_fmt = archgenlib::FixedFormat<res_fmt.msb_weight + osc_log2,
+//                                             res_fmt.lsb_weight,
+//                                             typename decltype(res_fmt)::sign_t>;
+//     using acc_t = archgenlib::FixedNumber<acc_fmt>;
+//     acc_t acc{0};
+//     for (int i = 0; i < oscs.size(); i++)
+//       acc += oscs[i].get_next() * coef[i];
+//     return acc;
+//   }
+// };
+
+// unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto max_frequency
 
 __VITIS_KERNEL auto test(int i, std::array<mul_t, 256> coef) {
-  additive_synt<
-      -5, archgenlib::FixedNumber<archgenlib::FixedFormat<9, -2, unsigned>>, 10,
-      8, 512>
-      synt(i);
-  return synt.get_next(coef);
+  using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<9, -2, unsigned>>;
+  AdditiveSynthesizer<256, -5, fixe_t, 10, 4 << 2> synt;
+  static_assert(archgenlib::has_specialization_header);
+  // additive_synt<
+  //     -5, archgenlib::FixedNumber<archgenlib::FixedFormat<9, -2, unsigned>>, 10,
+  //     8, 512>
+  //     synt(i);
+  return synt.get_value(static_cast<typename fixe_t::storage_t>(i));
 }
 #else
 
@@ -156,12 +164,12 @@ template <typename FixedTy> bool compare(FixedTy val, double ref, int prec) {
   return true;
 }
 
-template <typename Format> void check_freq(int offset, int f) {
+template <typename Format, int f> void check_freq(int offset) {
   std::cout << "testing: " << __PRETTY_FUNCTION__ << " offset=" << offset
             << " freq=" << f << std::endl;
 
-  archgenlib::FixedNumber<Format> freq = {f};
-  wave_gen<-5, decltype(freq), 10> wave(offset, freq);
+  using fp_num = archgenlib::FixedNumber<Format>;
+  wave_gen<-5, fp_num , 10, f> wave(offset);
   int table_size = 1 << 10;
   double point = std::ldexp(double{1}, Format::lsb_weight) * offset;
   double step = std::ldexp(double{1}, Format::lsb_weight) * f;
@@ -170,7 +178,7 @@ template <typename Format> void check_freq(int offset, int f) {
     double ref = std::sin(2.0 * std::numbers::pi * point / (table_size));
 
     // std::cout << i << " ";
-    if (!compare(wave.get_next(), ref, -5)) {
+    if (!compare(wave.get_from_time({i}), ref, -5)) {
       assert(false);
     }
   }
@@ -179,11 +187,11 @@ template <typename Format> void check_freq(int offset, int f) {
 int main() {
   if (!archgenlib::has_specialization_header)
     exit(0);
-  check_freq<archgenlib::FixedFormat<9, 0, unsigned>>(0, 1);
-  check_freq<archgenlib::FixedFormat<9, -2, unsigned>>(0, 1);
-  check_freq<archgenlib::FixedFormat<9, 0, unsigned>>(0, 5);
-  check_freq<archgenlib::FixedFormat<9, -2, unsigned>>(0, 5);
-  check_freq<archgenlib::FixedFormat<9, 0, unsigned>>(45, 5);
-  check_freq<archgenlib::FixedFormat<9, -2, unsigned>>(45, 5);
+  check_freq<archgenlib::FixedFormat<9, 0, unsigned>, 1>(0);
+  check_freq<archgenlib::FixedFormat<9, -2, unsigned>, 1>(0);
+  check_freq<archgenlib::FixedFormat<9, 0, unsigned>, 5>(0);
+  check_freq<archgenlib::FixedFormat<9, -2, unsigned>, 5>(0);
+  check_freq<archgenlib::FixedFormat<9, 0, unsigned>, 5>(45);
+  check_freq<archgenlib::FixedFormat<9, -2, unsigned>, 5>(45);
 }
 #endif

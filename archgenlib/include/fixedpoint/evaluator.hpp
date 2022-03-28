@@ -29,9 +29,9 @@
 namespace archgenlib {
 
 #ifdef INCLUDE_GENERATED_HEADER
-bool has_specialization_header = true;
+constexpr bool has_specialization_header = true;
 #else
-bool has_specialization_header = false;
+constexpr bool has_specialization_header = false;
 #endif
 
 template <typename ET, std::int32_t prec> class Evaluator {
