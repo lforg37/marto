@@ -13,6 +13,9 @@ target_link_libraries(test_sin archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMP
 add_executable(fixedpoint_ops src/fixedpoint_operators)
 target_link_libraries(fixedpoint_ops archgenlib HINT_BITINT_BACKEND)
 
+add_executable(test_lns_lf src/test_lns_lf.cpp)
+target_link_libraries(test_lns_lf Sollya::Sollya archgenlib HINT_BITINT_BACKEND)
+
 add_executable(test_sin_mp src/test_sin_mp)
 target_link_libraries(test_sin_mp archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
 #target_compile_options(test_sin_mp PRIVATE "-fsanitize=address,undefined")

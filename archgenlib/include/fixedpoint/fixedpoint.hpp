@@ -147,10 +147,20 @@ public:
 
   using format_t = Format;
   static constexpr auto width = Format::width;
-  constexpr FixedNumber(storage_t const &val) : value_{val} {}
+  constexpr FixedNumber(storage_t const &val = {0}) : value_{val} {}
 
   template <FixedFormatType FT>
-  constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
+  constexpr FixedNumber(FT, storage_t const &val = {0}) : value_{val} {}
+
+
+  template <FixedFormatType FT>
+  constexpr FixedNumber modular_add(FixedNumber<FT> const & val) {
+    static_assert(FT::msb_weight <= format.msb_weight);
+    static_assert(FT::lsb_weight >= format.lsb_weight);
+    auto aligned = val.extend_to(format);
+    storage_t res{value_ + aligned.value_};
+    return res;
+  }
 
   /**
    * @brief Performs accumulation operation
@@ -161,11 +171,18 @@ public:
    */
   template <FixedFormatType FT>
   FixedNumber & operator+=(FixedNumber<FT> const & val) {
+    value_ = modular_add(val)._value;
+    return *this;
+  }
+
+
+  template <FixedFormatType FT>
+  constexpr FixedNumber modular_sub(FixedNumber<FT> const & val) {
     static_assert(FT::msb_weight <= format.msb_weight);
     static_assert(FT::lsb_weight >= format.lsb_weight);
     auto aligned = val.extend_to(format);
-    value_ += aligned.value_;
-    return *this;
+    storage_t res{value_ - aligned.value_};
+    return res;
   }
 
   template <FixedFormatType FT>
@@ -183,6 +200,7 @@ public:
   FixedNumber & operator*=(FixedNumber<FT> const & op) {
     // Avoid cases were result is always zero
     value_ = modular_mult(op).value_;
+    return *this;
   }
 
     /**
@@ -194,10 +212,7 @@ public:
    */
   template <FixedFormatType FT>
   FixedNumber & operator-=(FixedNumber<FT> const & val) {
-    static_assert(FT::msb_weight < format.msb_weight);
-    static_assert(FT::lsb_weight >= format.lsb_weight);
-    auto aligned = val.extend_to(format);
-    value_ -= aligned.value_;
+    value_ = modular_sub(val)._value;
     return *this;
   }
 
@@ -486,10 +501,6 @@ public:
     }
   }
 
-  constexpr auto operator<=>(FixedNumber const &val) {
-    return value_ <=> val.value_;
-  }
-
   static constexpr format_t format{};
 
   template <FixedFormatType NewFormat>
@@ -573,6 +584,11 @@ constexpr auto operator*(T1 const &op1, T2 const &op2) {
 template <FixedNumberType FT>
 constexpr bool operator==(FT const &op1, FT const &op2) {
   return op1.value() == op2.value();
+}
+
+template <FixedNumberType FT1, FixedNumberType FT2>
+constexpr auto operator<=>(FT1 const & op1, FT2 const & op2) {
+  return op1.value() <=> op2.value();
 }
 
 } // namespace archgenlib
