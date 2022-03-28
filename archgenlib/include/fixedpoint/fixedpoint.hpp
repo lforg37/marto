@@ -168,6 +168,18 @@ public:
     return *this;
   }
 
+  template <FixedFormatType FT>
+  FixedNumber & operator*=(FixedNumber<FT> const & op) {
+    // Avoid cases were result is always zero
+    constexpr auto prod_fmt = FT{} * format;
+    static_assert(prod_fmt.msb_weight >= format.lsb_weight);
+    static_assert(prod_fmt.lsb_weight <= format.msb_weight);
+    auto prod = (*this * op).as_hint();
+    auto res_val = prod.template extract<std::min(format.msb_weight, prod_fmt.msb_weight), std::max(format.lsb_weight, prod_fmt.lsb_weight)>();
+    auto extended = res_val.extend_to(format);
+    value_ = extended.value_; 
+  }
+
     /**
    * @brief Performs accumulation operation
    * 
