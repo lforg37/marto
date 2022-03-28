@@ -30,6 +30,13 @@ auto operator*(T1 const &op1, T2 const &op2) {
   return ret_type{op1, op2};
 }
 
+
+template <archgenlib::ExpressionType T1, archgenlib::ExpressionType T2>
+auto operator/(T1 const &op1, T2 const &op2) {
+  using ret_type = archgenlib::DivExpr<T1, T2>;
+  return ret_type{op1, op2};
+}
+
 namespace archgenlib {
 template <ExpressionType ET, std::int32_t prec>
 static Evaluator<ET, prec> _evaluator{};

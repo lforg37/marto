@@ -1,5 +1,6 @@
 #include "fixedpoint/evaluator.hpp"
 #include <sstream>
+#include <cstdlib>
 
 namespace archgenlib {
 namespace detail {
@@ -16,7 +17,7 @@ SpecialisationFormatter &getFormatter() {
 }
 
 SpecialisationFormatter::SpecialisationFormatter()
-    : output{"specialization_header.hpp"} {
+    : output{std::getenv("ARCHGENLIB_SPECIALIZATION_HEADER_PATH")} { // "specialization_header.hpp"
   if (output) {
     output << "#ifndef SPECIALIZATION_HEADER_HPP\n#define "
            << "SPECIALIZATION_HEADER_HPP\n\n"

@@ -1,8 +1,10 @@
+#include <cassert>
 #include <cstdint>
+#include <ostream>
 #include <string_view>
 #include <type_traits>
+#include <cmath>
 #include <numbers>
-#include <bit>
 
 #include "bitint_tools/type_helpers.hpp"
 #include "hint.hpp"
@@ -13,42 +15,29 @@
 #include "fixedpoint/constants.hpp"
 #include "fixedpoint/literal.hpp"
 
-template <bool fail, auto...> struct print_assert {
-  static_assert(fail, "print");
-};
 
-template <auto... vals> struct print : print_assert<false, vals...> {};
+#include <iostream>
 
-using archgenlib::bitweight_t;  
-
-constexpr bitweight_t outprec = -10;
-
-using fpdim_t = archgenlib::FixedFormat<-1, -14, unsigned>;
-using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
-
-using storage_t =
-    hint::detail::bitint_base_t<fpdim_t::is_signed, fpdim_t::width>;
-
-#ifndef __VITIS_KERNEL
-#warning "unsupported compiler"
-#define __VITIS_KERNEL
-#endif
+template<typename FixedTy>
+inline auto convert_to_double(FixedTy val) {
+  auto val_d = static_cast<double>(val.value());
+  val_d = std::ldexp(val_d, FixedTy::format_t::lsb_weight);
+  return val_d;
+}
 
 template<int prec, typename FPTy, unsigned table_size>
 struct wave_gen {
-  using TableFPTy = archgenlib::FixedNumber<
-      archgenlib::FixedFormat<-1, -static_cast<int>(table_size), unsigned>>;
+  using TableDim = archgenlib::FixedFormat<table_size - 1, 0, unsigned>;
+  using TableFPTy = archgenlib::FixedNumber<TableDim>;
+  using TableSizeCst = archgenlib::Constant<archgenlib::FixedConstant<
+      archgenlib::FixedFormat<table_size, 0, unsigned>, 1 << table_size>>;
   FPTy val;
   FPTy step;
-  wave_gen(FPTy f) : val{0}, step{0} {
-    set_freq(f);
-  }
-  void set_freq(FPTy freq) {
-    step = freq;
-  }
+  wave_gen(FPTy phase, FPTy freq) : val{phase}, step{freq} {}
   auto lookup(TableFPTy v) {
-    auto c = archgenlib::sin(0x2.p0_cst * archgenlib::pi *
-                             archgenlib::Variable<TableFPTy>{v});
+    auto c =
+        archgenlib::sin(0x2.p0_cst / TableSizeCst{} * archgenlib::pi *
+                        archgenlib::Variable<TableFPTy>{v});
     return archgenlib::evaluate<prec>(c);
   }
   auto get_value(FPTy v) {
@@ -57,19 +46,18 @@ struct wave_gen {
                   FPTy::format_t::lsb_weight) {
       return lookup(v);
     } else {
-      auto bits = v.as_hint();
-      using bit_wrapper = decltype(bits);
-      TableFPTy high_bits{
-          bits.template slice<bit_wrapper::width - 1,
-                              bit_wrapper::width - table_size>()};
-      archgenlib::FixedNumber<archgenlib::FixedFormat<
-          -1, -((int)bit_wrapper::width - (int)table_size), unsigned>>
-          low_bits{bits.template slice<bit_wrapper::width - table_size - 1, 0>()};
+      TableFPTy high_bits = v.template extract<TableDim::msb_weight, 0>();
+      auto low_bits = v.template extract<-1, FPTy::format_t::lsb_weight>();
 
-      auto complement_low_bits = 0x1.p0_fixed - low_bits;
+      auto complement_low_bits = 0x1_fixed - low_bits;
       auto out1 = lookup(high_bits);
       auto out2 = lookup(high_bits.value() + 1);
-      return out1 * low_bits + out2 * complement_low_bits;
+      // std::cout << convert_to_double(out1) << " * "
+      //           << convert_to_double(complement_low_bits) << " + "
+      //           << convert_to_double(out2) << " * "
+      //           << convert_to_double(low_bits) << " ";
+      auto res = out1 * complement_low_bits + out2 * low_bits;
+      return res;
     }
   }
   auto get_next() {
@@ -79,7 +67,56 @@ struct wave_gen {
   }
 };
 
+#ifdef TARGET_VITIS
+using fpdim_t = archgenlib::FixedFormat<9, -2, unsigned>;
+using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
+
 __VITIS_KERNEL auto test(int i) {
-  wave_gen<-5, fpnum_t, 10> wave(1 << 5);
+  wave_gen<-5, fpnum_t, 10> wave(0, 1 << 5);
   return wave.get_next();
 }
+#else
+
+template<typename FixedTy>
+bool compare(FixedTy val, double ref, int prec) {
+  double to_double = convert_to_double(val);
+  double interval = std::ldexp(double{1}, prec);
+  bool is_in_interval = std::abs(to_double - ref) < interval;
+  // std::cout << "compare: " << to_double << " ~= " << ref << " at " << interval << std::endl;
+  if (!is_in_interval) {
+    return false;
+  }
+  return true;
+}
+
+template<typename Format>
+void check_freq(int offset, int f) {
+  std::cout << "testing: " << __PRETTY_FUNCTION__ << " offset=" << offset << " freq=" << f << std::endl;
+
+  archgenlib::FixedNumber<Format> freq = {f};
+  wave_gen<-5, decltype(freq), 10> wave(offset, freq);
+  int table_size = 1 << 10;
+  double point = std::ldexp(double{1}, Format::lsb_weight) * offset;
+  double step = std::ldexp(double{1}, Format::lsb_weight) * f;
+
+  for (int i = 0; i < table_size; i++, point += step) {
+    double ref = std::sin(2.0 * std::numbers::pi * point / (table_size));
+
+    // std::cout << i << " ";
+    if (!compare(wave.get_next(), ref, -5)) {
+      assert(false);
+    }
+  }
+}
+
+int main() {
+  if (!archgenlib::has_specialization_header)
+    exit(0);
+  check_freq<archgenlib::FixedFormat<9, 0, unsigned>>(0, 1);
+  check_freq<archgenlib::FixedFormat<9, -2, unsigned>>(0, 1);
+  check_freq<archgenlib::FixedFormat<9, 0, unsigned>>(0, 5);
+  check_freq<archgenlib::FixedFormat<9, -2, unsigned>>(0, 5);
+  check_freq<archgenlib::FixedFormat<9, 0, unsigned>>(45, 5);
+  check_freq<archgenlib::FixedFormat<9, -2, unsigned>>(45, 5);
+}
+#endif

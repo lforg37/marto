@@ -11,7 +11,6 @@
 #include <sstream>
 #include <string>
 
-#include "expression_types.hpp"
 #include "runtime/expression_tree.hpp"
 #include "runtime/fixfunction_multipartite.hpp"
 #include "runtime/operator_builder/multipartite_operator.hpp"
@@ -24,7 +23,16 @@
 #include "runtime/sollya_operation.hpp"
 #endif
 
+#include "fixedpoint/expression_types.hpp"
+#include "fixedpoint/fixedpoint.hpp"
+
 namespace archgenlib {
+
+#ifdef INCLUDE_GENERATED_HEADER
+bool has_specialization_header = true;
+#else
+bool has_specialization_header = false;
+#endif
 
 template <typename ET, std::int32_t prec> class Evaluator {
 public:

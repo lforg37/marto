@@ -35,6 +35,8 @@ sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
     return sollya_lib_build_function_sub;
     case OperationKind::MUL:
     return sollya_lib_build_function_mul;
+    case OperationKind::DIV:
+    return sollya_lib_build_function_div;
     case OperationKind::POW:
     return sollya_lib_build_function_pow;
     default:
@@ -51,6 +53,8 @@ sollya_unary_op_t* get_unary_op(OperationKind op_kind) {
       return sollya_lib_build_function_sin;
     case OperationKind::LOG2:
       return sollya_lib_build_function_log2;
+    case OperationKind::LOG:
+      return sollya_lib_build_function_log;
     case OperationKind::ABS:
       return sollya_lib_build_function_abs;
     default:

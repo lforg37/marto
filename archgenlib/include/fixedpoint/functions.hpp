@@ -25,6 +25,16 @@ Log2Expr<ET> log2(ET const & operand) {
   return {operand};
 }
 
+using LogOp = detail::OperationType<OperationKind::LOG>;
+
+template<ExpressionType ET>
+using LogExpr = UnaryOp<ET, LogOp>;
+
+template<ExpressionType ET>
+LogExpr<ET> log(ET const & operand) {
+  return {operand};
+}
+
 using AbsOp = detail::OperationType<OperationKind::ABS>;
 
 template<ExpressionType ET>
@@ -41,7 +51,7 @@ template<ExpressionType ET, ExpressionType ET2>
 using PowExpr = BinaryOp<ET, ET2, PowOp>;
 
 template<ExpressionType ET, ExpressionType ET2>
-PowExpr<ET, ET2> pow(ET const & operand, ET const & operand2) {
+PowExpr<ET, ET2> pow(ET const & operand, ET2 const & operand2) {
   return {operand, operand2};
 }
 

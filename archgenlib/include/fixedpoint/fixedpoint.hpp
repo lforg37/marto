@@ -141,8 +141,13 @@ using fixedformat_from_integral =
 
 template <FixedFormatType Format> class FixedNumber {
 public:
+  template <FixedFormatType>
+  friend class FixedNumber;
+
   using storage_t = typename Format::bitint_type;
-  storage_t const value_;
+private:
+  storage_t value_;
+public:
 
   using format_t = Format;
   static constexpr auto width = Format::width;

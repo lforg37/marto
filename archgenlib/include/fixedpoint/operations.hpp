@@ -2,7 +2,7 @@
 #define FIXED_POINT_OPERATIONS_HPP
 
 namespace archgenlib {
-enum struct OperationKind { ADD, SUB, MUL, SIN, LOG2, ABS, NEG, POW, PI };
+enum struct OperationKind { ADD, SUB, MUL, DIV, SIN, LOG2, LOG, ABS, NEG, POW, PI };
 
 namespace detail {
 constexpr bool isBinaryOpKind(OperationKind OK) {
@@ -10,11 +10,13 @@ constexpr bool isBinaryOpKind(OperationKind OK) {
   case OperationKind::ADD:
   case OperationKind::SUB:
   case OperationKind::MUL:
+  case OperationKind::DIV:
   case OperationKind::POW:
     return true;
   case OperationKind::NEG:
   case OperationKind::SIN:
   case OperationKind::LOG2:
+  case OperationKind::LOG:
   case OperationKind::ABS:
   case OperationKind::PI:
     return false;
@@ -28,6 +30,8 @@ constexpr bool isNullaryOpKind(OperationKind OK) {
   case OperationKind::ADD:
   case OperationKind::SUB:
   case OperationKind::MUL:
+  case OperationKind::DIV:
+  case OperationKind::LOG:
   case OperationKind::POW:
   case OperationKind::NEG:
   case OperationKind::SIN:
