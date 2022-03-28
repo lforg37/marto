@@ -44,6 +44,9 @@ int main() {
   static_assert(fpnum_0::get_from_value(-256) == fpnum_0{0b1000000000});
   static_assert(fpnum_0::get_from_value(-272) == fpnum_0{0b1000000000});
 
+  assert(fpnum_0::get_from_value(1.25) == fpnum_0{0b101});
+  assert(fpnum_0::get_from_value(1.375) == fpnum_0{0b110});
+
   static_assert(fpnum_0{0b111100}.get_as<int>() == 15);
   static_assert(fpnum_0{0b111110}.get_as<int>() == 15);
   static_assert(fpnum_0{0b111111}.get_as<int>() == 16);
