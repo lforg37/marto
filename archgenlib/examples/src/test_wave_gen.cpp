@@ -97,8 +97,7 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_f
   using high_type = OscillatorBench<mid_point + 1, last_idx, NBOsc, prec, FPTy, table_size, max_frequency>;
   auto result(FPTy inval, const auto& coef) {
     auto res_low = low_type{}.result(inval, coef);
-    res_low += high_type{}.result(inval, coef);
-    return res_low;
+    return res_low.modular_add(high_type{}.result(inval, coef));
   }
 };
 
@@ -108,7 +107,8 @@ template<unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto 
 struct AdditiveSynthesizer {
   using ul_type = detail::OscillatorBench<1, NBOsc, NBOsc, prec, FPTy, table_size, max_frequency>;
   auto get_value(FPTy time, const auto& coef) {
-    return ul_type{}.result(time, coef);
+    auto unrounded_res = ul_type{}.result(time, coef);
+    return unrounded_res.template round_to<prec>();
   }
 };
 
