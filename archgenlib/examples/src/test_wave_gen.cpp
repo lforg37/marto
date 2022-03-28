@@ -14,6 +14,7 @@
 #include "fixedpoint/expression_types.hpp"
 #include "fixedpoint/fixedpoint.hpp"
 #include "fixedpoint/literal.hpp"
+#include "tools/static_math.hpp"
 
 #include <iostream>
 
@@ -78,8 +79,13 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_f
 {
   static constexpr auto freq = max_frequency * start_idx / NBOsc;
   using osc = wave_gen<prec, FPTy, table_size, freq>;
-  auto result(FPTy inval, const auto& coef) {
-    return osc{0}.get_from_time(inval) * coef[start_idx - 1];
+  template<archgenlib::FixedNumberType T>
+  auto result(FPTy inval, const std::array<T, NBOsc>& coef) {
+    constexpr auto guard_bits = std::min(hint::Static_Val<NBOsc>::log2, T::width);
+    auto sinval = osc{0}.get_from_time(inval);
+    auto prod = sinval * coef[start_idx - 1];
+    auto res = prod.template extract<decltype(prod)::msb_weight, prec-guard_bits>();
+    return res;
   }
 };
 
