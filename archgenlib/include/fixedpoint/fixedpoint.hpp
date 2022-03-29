@@ -147,10 +147,10 @@ public:
 
   using format_t = Format;
   static constexpr auto width = Format::width;
-  constexpr FixedNumber(storage_t const &val = {0}) : value_{val} {}
+  constexpr FixedNumber(storage_t val = {0}) : value_{val} {}
 
   template <FixedFormatType FT>
-  constexpr FixedNumber(FT, storage_t const &val = {0}) : value_{val} {}
+  constexpr FixedNumber(FT, storage_t val = {0}) : value_{val} {}
 
 
   template <FixedFormatType FT>
@@ -171,7 +171,7 @@ public:
    */
   template <FixedFormatType FT>
   FixedNumber & operator+=(FixedNumber<FT> const & val) {
-    value_ = modular_add(val)._value;
+    value_ = modular_add(val).value();
     return *this;
   }
 
@@ -186,20 +186,20 @@ public:
   }
 
   template <FixedFormatType FT>
-  constexpr FixedNumber & modular_mult(FixedNumber<FT> const & op) {
+  constexpr FixedNumber modular_mult(FixedNumber<FT> const & op) {
     constexpr auto prod_fmt = FT{} * format;
     static_assert(prod_fmt.msb_weight >= format.lsb_weight);
     static_assert(prod_fmt.lsb_weight <= format.msb_weight);
     auto prod = *this * op;
     auto res_val = prod.template extract<std::min(format.msb_weight, prod_fmt.msb_weight), std::max(format.lsb_weight, prod_fmt.lsb_weight)>();
     auto extended = res_val.extend_to(format);
-    return value_ + extended.value_; 
+    return extended.value_; 
   }
 
   template <FixedFormatType FT>
   FixedNumber & operator*=(FixedNumber<FT> const & op) {
     // Avoid cases were result is always zero
-    value_ = modular_mult(op).value_;
+    value_ = modular_mult(op).value();
     return *this;
   }
 
@@ -212,7 +212,7 @@ public:
    */
   template <FixedFormatType FT>
   FixedNumber & operator-=(FixedNumber<FT> const & val) {
-    value_ = modular_sub(val)._value;
+    value_ = modular_sub(val).value();
     return *this;
   }
 
@@ -356,7 +356,11 @@ public:
       bool round_up = round.value_ != 0;
       auto up = extract<format.msb_weight, RoundingPos>();
       using res_t = decltype(up);
-      return res_t{up.value_ + (round_up && up != res_t::max_val())};
+      if (round_up && (up != res_t::max_val())) {
+        return res_t{up.value() + static_cast<typename res_t::storage_t>(1)};
+      } else {
+        return up;
+      }
     }
   }
 
@@ -578,7 +582,8 @@ constexpr auto operator*(T1 const &op1, T2 const &op2) {
   constexpr auto res_format = T1::format * T2::format;
   auto val1 = res_format.get_bit_int(op1.value());
   auto val2 = res_format.get_bit_int(op2.value());
-  return FixedNumber(res_format, val1 * val2);
+  auto res = FixedNumber<std::remove_cvref_t<decltype(res_format)>>(val1 * val2);
+  return res;
 }
 
 template <FixedNumberType FT>

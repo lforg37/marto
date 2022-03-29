@@ -294,6 +294,9 @@ CPPOperator MultipartiteOperator::get_operator() {
           "modularAdd",
           detail::cpp_expr_ptr{new detail::NamedExpression{"{1}"}}));
   auto sliced_res = slicer(res_val_scaled, table_output_dim.width - 1, 2); // Guard bits
+  if (output_dim.is_signed) {
+    sliced_res = sliced_res->call("as_signed");
+  }
   auto retval = sliced_res->call("unravel")->use_to_build(output_dim.toFPNumName())->to_return();
   ret.instructions.emplace_back(retval);
   return ret;

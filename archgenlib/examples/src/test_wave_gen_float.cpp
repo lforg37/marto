@@ -18,7 +18,7 @@ template <typename FixedTy> inline auto convert_to_double(FixedTy val) {
 
 template <auto fNum, auto fDenom> struct wave_gen {
   float phase;
-  static constexpr auto freq = static_cast<float>(fNum)/fDenom;
+  static constexpr auto freq = static_cast<float>(fNum);
   wave_gen(float phase) : phase{phase} {}
 
   auto get_from_time(float time) {
@@ -61,58 +61,30 @@ template<unsigned int NBOsc, auto max_frequency>
 struct AdditiveSynthesizer {
   using ul_type = detail::OscillatorBench<1, NBOsc, NBOsc, max_frequency>;
   auto get_value(float time, const auto& coef) {
-    return ul_type{}.result(time);
+    return ul_type{}.result(time, coef);
   }
 };
 
+__attribute((always_inline)) auto test2(float i, auto& coef) {
+  AdditiveSynthesizer<256, 1000> synt;
+  return synt.get_value(i, coef);
+}
+
 #ifdef TARGET_VITIS
-using fpdim_t = archgenlib::FixedFormat<9, -2, unsigned>;
-using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
-
-using mul_t =
-    archgenlib::FixedNumber<archgenlib::FixedFormat<-1, -8, unsigned>>;
-
-// template <int prec, typename FPTy, unsigned table_size, unsigned osc_log2,
-//           unsigned max_freq>
-// struct additive_synt {
-//   static constexpr auto osc_count = 1 << osc_log2;
-//   std::array<wave_gen<prec, FPTy, table_size>, osc_count> oscs;
-//   additive_synt(int i) {
-//     for (int i = 0; i < oscs.size(); i++) {
-//       auto freq = (max_freq * (i + 1)) / osc_count;
-//       oscs[i] = wave_gen<prec, FPTy, table_size>(i * freq, freq);
-//     }
-//   }
-//   auto get_next(std::array<mul_t, 256> coef) {
-//     using rs_t = decltype(oscs[0].get_next());
-//     constexpr auto res_fmt = mul_t::format * rs_t::format;
-//     using acc_fmt = archgenlib::FixedFormat<res_fmt.msb_weight + osc_log2,
-//                                             res_fmt.lsb_weight,
-//                                             typename decltype(res_fmt)::sign_t>;
-//     using acc_t = archgenlib::FixedNumber<acc_fmt>;
-//     acc_t acc{0};
-//     for (int i = 0; i < oscs.size(); i++)
-//       acc += oscs[i].get_next() * coef[i];
-//     return acc;
-//   }
-// };
-
-// unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto max_frequency
-
-__VITIS_KERNEL auto test(int i, std::array<mul_t, 256> coef) {
-  using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<9, -2, unsigned>>;
-  AdditiveSynthesizer<256, -5, fixe_t, 10, 4 << 2> synt;
-  static_assert(archgenlib::has_specialization_header);
-  // additive_synt<
-  //     -5, archgenlib::FixedNumber<archgenlib::FixedFormat<9, -2, unsigned>>, 10,
-  //     8, 512>
-  //     synt(i);
-  return synt.get_value(static_cast<typename fixe_t::storage_t>(i));
+__VITIS_KERNEL auto test(float i, std::array<float, 256> coef) {
+  return test2(i, coef);
 }
 #else
 
+void plot() {
+  std::array<float, 256> coef = {};
+  coef[0] = 0.5;
+  coef[1] = .5;
+  for (int i = 0; i < (1 << 12); i++)
+    std::cout << i << ","<< test2(std::ldexp(i, -12), coef) << std::endl;
+}
 
 int main() {
-  return 0;
+  plot();
 }
 #endif

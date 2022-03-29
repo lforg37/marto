@@ -59,6 +59,7 @@ std::string doReturn(std::string_view expr);
 
 class SpecialisationFormatter {
 public:
+  const char* output_file;
   std::ofstream output;
   SpecialisationFormatter();
   ~SpecialisationFormatter();

@@ -17,7 +17,8 @@ SpecialisationFormatter &getFormatter() {
 }
 
 SpecialisationFormatter::SpecialisationFormatter()
-    : output{std::getenv("ARCHGENLIB_SPECIALIZATION_HEADER_PATH")} { // "specialization_header.hpp"
+    : output_file{std::getenv("ARCHGENLIB_SPECIALIZATION_HEADER_PATH")}, output{output_file} {
+  std::cout << "Generating " << output_file << std::endl;
   if (output) {
     output << "#ifndef SPECIALIZATION_HEADER_HPP\n#define "
            << "SPECIALIZATION_HEADER_HPP\n\n"
