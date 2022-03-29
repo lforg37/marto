@@ -65,9 +65,9 @@ template <int prec, typename FPTy, unsigned table_size, auto f> struct wave_gen 
       // return res;
     }
   }
-  auto get_from_time(FPTy time) {
-    auto new_time = time.modular_mult(freq);
-    auto res = get_value(new_time);
+  auto get_next() {
+    auto res = get_value(phase);
+    phase += freq;
     return res;
   }
 };
@@ -80,11 +80,12 @@ template<unsigned start_idx, unsigned last_idx, unsigned int NBOsc, int prec, ty
 struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_frequency, std::enable_if_t<start_idx == last_idx>>
 {
   static constexpr auto freq = max_frequency * start_idx / NBOsc;
-  using osc = wave_gen<prec, FPTy, table_size, freq>;
+  using osc_t = wave_gen<prec, FPTy, table_size, freq>;
+  osc_t oscillator{0};
   template<archgenlib::FixedNumberType T>
-  auto result(FPTy inval, const std::array<T, NBOsc>& coef) {
+  auto result(const std::array<T, NBOsc>& coef) {
     constexpr auto guard_bits = std::min(hint::Static_Val<NBOsc>::_log2, T::width);
-    auto sinval = osc{0}.get_from_time(inval);
+    auto sinval = oscillator.get_next();
     // std::cout << convert_to_double(sinval) << std::endl;
     auto prod = sinval.modular_mult(coef[start_idx - 1]);
     // using prod_t = decltype(prod);
@@ -100,9 +101,11 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_f
   static constexpr unsigned mid_point = (last_idx + start_idx) / 2;
   using low_type = OscillatorBench<start_idx, mid_point, NBOsc, prec, FPTy, table_size, max_frequency>;
   using high_type = OscillatorBench<mid_point + 1, last_idx, NBOsc, prec, FPTy, table_size, max_frequency>;
-  auto result(FPTy inval, const auto& coef) {
-    auto res_low = low_type{}.result(inval, coef);
-    auto res = res_low.modular_add(high_type{}.result(inval, coef));\
+  low_type low{};
+  high_type high{};
+  auto result(const auto& coef) {
+    auto res_low = low.result(coef);
+    auto res = res_low.modular_add(high.result(coef));\
     // std::cout << convert_to_double(res) << std::endl;
     return res;
   }
@@ -110,16 +113,21 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_f
 
 }
 
+
 template<unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto max_frequency>
 struct AdditiveSynthesizer {
-  using ul_type = detail::OscillatorBench<1, NBOsc, NBOsc, prec, FPTy, table_size, max_frequency>;
-  auto get_value(FPTy time, const auto& coef) {
-    auto unrounded_res = ul_type{}.result(time, coef);
+  using osc_bank_t = detail::OscillatorBench<1, NBOsc, NBOsc, prec, FPTy, table_size, max_frequency>;
+  osc_bank_t osc_bank{};
+  auto get_value(const auto& coef) {
+    auto unrounded_res = osc_bank.result(coef);
     // std::cout << convert_to_double(unrounded_res) << std::endl;
     return unrounded_res;
     // return unrounded_res.template round_to<prec>();
   }
 };
+
+template<unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto max_frequency>
+AdditiveSynthesizer<NBOsc, prec, FPTy, table_size, max_frequency> additive_synth{};
 
 // using fpdim_t = archgenlib::FixedFormat<9, -2, unsigned>;
 // using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
@@ -127,18 +135,18 @@ struct AdditiveSynthesizer {
 using mul_t =
     archgenlib::FixedNumber<archgenlib::FixedFormat<-1, -8, unsigned>>;
 
-__attribute((always_inline)) auto test2(int i, auto coef) {
+__attribute((always_inline)) auto test2(auto coef) {
   using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<11, 0, unsigned>>;
-  AdditiveSynthesizer<256, -8, fixe_t, 12, 1000> synt;
-  auto res =  synt.get_value(static_cast<typename fixe_t::storage_t>(i), coef);
+  auto& add_synth = additive_synth<256, -8, fixe_t, 12, 1000>;
+  auto res =  add_synth.get_value(coef);
   // std::cout << "test2:" << convert_to_double(res) << std::endl;
   return res;
 }
 
 #ifdef TARGET_VITIS
-__VITIS_KERNEL auto test(int i, std::array<mul_t, 256> coef) {
+__VITIS_KERNEL auto test(std::array<mul_t, 256> coef) {
   static_assert(archgenlib::has_specialization_header);
-  return test2(i, coef);
+  return test2(coef);
 }
 #else
 
@@ -179,7 +187,7 @@ void plot() {
   coef[0] = mul_t::get_from_value(0.5);
   coef[1] = mul_t::get_from_value(.5);
   for (int i = 0; i < (1 << 12); i += 1) {
-    auto res = convert_to_double(test2(i, coef));
+    auto res = convert_to_double(test2(coef));
     std::cout << i << "," << res << std::endl;
   }
 }
