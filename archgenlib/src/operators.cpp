@@ -104,7 +104,6 @@ void CPPTableInitialization::to_stream(std::ostream &os) {
     mpz_class mask{1};
     mask <<= output_dim.width;
     if (val < 0) {
-      assert(output_dim.is_signed);
       to_encode = mask + val;
     } else {
       to_encode = val;
@@ -221,7 +220,7 @@ CPPOperator TableBuilder::build_table() {
   detail::cpp_expr_ptr tab_init_list{
       new detail::CPPTableInitialization(values, output_dim)};
   auto tab_val = tab_init_list->use_to_build(s.str())->assign_to(
-      "values", detail::TypeSpecifier{.is_constexpr = true, .is_static = true});
+      "values", detail::TypeSpecifier{.is_constexpr = true, .is_static = false});
   ret.instructions.emplace_back(tab_val);
   auto tab_key = input->get("value()")->assign_to("to_num_key");
   ret.instructions.emplace_back(tab_key);

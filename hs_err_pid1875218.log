@@ -1,0 +1,17 @@
+#
+# An unexpected error has occurred (11)
+#
+Stack:
+/lib/x86_64-linux-gnu/libc.so.6(+0x42520) [0x7f26912d0520]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(+0xb95f9) [0x7f268cb6b5f9]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(Tcl_ResetResult+0x10) [0x7f268cb6c000]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(+0x344e9) [0x7f268cae64e9]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(Tcl_EvalEx+0x13) [0x7f268cae7163]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(Tcl_Eval+0x15) [0x7f268cae7185]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libhls_support.so(+0x88e90) [0x7f26874c9e90]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(Tcl_Finalize+0x49) [0x7f268cb26269]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(Tcl_Exit+0x4a) [0x7f268cb2641a]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/libtcl8.5.so(Tcl_Main+0x24e) [0x7f268cb5236e]
+/opt/xilinx/Vitis_HLS/2021.2/lib/lnx64.o/librdi_common.so(+0xac239b) [0x7f269272639b]
+/lib/x86_64-linux-gnu/libc.so.6(+0x94947) [0x7f2691322947]
+/lib/x86_64-linux-gnu/libc.so.6(clone+0x44) [0x7f26913b2a44]

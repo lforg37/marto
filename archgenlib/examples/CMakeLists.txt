@@ -13,9 +13,6 @@ target_link_libraries(test_sin archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMP
 add_executable(fixedpoint_ops src/fixedpoint_operators)
 target_link_libraries(fixedpoint_ops archgenlib HINT_BITINT_BACKEND)
 
-add_executable(test_lns_lf src/test_lns_lf.cpp)
-target_link_libraries(test_lns_lf Sollya::Sollya archgenlib HINT_BITINT_BACKEND)
-
 add_executable(test_sin_mp src/test_sin_mp)
 target_link_libraries(test_sin_mp archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
 #target_compile_options(test_sin_mp PRIVATE "-fsanitize=address,undefined")
@@ -118,3 +115,51 @@ add_custom_target(test_wave_gen_float ALL DEPENDS wave_gen_float.zip )
 
 add_executable(test_wave_gen_float_cpu src/test_wave_gen_float.cpp)
 target_link_libraries(test_wave_gen_float_cpu)
+
+add_executable(test_lns_lf src/test_lns_lf.cpp)
+target_link_libraries(test_lns_lf archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
+
+add_custom_command(
+    OUTPUT specialization_header_lns_lf.hpp
+    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns_lf.hpp ./test_lns_lf
+    DEPENDS test_lns_lf
+    COMMENT "Generating specialization file"
+)
+
+add_custom_target(specialization_header_lns_lf DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns_lf.hpp )
+
+add_custom_command(
+    OUTPUT lns_lf.zip
+    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ --target=vitis_ip-xilinx -DTARGET_VITIS --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns_lf.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o lns_lf.zip /storage/gauthier/marto/archgenlib/examples/src/test_lns_lf.cpp
+    DEPENDS specialization_header_lns_lf src/test_lns_lf.cpp
+    COMMENT "build a vitis ip"
+)
+add_custom_target(test_lns_lf_2 ALL DEPENDS lns_lf.zip )
+
+add_executable(test_wave_gen_low_prec src/test_wave_gen_low_prec.cpp)
+target_link_libraries(test_wave_gen_low_prec archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
+
+add_custom_command(
+    OUTPUT specialization_header_wave_gen_low_prec.hpp
+    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp ./test_wave_gen_low_prec
+    DEPENDS test_wave_gen_low_prec
+    COMMENT "Generating specialization file"
+)
+
+add_custom_target(specialization_header_wave_gen_low_prec DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp )
+
+add_custom_command(
+    OUTPUT wave_gen_low_prec.zip
+    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ -DTARGET_VITIS --target=vitis_ip-xilinx --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o wave_gen_low_prec.zip /storage/gauthier/marto/archgenlib/examples/src/test_wave_gen_low_prec.cpp
+    DEPENDS specialization_header_wave_gen_low_prec src/test_wave_gen_low_prec.cpp
+    COMMENT "build a vitis ip"
+)
+add_custom_target(test_wave_gen_low_prec_2 ALL DEPENDS wave_gen_low_prec.zip )
+
+add_executable(test_wave_gen_low_prec_cpu src/test_wave_gen_low_prec.cpp)
+target_link_libraries(test_wave_gen_low_prec_cpu archgenlib HINT_BITINT_BACKEND)
+target_include_directories(test_wave_gen_low_prec_cpu PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_definitions(test_wave_gen_low_prec_cpu PRIVATE INCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp)
+target_compile_options(test_wave_gen_low_prec_cpu PRIVATE -fconstexpr-steps=4294967295)
+add_dependencies(test_wave_gen_low_prec_cpu specialization_header_wave_gen_low_prec)
+
