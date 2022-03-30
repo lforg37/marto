@@ -1,0 +1,236 @@
++++ set -e
++++ rm -rf _x .Xil/ .run/ '*.log' ../tmp/sycl_app-wrapper-185540.o ../tmp/sycl_lns-33885f.cpp ../tmp/sycl_lns-8313fe.bc ../tmp/sycl_lns-d66d35.o ../tmp/sycl_lns-e56f9f.table ../tmp/sycl_lns-f63caf.bc ../tmp/sycl_lns-footer-691392.h ../tmp/sycl_lns-header-0cc8c1.h ../tmp/sycl-vxx-args2948-455274 ../tmp/sycl-vxx-args2952-170dfd ../tmp/wrapper-4c35f3.bc '.*.dot'
+++ make -C build -j20 specialization_header_sycl_lns
+make: Entering directory '/storage/gauthier/marto/build'
+make[1]: Entering directory '/storage/gauthier/marto/build'
+make[2]: Entering directory '/storage/gauthier/marto/build'
+make[3]: Entering directory '/storage/gauthier/marto/build'
+make[3]: Leaving directory '/storage/gauthier/marto/build'
+[ 78%] Built target archgenlib
+make[3]: Entering directory '/storage/gauthier/marto/build'
+make[3]: Leaving directory '/storage/gauthier/marto/build'
+[ 92%] Built target sycl_lns
+make[3]: Entering directory '/storage/gauthier/marto/build'
+make[3]: Leaving directory '/storage/gauthier/marto/build'
+[100%] Built target specialization_header_sycl_lns
+make[2]: Leaving directory '/storage/gauthier/marto/build'
+make[1]: Leaving directory '/storage/gauthier/marto/build'
+make: Leaving directory '/storage/gauthier/marto/build'
+++ cd /storage/gauthier/marto/build/archgenlib/examples
+++ /storage/gauthier/sycl/build-Release/bin/clang++ -fsycl -fsycl-targets=fpga64_hls_hw_emu -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=/storage/gauthier/marto/build/archgenlib/examples/specialization_header_sycl_lns.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o sycl_app /storage/gauthier/marto/archgenlib/examples/src/sycl_lns.cpp
+Found v++ version 2021.2
+Temporary clutter in /storage/gauthier/tmp will not be deleted
+SYCL_VXX_CMD: /storage/gauthier/sycl/build-Release/bin/opt --sycl-vxx --sroa-vxx-conservative --lower-mem-intr-to-llvm-type -preparesycl -loop-unroll -lower-expect -simplifycfg -sroa -early-cse -annotation2metadata -callsite-splitting -ipsccp -called-value-propagation -globalopt -mem2reg -deadargelim -simplifycfg -inline -function-attrs -argpromotion -sroa -early-cse-memssa -speculative-execution -jump-threading -correlated-propagation -simplifycfg -libcalls-shrinkwrap -tailcallelim -simplifycfg -reassociate -loop-simplify -lcssa -licm -loop-rotate -licm -loop-unswitch -simplifycfg -loop-simplify -lcssa -loop-idiom -indvars -loop-deletion -loop-unroll -sroa -mldst-motion -gvn -sccp -bdce -jump-threading -correlated-propagation -adce -dse -loop-simplify -lcssa -simplifycfg -elim-avail-extern -rpo-function-attrs -globalopt -globaldce -float2int -lower-constant-intrinsics -loop-simplify -lcssa -loop-rotate -loop-simplify -loop-load-elim -simplifycfg -loop-simplify -lcssa -loop-unroll -loop-simplify -lcssa -licm -alignment-from-assumptions -strip-dead-prototypes -globaldce -constmerge -loop-simplify -lcssa -loop-sink -instsimplify -div-rem-pairs -simplifycfg -inSPIRation -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4-kernels-prepared.bc /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4-before-opt.bc
+SYCL_VXX_CMD: /storage/gauthier/sycl/build-Release/bin/opt --lower-delayed-sycl-metadata -lower-sycl-metadata --sycl-vxx --sycl-prepare-after-O3 -S -preparesycl -loop-unroll -kernelPropGen --sycl-kernel-propgen-output /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4-kernels_properties.json -globaldce -strip-debug /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4-kernels-prepared.bc -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_linked.simple.bc
+SYCL_VXX_CMD: /storage/gauthier/sycl/build-Release/bin/opt --sycl-vxx -S -vxxIRDowngrader /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_linked.simple.bc -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_kernels-linked.opt.ll
+SYCL_VXX_CMD: /opt/xilinx/Vitis_HLS/2021.2/lnx64/tools/clang-3.9-csynth/bin/llvm-as /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_kernels-linked.opt.ll -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_kernels.opt.xpirbc
+SYCL_VXX_CMD: /opt/xilinx/Vitis_HLS/2021.2/lnx64/tools/clang-3.9-csynth/bin/llvm-link /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_kernels.opt.xpirbc --only-needed /opt/xilinx/Vitis_HLS/2021.2/lnx64/lib/libspir64-39-hls.bc -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_kernels-linked.xpirbc
+Option Map File Used: '/opt/xilinx/Vitis/2021.2/data/vitis/vpp/optMap.xml'
+
+****** v++ v2021.2 (64-bit)
+  **** SW Build 3363252 on 2021-10-14-04:41:01
+    ** Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
+
+INFO: [v++ 60-1306] Additional information associated with this v++ compile can be found at:
+	Reports: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_report/uclES2_E11FirstKernel_VT7XMlF5
+	Log files: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_log/uclES2_E11FirstKernel_VT7XMlF5
+Running Dispatch Server on port: 36171
+INFO: [v++ 60-1548] Creating build summary session with primary output /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/uclES2_E11FirstKernel_VT7XMlF5.xo.compile_summary, at Tue Mar 29 16:28:48 2022
+INFO: [v++ 60-1316] Initiating connection to rulecheck server, at Tue Mar 29 16:28:48 2022
+INFO: [v++ 60-1315] Creating rulecheck session with output '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_report/uclES2_E11FirstKernel_VT7XMlF5/v++_compile_uclES2_E11FirstKernel_VT7XMlF5_guidance.html', at Tue Mar 29 16:28:49 2022
+INFO: [v++ 60-895]   Target platform: /opt/xilinx/platforms/xilinx_u200_gen3x16_xdma_1_202110_1/xilinx_u200_gen3x16_xdma_1_202110_1.xpfm
+INFO: [v++ 60-1578]   This platform contains Xilinx Shell Archive '/opt/xilinx/platforms/xilinx_u200_gen3x16_xdma_1_202110_1/hw/hw.xsa'
+INFO: [v++ 74-78] Compiler Version string: 2021.2
+INFO: [v++ 60-585] Compiling for hardware emulation target
+INFO: [v++ 60-423]   Target device: xilinx_u200_gen3x16_xdma_1_202110_1
+INFO: [v++ 60-242] Creating kernel: 'uclES2_E11FirstKernel_VT7XMlF5'
+
+===>The following messages were generated while  performing high-level synthesis for kernel: uclES2_E11FirstKernel_VT7XMlF5 Log file: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_tmp/uclES2_E11FirstKernel_VT7XMlF5/uclES2_E11FirstKernel_VT7XMlF5/vitis_hls.log :
+INFO: [v++ 200-789] **** Estimated Fmax: 411.00 MHz
+INFO: [v++ 60-594] Finished kernel compilation
+INFO: [v++ 60-244] Generating system estimate report...
+INFO: [v++ 60-1092] Generated system estimate report: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_report/uclES2_E11FirstKernel_VT7XMlF5/system_estimate_uclES2_E11FirstKernel_VT7XMlF5.xtxt
+INFO: [v++ 60-586] Created /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/uclES2_E11FirstKernel_VT7XMlF5.xo
+INFO: [v++ 60-2343] Use the vitis_analyzer tool to visualize and navigate the relevant reports. Run the following command. 
+    vitis_analyzer /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/uclES2_E11FirstKernel_VT7XMlF5.xo.compile_summary 
+INFO: [v++ 60-791] Total elapsed time: 0h 1m 12s
+INFO: [v++ 60-1653] Closing dispatch client.
+Option Map File Used: '/opt/xilinx/Vitis/2021.2/data/vitis/vpp/optMap.xml'
+
+****** v++ v2021.2 (64-bit)
+  **** SW Build 3363252 on 2021-10-14-04:41:01
+    ** Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
+
+INFO: [v++ 60-1306] Additional information associated with this v++ link can be found at:
+	Reports: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_report/link
+	Log files: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_log/link
+Running Dispatch Server on port: 42885
+INFO: [v++ 60-1548] Creating build summary session with primary output /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin.link_summary, at Tue Mar 29 16:30:03 2022
+INFO: [v++ 60-1316] Initiating connection to rulecheck server, at Tue Mar 29 16:30:03 2022
+INFO: [v++ 60-1315] Creating rulecheck session with output '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_report/link/v++_link_sycl_lns-3a9cb4_guidance.html', at Tue Mar 29 16:30:05 2022
+INFO: [v++ 60-895]   Target platform: /opt/xilinx/platforms/xilinx_u200_gen3x16_xdma_1_202110_1/xilinx_u200_gen3x16_xdma_1_202110_1.xpfm
+INFO: [v++ 60-1578]   This platform contains Xilinx Shell Archive '/opt/xilinx/platforms/xilinx_u200_gen3x16_xdma_1_202110_1/hw/hw.xsa'
+INFO: [v++ 74-78] Compiler Version string: 2021.2
+INFO: [v++ 60-629] Linking for hardware emulation target
+INFO: [v++ 60-423]   Target device: xilinx_u200_gen3x16_xdma_1_202110_1
+INFO: [v++ 60-1332] Run 'run_link' status: Not started
+INFO: [v++ 60-1443] [16:30:14] Run run_link: Step system_link: Started
+INFO: [v++ 60-1453] Command Line: system_link --xo /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/uclES2_E11FirstKernel_VT7XMlF5.xo -keep --config /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/syslinkConfig.ini --xpfm /opt/xilinx/platforms/xilinx_u200_gen3x16_xdma_1_202110_1/xilinx_u200_gen3x16_xdma_1_202110_1.xpfm --target emu --output_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int --temp_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+INFO: [SYSTEM_LINK 60-1316] Initiating connection to rulecheck server, at Tue Mar 29 16:30:17 2022
+INFO: [SYSTEM_LINK 82-70] Extracting xo v3 file /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/uclES2_E11FirstKernel_VT7XMlF5.xo
+INFO: [SYSTEM_LINK 82-53] Creating IP database /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/_sysl/.cdb/xd_ip_db.xml
+INFO: [SYSTEM_LINK 82-38] [16:30:17] build_xd_ip_db started: /opt/xilinx/Vitis/2021.2/bin/build_xd_ip_db -ip_search 0  -sds-pf /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/hw_emu.hpfm -clkid 0 -ip /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/iprepo/xilinx_com_hls_uclES2_E11FirstKernel_VT7XMlF5_1_0,uclES2_E11FirstKernel_VT7XMlF5 -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/_sysl/.cdb/xd_ip_db.xml
+INFO: [SYSTEM_LINK 82-37] [16:30:23] build_xd_ip_db finished successfully
+Time (s): cpu = 00:00:08 ; elapsed = 00:00:07 . Memory (MB): peak = 2170.109 ; gain = 0.000 ; free physical = 12255 ; free virtual = 53777
+INFO: [SYSTEM_LINK 82-51] Create system connectivity graph
+INFO: [SYSTEM_LINK 82-102] Applying explicit connections to the system connectivity graph: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/cfgraph/cfgen_cfgraph.xml
+INFO: [SYSTEM_LINK 82-38] [16:30:23] cfgen started: /opt/xilinx/Vitis/2021.2/bin/cfgen  -sp uclES2_E11FirstKernel_VT7XMlF5_1.m_axi_gmem:DDR[0] -sp uclES2_E11FirstKernel_VT7XMlF5_1._arg_:DDR[0] -dmclkid 0 -r /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/_sysl/.cdb/xd_ip_db.xml -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/cfgraph/cfgen_cfgraph.xml
+INFO: [CFGEN 83-0] Kernel Specs: 
+INFO: [CFGEN 83-0]   kernel: uclES2_E11FirstKernel_VT7XMlF5, num: 1  {uclES2_E11FirstKernel_VT7XMlF5_1}
+INFO: [CFGEN 83-0] Port Specs: 
+INFO: [CFGEN 83-0]   kernel: uclES2_E11FirstKernel_VT7XMlF5_1, k_port: m_axi_gmem, sptag: DDR[0]
+INFO: [CFGEN 83-0]   kernel: uclES2_E11FirstKernel_VT7XMlF5_1, k_port: _arg_, sptag: DDR[0]
+INFO: [CFGEN 83-2228] Creating mapping for argument uclES2_E11FirstKernel_VT7XMlF5_1._arg_ to DDR[0] for directive uclES2_E11FirstKernel_VT7XMlF5_1.m_axi_gmem:DDR[0]
+INFO: [SYSTEM_LINK 82-37] [16:30:29] cfgen finished successfully
+Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 2170.109 ; gain = 0.000 ; free physical = 12255 ; free virtual = 53778
+INFO: [SYSTEM_LINK 82-52] Create top-level block diagram
+INFO: [SYSTEM_LINK 82-38] [16:30:29] cf2bd started: /opt/xilinx/Vitis/2021.2/bin/cf2bd  --linux --trace_buffer 1024 --input_file /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/cfgraph/cfgen_cfgraph.xml --ip_db /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/_sysl/.cdb/xd_ip_db.xml --cf_name dr --working_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/_sysl/.xsd --temp_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link --output_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int
+INFO: [CF2BD 82-31] Launching cf2xd: cf2xd -linux -trace-buffer 1024 -i /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/cfgraph/cfgen_cfgraph.xml -r /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/_sysl/.cdb/xd_ip_db.xml -o dr.xml
+INFO: [CF2BD 82-28] cf2xd finished successfully
+INFO: [CF2BD 82-31] Launching cf_xsd: cf_xsd -disable-address-gen -dn dr -dp /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/sys_link/_sysl/.xsd
+INFO: [CF2BD 82-28] cf_xsd finished successfully
+INFO: [SYSTEM_LINK 82-37] [16:30:33] cf2bd finished successfully
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 2170.109 ; gain = 0.000 ; free physical = 12247 ; free virtual = 53776
+INFO: [v++ 60-1441] [16:30:33] Run run_link: Step system_link: Completed
+Time (s): cpu = 00:00:21 ; elapsed = 00:00:19 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 12285 ; free virtual = 53814
+INFO: [v++ 60-1443] [16:30:33] Run run_link: Step cf2sw: Started
+INFO: [v++ 60-1453] Command Line: cf2sw -sdsl /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sdsl.dat -rtd /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/cf2sw.rtd -nofilter /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/cf2sw_full.rtd -xclbin /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/xclbin_orig.xml -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/xclbin_orig.1.xml
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+INFO: [v++ 60-1441] [16:30:37] Run run_link: Step cf2sw: Completed
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 12284 ; free virtual = 53815
+INFO: [v++ 60-1443] [16:30:37] Run run_link: Step rtd2_system_diagram: Started
+INFO: [v++ 60-1453] Command Line: rtd2SystemDiagram
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+INFO: [v++ 60-1441] [16:30:38] Run run_link: Step rtd2_system_diagram: Completed
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.50 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 12277 ; free virtual = 53808
+INFO: [v++ 60-1443] [16:30:38] Run run_link: Step vpl: Started
+INFO: [v++ 60-1453] Command Line: vpl -t hw_emu -f xilinx_u200_gen3x16_xdma_1_202110_1 --remote_ip_cache /storage/gauthier/marto/build/archgenlib/examples/.ipcache -s --output_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int --log_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_log/link --report_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_report/link --config /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/vplConfig.ini -k /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/kernel_info.dat --webtalk_flag Vitis --temp_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link --emulation_mode debug_waveform --no-info --iprepo /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/xo/ip_repo/xilinx_com_hls_uclES2_E11FirstKernel_VT7XMlF5_1_0 --messageDb /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link/vpl.pb /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/dr.bd.tcl
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+
+****** vpl v2021.2 (64-bit)
+  **** SW Build 3363252 on 2021-10-14-04:41:01
+    ** Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
+
+INFO: [VPL 60-839] Read in kernel information from file '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/kernel_info.dat'.
+INFO: [VPL 74-78] Compiler Version string: 2021.2
+INFO: [VPL 60-423]   Target device: xilinx_u200_gen3x16_xdma_1_202110_1
+INFO: [VPL 60-1032] Extracting hardware platform to /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/vivado/vpl/.local/hw_platform
+[16:31:03] Run vpl: Step create_project: Started
+Creating Vivado project.
+[16:31:41] Run vpl: Step create_project: Completed
+[16:31:41] Run vpl: Step create_bd: Started
+[16:32:28] Run vpl: Step create_bd: Completed
+[16:32:28] Run vpl: Step update_bd: Started
+[16:32:28] Run vpl: Step update_bd: Completed
+[16:32:28] Run vpl: Step generate_target: Started
+[16:33:44] Run vpl: Step generate_target: RUNNING...
+[16:34:48] Run vpl: Step generate_target: Completed
+[16:34:48] Run vpl: Step config_hw_emu.gen_scripts: Started
+[16:35:03] Run vpl: Step config_hw_emu.gen_scripts: Completed
+[16:35:03] Run vpl: Step config_hw_emu.compile: Started
+[16:35:34] Run vpl: Step config_hw_emu.compile: Completed
+[16:35:34] Run vpl: Step config_hw_emu.elaborate: Started
+[16:36:04] Run vpl: Step config_hw_emu.elaborate: Completed
+[16:36:04] Run vpl: FINISHED. Run Status: config_hw_emu.elaborate Complete!
+INFO: [v++ 60-1441] [16:36:05] Run run_link: Step vpl: Completed
+Time (s): cpu = 00:00:16 ; elapsed = 00:05:27 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 6865 ; free virtual = 49992
+INFO: [v++ 60-1443] [16:36:05] Run run_link: Step rtdgen: Started
+INFO: [v++ 60-1453] Command Line: rtdgen
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+INFO: [v++ 60-991] clock name 'kernel_clk/clk' (clock ID '0') is being mapped to clock name 'DATA_CLK' in the xclbin
+INFO: [v++ 60-1230] The compiler selected the following frequencies for the runtime controllable kernel clock(s) and scalable system clock(s): Kernel (DATA) clock: kernel_clk/clk = 300, Kernel (KERNEL) clock: kernel_clk/clk = 300
+INFO: [v++ 60-1453] Command Line: cf2sw -a /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/address_map.xml -sdsl /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sdsl.dat -xclbin /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/xclbin_orig.xml -rtd /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4.rtd -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4.xml
+INFO: [v++ 60-1652] Cf2sw returned exit code: 0
+WARNING: [v++ 60-1455] Debuggable symbols are not generated successfully, clean up /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/consolidated.cf
+INFO: [v++ 60-1441] [16:36:11] Run run_link: Step rtdgen: Completed
+Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 8940 ; free virtual = 52088
+INFO: [v++ 60-1443] [16:36:11] Run run_link: Step xclbinutil: Started
+INFO: [v++ 60-1453] Command Line: xclbinutil --add-section BITSTREAM:RAW:/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/behav.xse --force --target hw_emu --key-value SYS:dfx_enable:false --add-section :JSON:/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4.rtd --append-section :JSON:/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/appendSection.rtd --add-section CLOCK_FREQ_TOPOLOGY:JSON:/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4_xml.rtd --add-section BUILD_METADATA:JSON:/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4_build.rtd --add-section EMBEDDED_METADATA:RAW:/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4.xml --add-section SYSTEM_METADATA:RAW:/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/systemDiagramModelSlrBaseAddress.json --key-value SYS:PlatformVBNV:xilinx_u200_gen3x16_xdma_1_202110_1 --output /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+XRT Build Version: 2.13.0 (HEAD)
+       Build Date: 2022-03-15 18:06:07
+          Hash ID: 869dcd59191411f48329b69d89507d678089c1aa
+Creating a default 'in-memory' xclbin image.
+
+Section: 'BITSTREAM'(0) was successfully added.
+Size   : 20878984 bytes
+Format : RAW
+File   : '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/behav.xse'
+
+Section: 'MEM_TOPOLOGY'(6) was successfully added.
+Format : JSON
+File   : 'mem_topology'
+
+Section: 'IP_LAYOUT'(8) was successfully added.
+Format : JSON
+File   : 'ip_layout'
+
+Section: 'CONNECTIVITY'(7) was successfully added.
+Format : JSON
+File   : 'connectivity'
+
+Section: 'CLOCK_FREQ_TOPOLOGY'(11) was successfully added.
+Size   : 274 bytes
+Format : JSON
+File   : '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4_xml.rtd'
+
+Section: 'BUILD_METADATA'(14) was successfully added.
+Size   : 2651 bytes
+Format : JSON
+File   : '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4_build.rtd'
+
+Section: 'EMBEDDED_METADATA'(2) was successfully added.
+Size   : 3483 bytes
+Format : RAW
+File   : '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/sycl_lns-3a9cb4.xml'
+
+Section: 'SYSTEM_METADATA'(22) was successfully added.
+Size   : 9510 bytes
+Format : RAW
+File   : '/storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/int/systemDiagramModelSlrBaseAddress.json'
+
+Section: 'PARTITION_METADATA'(20) was successfully appended to.
+Format : JSON
+File   : 'partition_metadata'
+
+Section: 'IP_LAYOUT'(8) was successfully appended to.
+Format : JSON
+File   : 'ip_layout'
+Successfully wrote (20909817 bytes) to the output file: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin
+Leaving xclbinutil.
+INFO: [v++ 60-1441] [16:36:11] Run run_link: Step xclbinutil: Completed
+Time (s): cpu = 00:00:00.13 ; elapsed = 00:00:00.24 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 8917 ; free virtual = 52087
+INFO: [v++ 60-1443] [16:36:11] Run run_link: Step xclbinutilinfo: Started
+INFO: [v++ 60-1453] Command Line: xclbinutil --quiet --force --info /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin.info --input /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+INFO: [v++ 60-1441] [16:36:11] Run run_link: Step xclbinutilinfo: Completed
+Time (s): cpu = 00:00:00.45 ; elapsed = 00:00:00.52 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 8909 ; free virtual = 52079
+INFO: [v++ 60-1443] [16:36:11] Run run_link: Step generate_sc_driver: Started
+INFO: [v++ 60-1453] Command Line: 
+INFO: [v++ 60-1454] Run Directory: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp/link/run_link
+INFO: [v++ 60-1441] [16:36:11] Run run_link: Step generate_sc_driver: Completed
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2063.820 ; gain = 0.000 ; free physical = 8909 ; free virtual = 52079
+INFO: [v++ 60-244] Generating system estimate report...
+INFO: [v++ 60-1092] Generated system estimate report: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_report/link/system_estimate_sycl_lns-3a9cb4.xtxt
+INFO: [v++ 60-586] Created /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin
+INFO: [v++ 60-1307] Run completed. Additional information can be found in:
+	Guidance: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_report/link/v++_link_sycl_lns-3a9cb4_guidance.html
+	Steps Log File: /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_log/link/link.steps.log
+
+INFO: [v++ 60-2343] Use the vitis_analyzer tool to visualize and navigate the relevant reports. Run the following command. 
+    vitis_analyzer /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin.link_summary 
+INFO: [v++ 60-791] Total elapsed time: 0h 6m 19s
+INFO: [v++ 60-1653] Closing dispatch client.
+SYCL_VXX_CMD: /opt/xilinx/Vitis/2021.2/bin/v++ --target hw_emu --advanced.param compiler.hlsDataflowStrictMode=off -O3 --platform xilinx_u200_gen3x16_xdma_1_202110_1 --temp_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_tmp --log_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_log --report_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_comp_report --save-temps -c -k uclES2_E11FirstKernel_VT7XMlF5 -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/uclES2_E11FirstKernel_VT7XMlF5.xo /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4_kernels-linked.xpirbc
+SYCL_VXX_CMD: /opt/xilinx/Vitis/2021.2/bin/v++ --target hw_emu --advanced.param compiler.hlsDataflowStrictMode=off --platform xilinx_u200_gen3x16_xdma_1_202110_1 --temp_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_tmp --log_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_log --report_dir /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/vxx_link_report --save-temps -l -o /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/sycl_lns-3a9cb4.xclbin --connectivity.sp uclES2_E11FirstKernel_VT7XMlF5_1.m_axi_gmem:DDR[0] --connectivity.sp uclES2_E11FirstKernel_VT7XMlF5_1._arg_:DDR[0] /storage/gauthier/tmp/sycl_lns-3a9cb4cqq9f_b0/uclES2_E11FirstKernel_VT7XMlF5.xo

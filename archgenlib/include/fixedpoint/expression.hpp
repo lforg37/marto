@@ -39,7 +39,7 @@ auto operator/(T1 const &op1, T2 const &op2) {
 
 namespace archgenlib {
 template <ExpressionType ET, std::int32_t prec>
-static Evaluator<ET, prec> _evaluator{};
+static const Evaluator<ET, prec> _evaluator{};
 
 template <std::int32_t prec, ExpressionType ET> auto evaluate(ET const &val) {
   return _evaluator<ET, prec>.evaluate(val);

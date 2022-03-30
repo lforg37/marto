@@ -79,7 +79,7 @@ public:
                        << "struct archgenlib::Evaluator<" << expr_name << ", "
                        << prec << "> {\n"
                        << "  auto evaluate(" << expr_name
-                       << " const & expr) {\n"
+                       << " const & expr) const {\n"
                        << "    " << *freevar
                        << "    " << *op
                        << "    " << *ret
@@ -88,7 +88,7 @@ public:
     }
 #endif
   }
-  auto evaluate(ET const &expr) { return FixedNumber<FixedFormat<4, -7, unsigned>>{42}; }
+  auto evaluate(ET const &expr) const { return FixedNumber<FixedFormat<4, -7, unsigned>>{42}; }
 };
 } // namespace archgenlib
 

@@ -18,13 +18,13 @@ template <typename FixedTy> inline auto convert_to_double(FixedTy val) {
 
 template <auto fNum, auto fDenom> struct wave_gen {
   float phase;
-  static constexpr auto freq = static_cast<float>(fNum);
+  static constexpr float wfreq = fNum * 2. * std::numbers::pi_v<double> ;
   wave_gen(float phase) : phase{phase} {}
 
-  auto get_from_time(float time) {
-    time *= 2*std::numbers::pi_v<float> * freq;
-    time += phase;
-    return std::sin(time);
+  auto get_from_time() {
+    auto res = std::sin(phase);
+    phase += wfreq;
+    return res;
   }
 };
 
@@ -37,9 +37,10 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, max_frequency, std::enable_if
 {
   static constexpr auto freqNum = max_frequency * start_idx / NBOsc;
   using osc = wave_gen<freqNum, max_frequency>;
+  osc o{0.};
 
-  auto result(float inval, const std::array<float, NBOsc>& coef) {
-    return coef[start_idx - 1] * osc{0.}.get_from_time(inval);
+  auto result(std::array<float, NBOsc>& coef) {
+    return coef[start_idx - 1] * o.get_from_time();
   }
 };
 
@@ -49,9 +50,11 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, max_frequency, std::enable_if
   static constexpr unsigned mid_point = (last_idx + start_idx) / 2;
   using low_type = OscillatorBench<start_idx, mid_point, NBOsc, max_frequency>;
   using high_type = OscillatorBench<mid_point + 1, last_idx, NBOsc, max_frequency>;
-  auto result(float inval, const auto& coef) {
-    auto res_low = low_type{}.result(inval, coef);
-    return res_low + high_type{}.result(inval, coef);
+  low_type l;
+  high_type h;
+  auto result(auto& coef) {
+    auto res_low = l.result(coef);
+    return res_low + h.result(coef);
   }
 };
 
@@ -60,19 +63,23 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, max_frequency, std::enable_if
 template<unsigned int NBOsc, auto max_frequency>
 struct AdditiveSynthesizer {
   using ul_type = detail::OscillatorBench<1, NBOsc, NBOsc, max_frequency>;
-  auto get_value(float time, const auto& coef) {
-    return ul_type{}.result(time, coef);
+  ul_type u;
+  auto get_value(auto& coef) {
+    return u.result(coef);
   }
 };
 
-__attribute((always_inline)) auto test2(float i, auto& coef) {
-  AdditiveSynthesizer<256, 1000> synt;
-  return synt.get_value(i, coef);
+template<unsigned int NBOsc, auto max_frequency>
+AdditiveSynthesizer<NBOsc, max_frequency> additive_synth{};
+
+__attribute((always_inline)) auto test2(auto& coef) {
+  auto& synt = additive_synth<256, 1000>;
+  return synt.get_value(coef);
 }
 
 #ifdef TARGET_VITIS
-__VITIS_KERNEL auto test(float i, std::array<float, 256> coef) {
-  return test2(i, coef);
+__VITIS_KERNEL auto test(std::array<float, 256> coef) {
+  return test2(coef);
 }
 #else
 
