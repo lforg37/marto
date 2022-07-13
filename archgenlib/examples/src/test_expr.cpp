@@ -60,12 +60,14 @@ int main() {
   using storage_t = unsigned _BitInt(fpdim_t::width);
   for (unsigned int i = 0; i < (1 << fpdim_t::width); ++i) {
     auto val = static_cast<storage_t>(i);
-    archgenlib::Variable<fpnum_t> a{{val}};
+    fpnum_t val_fixed{val};
+    auto a = archgenlib::FreeVariable(val_fixed);
     using const_valtype = hint::detail::bitint_base_t<false, 16>;
     using dim_t = archgenlib::FixedFormat<14, -1, unsigned>;
     using const_t = archgenlib::FixedConstant<dim_t, const_valtype{3}>;
     archgenlib::Constant<const_t> b{};
-    auto c = archgenlib::sin(a) * b;
+    auto s = archgenlib::sin(a);
+    auto c = s * b;
     auto res = archgenlib::evaluate<outprec>(c);
     if constexpr (has_specialization) {
       assert(compare_ref(val, res));

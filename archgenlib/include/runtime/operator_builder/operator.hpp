@@ -88,7 +88,6 @@ struct Call : public CPPExpr {
   virtual void to_stream(std::ostream &os);
   Call(cpp_expr_ptr called, std::vector<cpp_expr_ptr> args= {})
       : called{called}, args{args} {}
-
 };
 
 struct Construction : public CPPExpr {

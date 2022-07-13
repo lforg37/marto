@@ -191,23 +191,9 @@ void CPPOperator::to_stream(std::ostream &os) {
 
 detail::cpp_expr_ptr get_path(ExpressionRTRepr::path_t const &path,
                               detail::cpp_expr_ptr main_expr) {
-  for (auto iter = path.rbegin(); iter != path.rend(); iter++) {
-    std::string_view direction;
-    switch (*iter) {
-    case ExpressionRTRepr::DirectionInTree::LEFT:
-      direction = "left";
-      break;
-    case ExpressionRTRepr::DirectionInTree::RIGHT:
-      direction = "right";
-      break;
-    case ExpressionRTRepr::DirectionInTree::DIRECT:
-      direction = "op";
-      break;
-    }
-    main_expr = main_expr->get(direction);
-  }
-  main_expr = main_expr->get("value");
-  return main_expr;
+  //TODO: get from var idx
+  detail::cpp_expr_ptr input_var{new detail::NamedExpression{"std::get<0>"}};
+  return (*input_var)(main_expr->get("parameters"));
 }
 
 CPPOperator TableBuilder::build_table() {
