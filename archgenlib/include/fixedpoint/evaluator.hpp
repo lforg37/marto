@@ -26,6 +26,15 @@
 #include "fixedpoint/expression_types.hpp"
 #include "fixedpoint/fixedpoint.hpp"
 
+#if !defined(__VITIS_KERNEL) && !defined(SYCL_LANGUAGE_VERSION)
+__attribute__((weak)) int main() {
+}
+#endif
+
+#if !defined(__VITIS_KERNEL)
+#define __VITIS_KERNEL
+#endif
+
 namespace archgenlib {
 
 #ifdef INCLUDE_GENERATED_HEADER

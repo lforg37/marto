@@ -14,11 +14,6 @@
 #include "fixedpoint/literal.hpp"
 #include "fixedpoint/functions.hpp"
 
-#ifndef __VITIS_KERNEL
-#warning "unsupported compiler"
-#define __VITIS_KERNEL
-#endif
-
 template<int base, typename storage_t>
 class LNSNumber;
 

@@ -85,13 +85,11 @@ template <LNSType OpT> constexpr OpT operator+(OpT const &op1, OpT const &op2) {
 
 using lns_t = LNS<6, 6>;
 
-#ifdef TARGET_VITIS
 __VITIS_KERNEL auto test(lns_t a, lns_t b) {
   return a + b;
 }
 
-#else
-
+#if defined(INCLUDE_GENERATED_HEADER) && !defined(__VITIS_KERNEL)
 int main() {
   lns_t a{.is_zero = false, .is_neg = false, .exponent{0b10000}};
   auto res = a + a;

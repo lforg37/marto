@@ -136,19 +136,18 @@ using mul_t =
     archgenlib::FixedNumber<archgenlib::FixedFormat<-1, -8, unsigned>>;
 
 __attribute((always_inline)) auto test2(auto coef) {
-  using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<11, -2, unsigned>>;
-  auto& add_synth = additive_synth<2, -16, fixe_t, 12, 2>;
+  using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<11, 0, unsigned>>;
+  auto& add_synth = additive_synth<256, -16, fixe_t, 12, 1000>;
   auto res =  add_synth.get_value(coef);
   // std::cout << "test2:" << convert_to_double(res) << std::endl;
   return res;
 }
 
-#ifdef TARGET_VITIS
 __VITIS_KERNEL auto test(std::array<mul_t, 256> coef) {
-  static_assert(archgenlib::has_specialization_header);
   return test2(coef);
 }
-#else
+
+#if defined(INCLUDE_GENERATED_HEADER) && !defined(__VITIS_KERNEL)
 
 template <typename FixedTy> bool compare(FixedTy val, double ref, int prec) {
   double to_double = convert_to_double(val);
@@ -183,7 +182,7 @@ template <typename Format, int f> void check_freq(int offset) {
 }
 
 void plot() {
-  std::array<mul_t, 2> coef = {};
+  std::array<mul_t, 256> coef = {};
   coef[0] = mul_t::get_from_value(0.5);
   coef[1] = mul_t::get_from_value(.5);
   for (int i = 0; i < (1 << 14); i += 1) {

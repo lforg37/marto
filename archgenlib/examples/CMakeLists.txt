@@ -35,52 +35,41 @@ target_compile_definitions(test_expr_2 PRIVATE INCLUDE_GENERATED_HEADER=${CMAKE_
 target_compile_options(test_expr_2 PRIVATE -fconstexpr-steps=2560000)
 add_dependencies(test_expr_2 specialization_header)
 
-add_executable(test_vitis src/test_vitis.cpp)
-target_link_libraries(test_vitis archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
+function(vitis_compile_with_generator target source)
+    add_executable(${target}.generator ${source})
+    target_link_libraries(${target}.generator archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
 
-add_custom_command(
-    OUTPUT specialization_header_vitis.hpp
-    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_vitis.hpp ./test_vitis
-    DEPENDS test_vitis
-    COMMENT "Generating specialization file"
-)
+    add_custom_command(
+        OUTPUT specialization_header_${target}.hpp
+        COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_${target}.hpp ./${target}.generator
+        DEPENDS ${target}.generator
+        COMMENT "Generating specialization file for " ${source}
+    )
 
-add_custom_target(specialization_header_vitis DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_vitis.hpp )
+    add_custom_target(specialization_header_${target}.hpp DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_${target}.hpp )
 
-add_custom_command(
-    OUTPUT function.zip
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ --target=vitis_ip-xilinx --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_vitis.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o function.zip /storage/gauthier/marto/archgenlib/examples/src/test_vitis.cpp
-    DEPENDS specialization_header_vitis src/test_vitis.cpp
-    COMMENT "build a vitis ip"
-)
-add_custom_target(test_vitis_2 ALL DEPENDS function.zip )
+    add_custom_command(
+        OUTPUT ${target}
+        COMMAND ${CMAKE_CXX_COMPILER} --target=vitis_ip-xilinx --vitis-ip-part=xcvu13p-fhga2104-3-e -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_${target}.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o ${target}.zip ${CMAKE_CURRENT_SOURCE_DIR}/${source}
+        DEPENDS specialization_header_${target}.hpp ${source}
+        COMMENT "build a vitis ip for " ${source}
+    )
+    add_custom_target(${target}.zip ALL DEPENDS ${target})
+endfunction()
 
-add_executable(test_wave_gen src/test_wave_gen.cpp)
-target_link_libraries(test_wave_gen archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
+function(cpu_compile_with_generator target specializatio_header source)
+    add_executable(${target} ${source})
+    target_link_libraries(${target} archgenlib HINT_BITINT_BACKEND)
+    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    target_compile_definitions(${target} PRIVATE INCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/${specializatio_header})
+    target_compile_options(${target} PRIVATE -fconstexpr-steps=4294967295)
+    add_dependencies(${target} ${specializatio_header})
+endfunction()
 
-add_custom_command(
-    OUTPUT specialization_header_wave_gen.hpp
-    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen.hpp ./test_wave_gen
-    DEPENDS test_wave_gen
-    COMMENT "Generating specialization file"
-)
+vitis_compile_with_generator(test_vitis src/test_vitis.cpp)
 
-add_custom_target(specialization_header_wave_gen DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen.hpp )
-
-add_custom_command(
-    OUTPUT wave_gen.zip
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ -DTARGET_VITIS --target=vitis_ip-xilinx --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o wave_gen.zip /storage/gauthier/marto/archgenlib/examples/src/test_wave_gen.cpp
-    DEPENDS specialization_header_wave_gen src/test_wave_gen.cpp
-    COMMENT "build a vitis ip"
-)
-add_custom_target(test_wave_gen_2 ALL DEPENDS wave_gen.zip )
-
-add_executable(test_wave_gen_cpu src/test_wave_gen.cpp)
-target_link_libraries(test_wave_gen_cpu archgenlib HINT_BITINT_BACKEND)
-target_include_directories(test_wave_gen_cpu PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_compile_definitions(test_wave_gen_cpu PRIVATE INCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen.hpp)
-target_compile_options(test_wave_gen_cpu PRIVATE -fconstexpr-steps=4294967295)
-add_dependencies(test_wave_gen_cpu specialization_header_wave_gen)
+vitis_compile_with_generator(test_wave_gen src/test_wave_gen.cpp)
+cpu_compile_with_generator(test_wave_gen_cpu specialization_header_test_wave_gen.hpp src/test_wave_gen.cpp)
 
 add_executable(test_literal src/test_literal.cpp)
 target_link_libraries(test_literal archgenlib HINT_BITINT_BACKEND)
@@ -88,26 +77,11 @@ target_link_libraries(test_literal archgenlib HINT_BITINT_BACKEND)
 add_executable(test_lns src/test_lns.cpp)
 target_link_libraries(test_lns archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
 
-add_custom_command(
-    OUTPUT specialization_header_lns.hpp
-    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns.hpp ./test_lns
-    DEPENDS test_lns
-    COMMENT "Generating specialization file"
-)
-
-add_custom_target(specialization_header_lns DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns.hpp )
-
-add_custom_command(
-    OUTPUT lns.zip
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ --target=vitis_ip-xilinx --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o lns.zip /storage/gauthier/marto/archgenlib/examples/src/test_lns.cpp
-    DEPENDS specialization_header_lns src/test_lns.cpp
-    COMMENT "build a vitis ip"
-)
-add_custom_target(test_lns_2 ALL DEPENDS lns.zip )
+vitis_compile_with_generator(lns src/test_lns.cpp)
 
 add_custom_command(
     OUTPUT wave_gen_float.zip
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ -DTARGET_VITIS --target=vitis_ip-xilinx --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o wave_gen_float.zip /storage/gauthier/marto/archgenlib/examples/src/test_wave_gen_float.cpp
+    COMMAND ${CMAKE_CXX_COMPILER} --target=vitis_ip-xilinx --vitis-ip-part=xcvu13p-fhga2104-3-e -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o wave_gen_float.zip /storage/gauthier/marto/archgenlib/examples/src/test_wave_gen_float.cpp
     DEPENDS src/test_wave_gen_float.cpp
     COMMENT "build a vitis ip"
 )
@@ -119,79 +93,16 @@ target_link_libraries(test_wave_gen_float_cpu)
 add_executable(test_lns_lf src/test_lns_lf.cpp)
 target_link_libraries(test_lns_lf archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
 
-add_custom_command(
-    OUTPUT specialization_header_lns_lf.hpp
-    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns_lf.hpp ./test_lns_lf
-    DEPENDS test_lns_lf
-    COMMENT "Generating specialization file"
-)
+vitis_compile_with_generator(lns_lf src/test_lns_lf.cpp)
 
-add_custom_target(specialization_header_lns_lf DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns_lf.hpp )
+# vitis_compile_with_generator(wave_gen_low_prec src/test_wave_gen_low_prec.cpp)
+# cpu_compile_with_generator(test_wave_gen_low_prec_cpu specialization_header_test_wave_gen_low_prec.hpp src/test_wave_gen_low_prec.cpp)
 
-add_custom_command(
-    OUTPUT lns_lf.zip
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ --target=vitis_ip-xilinx -DTARGET_VITIS --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_lns_lf.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o lns_lf.zip /storage/gauthier/marto/archgenlib/examples/src/test_lns_lf.cpp
-    DEPENDS specialization_header_lns_lf src/test_lns_lf.cpp
-    COMMENT "build a vitis ip"
-)
-add_custom_target(test_lns_lf_2 ALL DEPENDS lns_lf.zip )
-
-add_executable(test_wave_gen_low_prec src/test_wave_gen_low_prec.cpp)
-target_link_libraries(test_wave_gen_low_prec archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
-
-add_custom_command(
-    OUTPUT specialization_header_wave_gen_low_prec.hpp
-    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp ./test_wave_gen_low_prec
-    DEPENDS test_wave_gen_low_prec
-    COMMENT "Generating specialization file"
-)
-
-add_custom_target(specialization_header_wave_gen_low_prec DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp )
-
-add_custom_command(
-    OUTPUT wave_gen_low_prec.zip
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ -DTARGET_VITIS --target=vitis_ip-xilinx --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o wave_gen_low_prec.zip /storage/gauthier/marto/archgenlib/examples/src/test_wave_gen_low_prec.cpp
-    DEPENDS specialization_header_wave_gen_low_prec src/test_wave_gen_low_prec.cpp
-    COMMENT "build a vitis ip"
-)
-add_custom_target(test_wave_gen_low_prec_2 ALL DEPENDS wave_gen_low_prec.zip )
-
-add_executable(test_wave_gen_low_prec_cpu src/test_wave_gen_low_prec.cpp)
-target_link_libraries(test_wave_gen_low_prec_cpu archgenlib HINT_BITINT_BACKEND)
-target_include_directories(test_wave_gen_low_prec_cpu PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_compile_definitions(test_wave_gen_low_prec_cpu PRIVATE INCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_low_prec.hpp)
-target_compile_options(test_wave_gen_low_prec_cpu PRIVATE -fconstexpr-steps=4294967295)
-add_dependencies(test_wave_gen_low_prec_cpu specialization_header_wave_gen_low_prec)
-
-add_executable(test_wave_gen_high_prec src/test_wave_gen_high_prec.cpp)
-target_link_libraries(test_wave_gen_high_prec archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
-
-add_custom_command(
-    OUTPUT specialization_header_wave_gen_high_prec.hpp
-    COMMAND ${CMAKE_COMMAND} -E env ARCHGENLIB_SPECIALIZATION_HEADER_PATH=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_high_prec.hpp ./test_wave_gen_high_prec
-    DEPENDS test_wave_gen_high_prec
-    COMMENT "Generating specialization file"
-)
-
-add_custom_target(specialization_header_wave_gen_high_prec DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_high_prec.hpp )
-
-add_custom_command(
-    OUTPUT wave_gen_high_prec.zip
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ -DTARGET_VITIS --target=vitis_ip-xilinx --vitis-ip-part=xc7vx330t-ffg1157-1 -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_high_prec.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o wave_gen_high_prec.zip /storage/gauthier/marto/archgenlib/examples/src/test_wave_gen_high_prec.cpp
-    DEPENDS specialization_header_wave_gen_high_prec src/test_wave_gen_high_prec.cpp
-    COMMENT "build a vitis ip"
-)
-add_custom_target(test_wave_gen_high_prec_2 ALL DEPENDS wave_gen_high_prec.zip )
-
-add_executable(test_wave_gen_high_prec_cpu src/test_wave_gen_high_prec.cpp)
-target_link_libraries(test_wave_gen_high_prec_cpu archgenlib HINT_BITINT_BACKEND)
-target_include_directories(test_wave_gen_high_prec_cpu PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_compile_definitions(test_wave_gen_high_prec_cpu PRIVATE INCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_wave_gen_high_prec.hpp)
-target_compile_options(test_wave_gen_high_prec_cpu PRIVATE -fconstexpr-steps=4294967295)
-add_dependencies(test_wave_gen_high_prec_cpu specialization_header_wave_gen_high_prec)
+# vitis_compile_with_generator(wave_gen_high_prec src/test_wave_gen_high_prec.cpp)
+# cpu_compile_with_generator(test_wave_gen_high_prec_cpu specialization_header_test_wave_gen_high_prec.hpp src/test_wave_gen_high_prec.cpp)
 
 add_executable(sycl_lns src/sycl_lns.cpp)
-target_compile_options(sycl_lns PRIVATE -DGENERATING_HEADER)
+target_compile_options(sycl_lns PRIVATE -fsycl)
 target_link_libraries(sycl_lns archgenlib Sollya::Sollya HINT_BITINT_BACKEND GMPXX::GMPXX)
 
 add_custom_command(
@@ -205,8 +116,14 @@ add_custom_target(specialization_header_sycl_lns DEPENDS ${CMAKE_CURRENT_BINARY_
 
 add_custom_command(
     OUTPUT sycl_app
-    COMMAND /storage/gauthier/sycl/build-Release/bin/clang++ -fsycl -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_sycl_lns.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o sycl_app /storage/gauthier/marto/archgenlib/examples/src/sycl_lns.cpp
+    COMMAND ${CMAKE_CXX_COMPILER} -fsycl -DBITINT_BACKEND -DBITINT_BACKEND_SIGNED_W1 -DBOOST_ALL_NO_LIB -DINCLUDE_GENERATED_HEADER=${CMAKE_CURRENT_BINARY_DIR}/specialization_header_sycl_lns.hpp -I/storage/gauthier/marto/build/archgenlib/examples -I/storage/gauthier/marto/archgenlib/include -I/storage/gauthier/marto/build/_deps/hint-src/include -fconstexpr-steps=4294967295 -std=c++20 -o sycl_app /storage/gauthier/marto/archgenlib/examples/src/sycl_lns.cpp
     DEPENDS specialization_header_sycl_lns
     COMMENT "build a vitis ip"
 )
 add_custom_target(sycl_app ALL DEPENDS sycl_app )
+
+vitis_compile_with_generator(wave_gen_6bits src/test_wave_gen_6bits.cpp)
+vitis_compile_with_generator(wave_gen_8bits src/test_wave_gen_8bits.cpp)
+vitis_compile_with_generator(wave_gen_16bits src/test_wave_gen_16bits.cpp)
+vitis_compile_with_generator(wave_gen_22bits src/test_wave_gen_22bits.cpp)
+vitis_compile_with_generator(mul_pi src/test_mul_pi.cpp)

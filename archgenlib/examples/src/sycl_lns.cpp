@@ -19,9 +19,7 @@
 
 #include <iostream>
 
-#ifndef GENERATING_HEADER
 #include <sycl/sycl.hpp>
-#endif
 
 using namespace archgenlib;
 
@@ -41,9 +39,7 @@ template <unsigned int NIntBits, unsigned int NFracBits> struct LNS {
   static constexpr exp_storage_fmt format{};
 
   storage_t exponent;
-  int64_t value() const {
-    return static_cast<uint64_t>(exponent.value());
-  }
+  int64_t value() const { return static_cast<uint64_t>(exponent.value()); }
 };
 
 template <typename T> concept LNSType = T::is_lns_type;
@@ -64,7 +60,7 @@ template <LNSType OpT> constexpr OpT operator+(OpT const &op1, OpT const &op2) {
   auto diff_var = Variable{exp_diff};
   auto expr = archgenlib::log2(0x1.p0_cst + pow(0x2.p0_cst, diff_var));
 
-  constexpr auto rounding_bit_weight = OpT::format.lsb_weight - 1;
+  constexpr auto rounding_bit_weight = OpT::format.lsb_weight - 2;
   using round_bit_format =
       FixedFormat<rounding_bit_weight, rounding_bit_weight, unsigned>;
 
@@ -87,32 +83,31 @@ template <LNSType OpT> constexpr OpT operator+(OpT const &op1, OpT const &op2) {
 using lns_t = LNS<8, 8>;
 
 int main() {
-#ifdef GENERATING_HEADER
-  lns_t a = {1 << 8};
-  lns_t b = a + a;
-  return 0;
-#else
+#ifdef INCLUDE_GENERATED_HEADER
   constexpr std::size_t len = 3;
   sycl::buffer<lns_t, 1> a(len);
   sycl::queue Queue;
 
   {
     sycl::host_accessor a_a{a, sycl::write_only};
-    a_a[0] = lns_t{1 << 8};
-    a_a[1] = lns_t{1 << 8};
+    a_a[0] = lns_t{1 << 10};
+    a_a[1] = lns_t{1 << 10};
   }
 
   Queue.submit([&](sycl::handler &cgh) {
     sycl::accessor a_a{a, cgh, sycl::read_write};
-    cgh.single_task<class FirstKernel>([=] {
-      a_a[2] = a_a[0] + a_a[1];
-    });
+    cgh.single_task<class FirstKernel>([=] { a_a[2] = a_a[0] + a_a[1]; });
   });
 
   {
     sycl::host_accessor a_a{a, sycl::read_only};
     std::cout << a_a[2].value() << std::endl;
-    assert(a_a[2].value() == 1 << 9);
+    int val = (1 << 10) + (1 << 8);
+    assert(a_a[2].value() == val || a_a[2].value() == (val + 1));
   }
+#else
+  lns_t a = {1 << 8};
+  lns_t b = a + a;
 #endif
+  return 0;
 }

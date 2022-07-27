@@ -18,6 +18,10 @@
 
 #include <iostream>
 
+#ifndef OUTPREC
+#error "should be defined"
+#endif
+
 template <typename FixedTy> inline auto convert_to_double(FixedTy val) {
   auto val_d = static_cast<double>(val.value());
   val_d = std::ldexp(val_d, FixedTy::format_t::lsb_weight);
@@ -113,7 +117,6 @@ struct OscillatorBench<start_idx, last_idx, NBOsc, prec, FPTy, table_size, max_f
 
 }
 
-
 template<unsigned int NBOsc, int prec, typename FPTy, unsigned table_size, auto max_frequency>
 struct AdditiveSynthesizer {
   using osc_bank_t = detail::OscillatorBench<1, NBOsc, NBOsc, prec, FPTy, table_size, max_frequency>;
@@ -137,7 +140,7 @@ using mul_t =
 
 __attribute((always_inline)) auto test2(auto coef) {
   using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<11, 0, unsigned>>;
-  auto& add_synth = additive_synth<256, -8, fixe_t, 12, 1000>;
+  auto& add_synth = additive_synth<256, OUTPREC, fixe_t, 12, 1000>;
   auto res =  add_synth.get_value(coef);
   // std::cout << "test2:" << convert_to_double(res) << std::endl;
   return res;

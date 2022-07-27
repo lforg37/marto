@@ -20,11 +20,6 @@ using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 using storage_t =
     hint::detail::bitint_base_t<fpdim_t::is_signed, fpdim_t::width>;
 
-#ifndef __VITIS_KERNEL
-#warning "unsupported compiler"
-#define __VITIS_KERNEL
-#endif
-
 auto test(int i) {
   auto val = static_cast<storage_t>(i);
   archgenlib::Variable<fpnum_t> a{{val}};

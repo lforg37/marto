@@ -77,7 +77,7 @@ __attribute((always_inline)) auto test2(auto& coef) {
   return synt.get_value(coef);
 }
 
-#ifdef TARGET_VITIS
+#ifdef __VITIS_KERNEL
 __VITIS_KERNEL auto test(std::array<float, 256> coef) {
   return test2(coef);
 }
@@ -88,7 +88,7 @@ void plot() {
   coef[0] = 0.5;
   coef[1] = .5;
   for (int i = 0; i < (1 << 12); i++)
-    std::cout << i << ","<< test2(std::ldexp(i, -12), coef) << std::endl;
+    std::cout << i << ","<< test2(coef) << std::endl;
 }
 
 int main() {

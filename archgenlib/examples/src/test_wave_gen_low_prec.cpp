@@ -144,12 +144,11 @@ __attribute((always_inline)) auto test2(std::array<T, size>& coef) {
   return res;
 }
 
-#ifdef TARGET_VITIS
 __VITIS_KERNEL auto test(std::array<mul_t, 256> coef) {
-  static_assert(archgenlib::has_specialization_header);
   return test2(coef);
 }
-#else
+
+#if defined(INCLUDE_GENERATED_HEADER) && !defined(__VITIS_KERNEL)
 
 template <typename FixedTy> bool compare(FixedTy val, double ref, int prec) {
   double to_double = convert_to_double(val);

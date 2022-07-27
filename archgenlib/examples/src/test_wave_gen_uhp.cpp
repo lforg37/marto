@@ -136,8 +136,8 @@ using mul_t =
     archgenlib::FixedNumber<archgenlib::FixedFormat<-1, -8, unsigned>>;
 
 __attribute((always_inline)) auto test2(auto coef) {
-  using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<11, 0, unsigned>>;
-  auto& add_synth = additive_synth<256, -8, fixe_t, 12, 1000>;
+  using fixe_t = archgenlib::FixedNumber<archgenlib::FixedFormat<23, 0, unsigned>>;
+  auto& add_synth = additive_synth<256, -23, fixe_t, 24, 1000>;
   auto res =  add_synth.get_value(coef);
   // std::cout << "test2:" << convert_to_double(res) << std::endl;
   return res;
@@ -184,7 +184,7 @@ void plot() {
   std::array<mul_t, 256> coef = {};
   coef[0] = mul_t::get_from_value(0.5);
   coef[1] = mul_t::get_from_value(.5);
-  for (int i = 0; i < (1 << 12); i += 1) {
+  for (int i = 0; i < (1 << 14); i += 1) {
     auto res = convert_to_double(test2(coef));
     std::cout << i << "," << res << std::endl;
   }
