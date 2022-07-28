@@ -29,17 +29,11 @@ using sollya_nullary_op_t = sollya_obj_t();
 sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
   assert(detail::isBinaryOpKind(op_kind));
   switch (op_kind) {
-    case OperationKind::ADD:
-    return sollya_lib_build_function_add;
-    case OperationKind::SUB:
-    return sollya_lib_build_function_sub;
-    case OperationKind::MUL:
-    return sollya_lib_build_function_mul;
-    case OperationKind::DIV:
-    return sollya_lib_build_function_div;
-    case OperationKind::POW:
-    return sollya_lib_build_function_pow;
-    default:
+#define BINARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)              \
+  case OperationKind::NODE_PREFIX:                                             \
+    return sollya_lib_build_function_##BACKEND_NAME;
+#include "fixedpoint/operators.def"
+  default:
     __builtin_unreachable();
   }
 }
@@ -47,27 +41,23 @@ sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
 sollya_unary_op_t* get_unary_op(OperationKind op_kind) {
   assert(detail::isUnaryOpKind(op_kind));
   switch (op_kind) {
-    case OperationKind::NEG:
-      return sollya_lib_build_function_neg;
-    case OperationKind::SIN:
-      return sollya_lib_build_function_sin;
-    case OperationKind::LOG2:
-      return sollya_lib_build_function_log2;
-    case OperationKind::LOG:
-      return sollya_lib_build_function_log;
-    case OperationKind::ABS:
-      return sollya_lib_build_function_abs;
+#define UNARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)               \
+  case OperationKind::NODE_PREFIX:                                             \
+    return sollya_lib_build_function_##BACKEND_NAME;
+#include "fixedpoint/operators.def"
     default:
     __builtin_unreachable();
   }
 }
 
-sollya_nullary_op_t* get_nullary_op(OperationKind op_kind) {
+sollya_nullary_op_t *get_nullary_op(OperationKind op_kind) {
   assert(detail::isNullaryOpKind(op_kind));
   switch (op_kind) {
-    case OperationKind::PI:
-      return sollya_lib_build_function_pi;
-    default:
+#define NULLARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)             \
+  case OperationKind::NODE_PREFIX:                                             \
+    return sollya_lib_build_function_##BACKEND_NAME;
+#include "fixedpoint/operators.def"
+  default:
     __builtin_unreachable();
   }
 }

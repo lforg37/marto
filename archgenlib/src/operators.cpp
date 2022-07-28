@@ -5,7 +5,6 @@
 #include <string_view>
 
 #include "fixedpoint/fixedpoint.hpp"
-#include "fixedpoint/operators/table.hpp"
 #include "runtime/expression_tree.hpp"
 #include "runtime/operator_builder/multipartite_operator.hpp"
 #include "runtime/operator_builder/operator.hpp"

@@ -2,23 +2,23 @@
 #define FIXED_POINT_OPERATIONS_HPP
 
 namespace archgenlib {
-enum struct OperationKind { ADD, SUB, MUL, DIV, SIN, LOG2, LOG, ABS, NEG, POW, PI };
+enum struct OperationKind {
+#define OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME) NAME,
+#include "operators.def"
+};
 
 namespace detail {
 constexpr bool isBinaryOpKind(OperationKind OK) {
   switch (OK) {
-  case OperationKind::ADD:
-  case OperationKind::SUB:
-  case OperationKind::MUL:
-  case OperationKind::DIV:
-  case OperationKind::POW:
+#define BINARY_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                     \
+  case OperationKind::NAME:
+#include "operators.def"
     return true;
-  case OperationKind::NEG:
-  case OperationKind::SIN:
-  case OperationKind::LOG2:
-  case OperationKind::LOG:
-  case OperationKind::ABS:
-  case OperationKind::PI:
+#define UNARY_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                      \
+  case OperationKind::NAME:
+#define CONSTANT_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                   \
+  case OperationKind::NAME:
+#include "operators.def"
     return false;
   default:
     __builtin_unreachable();
@@ -27,18 +27,15 @@ constexpr bool isBinaryOpKind(OperationKind OK) {
 
 constexpr bool isNullaryOpKind(OperationKind OK) {
   switch (OK) {
-  case OperationKind::ADD:
-  case OperationKind::SUB:
-  case OperationKind::MUL:
-  case OperationKind::DIV:
-  case OperationKind::LOG:
-  case OperationKind::POW:
-  case OperationKind::NEG:
-  case OperationKind::SIN:
-  case OperationKind::LOG2:
-  case OperationKind::ABS:
+#define BINARY_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                     \
+  case OperationKind::NAME:
+#define UNARY_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                      \
+  case OperationKind::NAME:
+#include "operators.def"
     return false;
-  case OperationKind::PI:
+#define CONSTANT_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                   \
+  case OperationKind::NAME:
+#include "operators.def"
     return true;
   default:
     __builtin_unreachable();

@@ -5,10 +5,9 @@
 #include "bitint_tools/type_helpers.hpp"
 #include "hint.hpp"
 
-#include "fixedpoint/expression.hpp"
 #include "fixedpoint/expression_types.hpp"
 #include "fixedpoint/fixedpoint.hpp"
-#include "fixedpoint/literal.hpp"
+#include "fixedpoint/operators.hpp"
 
 using archgenlib::bitweight_t;  
 

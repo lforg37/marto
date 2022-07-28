@@ -38,6 +38,7 @@ template <typename ET, std::int32_t prec> class Evaluator {
 public:
   Evaluator() {
 #ifndef INCLUDE_GENERATED_HEADER
+    std::cout << "generating: " << detail::type_name<ET>() << std::endl;
     auto &formatter = detail::getFormatter();
     ExpressionRTRepr erepr{ExprTypeHolder<ET>{}};
     detail::cpp_expr_ptr input_var{new detail::NamedExpression{"expr"}};

@@ -21,7 +21,7 @@ SpecialisationFormatter::SpecialisationFormatter()
   if (output) {
     output << "#ifndef SPECIALIZATION_HEADER_HPP\n#define "
            << "SPECIALIZATION_HEADER_HPP\n\n"
-           << "#include \"fixedpoint/operators.hpp\"\n\n";
+           << "#include \"fixedpoint/internal_helper.hpp\"\n\n";
   }
 }
 

@@ -7,7 +7,7 @@
 #include "bitint_tools/type_helpers.hpp"
 #include "hint.hpp"
 
-#include "fixedpoint/expression.hpp"
+#include "fixedpoint/operators.hpp"
 #include "fixedpoint/expression_types.hpp"
 #include "fixedpoint/fixedpoint.hpp"
 

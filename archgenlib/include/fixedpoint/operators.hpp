@@ -2,10 +2,43 @@
 #define FIXEDPOINT_OPERATORS_HPP
 
 #include "hint.hpp"
-#include "bitint_tools/type_helpers.hpp"
-#include "operators/table.hpp"
+#include "evaluator.hpp"
+#include "operations.hpp"
+#include "expression_types.hpp"
 
-using hint::operator""_sbi;
-using hint::operator""_ubi;
+namespace archgenlib {
+
+#define BINARY_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                     \
+  using NAME##Op = detail::OperationType<OperationKind::NAME>;                 \
+  template <ExpressionType T1, ExpressionType T2>                              \
+  using NAME##Expr = BinaryOp<T1, T2, NAME##Op>;                               \
+  template <archgenlib::ExprHoldType T1, archgenlib::ExprHoldType T2>          \
+  auto FUNCTION_NAME(T1 const &op1, T2 const &op2) {                           \
+    return archgenlib::detail::binary_op<archgenlib::NAME##Expr>(op1, op2);    \
+  }
+
+#define UNARY_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                      \
+  using NAME##Op = detail::OperationType<OperationKind::NAME>;                 \
+  template <ExpressionType T> using NAME##Expr = UnaryOp<T, NAME##Op>;         \
+  template <archgenlib::ExprHoldType T> auto FUNCTION_NAME(T const &op1) {     \
+    return archgenlib::detail::unary_op<archgenlib::NAME##Expr>(op1);          \
+  }
+
+#define CONSTANT_OPERATOR(NAME, BACKEND_NAME, FUNCTION_NAME)                   \
+  using NAME##Op = detail::OperationType<OperationKind::NAME>;                 \
+  using NAME##Expr = NullaryOp<NAME##Op>;                                      \
+  NAME##Expr FUNCTION_NAME{};
+
+#include "operators.def"
+
+template <ExpressionType ET, std::int32_t prec>
+static Evaluator<ET, prec> _evaluator{};
+
+template <std::int32_t prec, ExprHoldType ET> auto evaluate(ET const &val) {
+  auto holder = detail::get_holder(val);
+  using h_t = decltype(holder);
+  return _evaluator<typename h_t::expression_t, prec>.evaluate(holder.expression);
+}
+} // namespace archgenlib
 
 #endif

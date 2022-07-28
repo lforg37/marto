@@ -5,14 +5,11 @@
 
 #include "bitint_tools/type_helpers.hpp"
 #include "fixedpoint/evaluator.hpp"
-#include "fixedpoint/functions.hpp"
 #include "hint.hpp"
 
-#include "fixedpoint/expression.hpp"
 #include "fixedpoint/expression_types.hpp"
 #include "fixedpoint/fixedpoint.hpp"
 #include "fixedpoint/literal.hpp"
-#include "fixedpoint/functions.hpp"
 
 #ifndef __VITIS_KERNEL
 #warning "unsupported compiler"
