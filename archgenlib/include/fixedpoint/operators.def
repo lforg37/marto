@@ -1,22 +1,28 @@
 
+// NODE_PREFIX The prefix used to name Types used to represent this operator
+//             our internal name for the operator
+// BACKEND_NAME The name the backend(sollya for now) uses to refer to this
+//              operator
+// FRONTEND_NAME The name of the user facing function or variable
+
 #ifndef OPERATOR
-#define OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)
+#define OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)
 #endif
 
 #ifndef UNARY_OPERATOR
-#define UNARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)               \
-  OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)
+#define UNARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)               \
+  OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)
 #endif
 
 #ifndef BINARY_OPERATOR
-#define BINARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)              \
-  OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)
+#define BINARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)              \
+  OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)
 #endif
 
 // Also Constant are also called Nullary
 #ifndef CONSTANT_OPERATOR
-#define CONSTANT_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)            \
-  OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)
+#define CONSTANT_OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)            \
+  OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)
 #endif
 
 UNARY_OPERATOR(Sin, sin, sin)

@@ -29,7 +29,7 @@ using sollya_nullary_op_t = sollya_obj_t();
 sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
   assert(detail::isBinaryOpKind(op_kind));
   switch (op_kind) {
-#define BINARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)              \
+#define BINARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)              \
   case OperationKind::NODE_PREFIX:                                             \
     return sollya_lib_build_function_##BACKEND_NAME;
 #include "fixedpoint/operators.def"
@@ -41,7 +41,7 @@ sollya_binary_op_t* get_bin_op(OperationKind op_kind) {
 sollya_unary_op_t* get_unary_op(OperationKind op_kind) {
   assert(detail::isUnaryOpKind(op_kind));
   switch (op_kind) {
-#define UNARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)               \
+#define UNARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)               \
   case OperationKind::NODE_PREFIX:                                             \
     return sollya_lib_build_function_##BACKEND_NAME;
 #include "fixedpoint/operators.def"
@@ -53,7 +53,7 @@ sollya_unary_op_t* get_unary_op(OperationKind op_kind) {
 sollya_nullary_op_t *get_nullary_op(OperationKind op_kind) {
   assert(detail::isNullaryOpKind(op_kind));
   switch (op_kind) {
-#define NULLARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FUNCTION_NAME)             \
+#define NULLARY_OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)             \
   case OperationKind::NODE_PREFIX:                                             \
     return sollya_lib_build_function_##BACKEND_NAME;
 #include "fixedpoint/operators.def"
