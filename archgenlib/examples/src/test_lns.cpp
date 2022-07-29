@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "bitint_tools/type_helpers.hpp"
-#include "fixedpoint/evaluator.hpp"
+#include "fixedpoint/header_gen_evaluator.hpp"
 #include "hint.hpp"
 
 #include "fixedpoint/expression_types.hpp"

@@ -2,7 +2,6 @@
 #define FIXEDPOINT_OPERATORS_HPP
 
 #include "hint.hpp"
-#include "evaluator.hpp"
 #include "operations.hpp"
 #include "expression_types.hpp"
 
@@ -31,14 +30,6 @@ namespace archgenlib {
 
 #include "operators.def"
 
-template <ExpressionType ET, std::int32_t prec>
-static Evaluator<ET, prec> _evaluator{};
-
-template <std::int32_t prec, ExprHoldType ET> auto evaluate(ET const &val) {
-  auto holder = detail::get_holder(val);
-  using h_t = decltype(holder);
-  return _evaluator<typename h_t::expression_t, prec>.evaluate(holder.expression);
-}
 } // namespace archgenlib
 
 #endif

@@ -19,7 +19,7 @@
   OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)
 #endif
 
-// Also Constant are also called Nullary
+// Constant are also called Nullary
 #ifndef CONSTANT_OPERATOR
 #define CONSTANT_OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)            \
   OPERATOR(NODE_PREFIX, BACKEND_NAME, FRONTEND_NAME)

@@ -107,3 +107,8 @@ target_link_libraries(test_literal archgenlib HINT_BITINT_BACKEND)
 #     COMMENT "build a vitis ip"
 # )
 # add_custom_target(test_lns_2 ALL DEPENDS lns.zip)
+
+add_executable(test_expr_mlir src/test_expr)
+target_link_libraries(test_expr_mlir archgenlib HINT_BITINT_BACKEND)
+target_compile_definitions(test_expr_mlir PRIVATE -DARCHGEN_USE_MLIR_PLUGIN)
+# target_compile_options(test_expr_mlir PRIVATE -fplugin=/home/tyker/opensource/sycl/build-release/lib/ArchGenMLIRPlugin.so)

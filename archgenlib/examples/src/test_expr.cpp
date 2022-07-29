@@ -8,14 +8,8 @@
 #include "hint.hpp"
 
 #include "fixedpoint/operators.hpp"
-#include "fixedpoint/expression_types.hpp"
+#include "fixedpoint/evaluate.hpp"
 #include "fixedpoint/fixedpoint.hpp"
-
-#ifdef INCLUDE_GENERATED_HEADER
-static constexpr bool has_specialization = true;
-#else
-static constexpr bool has_specialization = false;
-#endif
 
 template <typename T> static constexpr bool ok = false;
 
@@ -68,12 +62,12 @@ int main() {
     archgenlib::Constant<const_t> b{};
     auto s = archgenlib::sin(a);
     auto c = s * b;
-    auto res = archgenlib::evaluate<outprec>(c);
-    if constexpr (has_specialization) {
+    auto res = archgenlib::evaluate<archgenlib::FixedFormat<1, -10, signed>>(c);
+    if constexpr (archgenlib::has_specialization_header) {
       assert(compare_ref(val, res));
     }
   }
-  if constexpr (has_specialization) {
+  if constexpr (archgenlib::has_specialization_header) {
     std::cout << "All results seems correct !\n";
   }
   return 0;
