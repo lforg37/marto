@@ -7,6 +7,7 @@
 #include "bitint_tools/type_helpers.hpp"
 #include "hint.hpp"
 
+#include "fixedpoint/literal.hpp"
 #include "fixedpoint/operators.hpp"
 #include "fixedpoint/evaluate.hpp"
 #include "fixedpoint/fixedpoint.hpp"
@@ -56,12 +57,8 @@ int main() {
     auto val = static_cast<storage_t>(i);
     fpnum_t val_fixed{val};
     auto a = archgenlib::FreeVariable(val_fixed);
-    using const_valtype = hint::detail::bitint_base_t<false, 16>;
-    using dim_t = archgenlib::FixedFormat<14, -1, unsigned>;
-    using const_t = archgenlib::FixedConstant<dim_t, const_valtype{3}>;
-    archgenlib::Constant<const_t> b{};
     auto s = archgenlib::sin(a);
-    auto c = s * b;
+    auto c = s * 0x1.8p0_cst;
     auto res = archgenlib::evaluate<archgenlib::FixedFormat<1, -10, signed>>(c);
     if constexpr (archgenlib::has_specialization_header) {
       assert(compare_ref(val, res));

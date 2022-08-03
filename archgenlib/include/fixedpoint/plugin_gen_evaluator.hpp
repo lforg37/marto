@@ -7,7 +7,7 @@
 
 #include "operators.hpp"
 
-#define ATTR_GEN_AS_MLIR __attribute__((annotate("archgen_mlir_emit_as_mlir")))
+#define ARCHGEN_MLIR_ATTR(STR) __attribute__((annotate("archgen_mlir_" #STR)))
 
 namespace archgenlib {
 
@@ -19,14 +19,15 @@ namespace detail {
 struct ToBeFolded {};
 
 template <typename T = ToBeFolded>
-__attribute__((annotate("archgen_mlir_generic_op"))) T generic_op(...);
+ARCHGEN_MLIR_ATTR(generic_op)
+T generic_op(...);
 
 template <typename ET> struct evaluatorImpl {};
 
 #define UNARY_OPERATOR(NAME, BACKEND_NAME, FRONTEND_NAME)                      \
   template <typename InnerET>                                                  \
   struct evaluatorImpl<UnaryOp<InnerET, OperationType<OperationKind::NAME>>> { \
-    static ATTR_GEN_AS_MLIR ToBeFolded evaluate() {                            \
+    static ARCHGEN_MLIR_ATTR(emit_as_mlir) ToBeFolded evaluate() {             \
       return generic_op<ToBeFolded>(#BACKEND_NAME,                             \
                                     evaluatorImpl<InnerET>::evaluate());       \
     }                                                                          \
@@ -36,7 +37,7 @@ template <typename ET> struct evaluatorImpl {};
   template <typename LeftET, typename RightET>                                 \
   struct evaluatorImpl<                                                        \
       BinaryOp<LeftET, RightET, OperationType<OperationKind::NAME>>> {         \
-    static ATTR_GEN_AS_MLIR ToBeFolded evaluate() {                            \
+    static ARCHGEN_MLIR_ATTR(emit_as_mlir) ToBeFolded evaluate() {             \
       return generic_op<ToBeFolded>(#BACKEND_NAME,                             \
                                     evaluatorImpl<LeftET>::evaluate(),         \
                                     evaluatorImpl<RightET>::evaluate());       \
@@ -45,40 +46,46 @@ template <typename ET> struct evaluatorImpl {};
 
 #define NULLNARY_OPERATOR(NAME, BACKEND_NAME, FRONTEND_NAME)                   \
   template <> struct evaluatorImpl<NullaryOp<OperationType<NAME##Op>>> {       \
-    static ATTR_GEN_AS_MLIR ToBeFolded evaluate() {                            \
+    static ARCHGEN_MLIR_ATTR(emit_as_mlir) ToBeFolded evaluate() {             \
       return generic_op<ToBeFolded>(#BACKEND_NAME);                            \
     }                                                                          \
   };
-
 
 #include "operators.def"
 
 template <typename NumTy, std::size_t ID>
 struct evaluatorImpl<::archgenlib::Variable<NumTy, ID>> {
-  static ATTR_GEN_AS_MLIR ToBeFolded evaluate() {
-    return generic_op<ToBeFolded>("free_variable", generic_op<NumTy>("parameter", ID));
+  static ARCHGEN_MLIR_ATTR(emit_as_mlir) ToBeFolded evaluate() {
+    return generic_op<ToBeFolded>("variable",
+                                  generic_op<NumTy>("parameter", ID));
   }
 };
 
-template <typename FixedConstTy> struct evaluatorImpl<::archgenlib::Constant<FixedConstTy>> {
-  static ATTR_GEN_AS_MLIR ToBeFolded evaluate() {
-    return generic_op<ToBeFolded>("constant", ::archgenlib::FixedNumber<typename FixedConstTy::dimension_t>{FixedConstTy::value});
+template <typename FixedConstTy>
+struct evaluatorImpl<::archgenlib::Constant<FixedConstTy>> {
+  static ARCHGEN_MLIR_ATTR(emit_as_mlir) ToBeFolded evaluate() {
+    return generic_op<ToBeFolded>(
+        "constant",
+        ::archgenlib::FixedNumber<typename FixedConstTy::dimension_t>{
+            FixedConstTy::value});
   }
 };
 
-template <typename T, typename ET, typename... Ts> ATTR_GEN_AS_MLIR T evaluateImpl(Ts... ts) {
+template <typename T, typename ET, typename... Ts>
+ARCHGEN_MLIR_ATTR(emit_as_mlir)
+ARCHGEN_MLIR_ATTR(top_level) T evaluateImpl(Ts... ts) {
   return detail::generic_op<T>("evaluate",
                                detail::evaluatorImpl<ET>::evaluate());
 }
 
-template <typename T, typename ET, typename... Ts> T evaluate(std::tuple<Ts...> var) {
-  return std::apply([&](auto... val){
-    return evaluateImpl<T, ET>(val...);
-  }, var);
+template <typename T, typename ET, typename... Ts>
+T evaluate(std::tuple<Ts...> var) {
+  return std::apply([&](auto... val) { return evaluateImpl<T, ET>(val...); },
+                    var);
 }
 
-}
-}
+} // namespace detail
+} // namespace archgenlib
 
-#undef ATTR_GEN_AS_MLIR
+#undef ARCHGEN_MLIR_ATTR
 #endif
