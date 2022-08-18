@@ -20,7 +20,7 @@ struct ToBeFolded {};
 
 template <typename T = ToBeFolded>
 ARCHGEN_MLIR_ATTR(generic_op)
-T generic_op(...);
+ARCHGEN_MLIR_ATTR(emit_as_mlir) T generic_op(...);
 
 template <typename ET> struct evaluatorImpl {};
 
@@ -44,8 +44,9 @@ template <typename ET> struct evaluatorImpl {};
     }                                                                          \
   };
 
-#define NULLNARY_OPERATOR(NAME, BACKEND_NAME, FRONTEND_NAME)                   \
-  template <> struct evaluatorImpl<NullaryOp<OperationType<NAME##Op>>> {       \
+#define CONSTANT_OPERATOR(NAME, BACKEND_NAME, FRONTEND_NAME)                   \
+  template <>                                                                  \
+  struct evaluatorImpl<NullaryOp<OperationType<OperationKind::NAME>>> {        \
     static ARCHGEN_MLIR_ATTR(emit_as_mlir) ToBeFolded evaluate() {             \
       return generic_op<ToBeFolded>(#BACKEND_NAME);                            \
     }                                                                          \

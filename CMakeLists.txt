@@ -17,6 +17,7 @@ if (NOT DEFINED HintBackendVersion)
 	set(HintBackendVersion "master")
 endif()
 set (HintBackendVersion ${HintBackendVersion} CACHE STRING "Hint commit version used")
+set (ARCHGEN_MLIR_PLUGIN_PATH ${ARCHGEN_MLIR_PLUGIN_PATH} CACHE FILEPATH "")
 
 FetchContent_Declare(
 	Hint

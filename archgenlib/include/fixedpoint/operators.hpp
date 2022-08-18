@@ -1,9 +1,8 @@
 #ifndef FIXEDPOINT_OPERATORS_HPP
 #define FIXEDPOINT_OPERATORS_HPP
 
-#include "hint.hpp"
-#include "operations.hpp"
 #include "expression_types.hpp"
+#include "operations.hpp"
 
 namespace archgenlib {
 

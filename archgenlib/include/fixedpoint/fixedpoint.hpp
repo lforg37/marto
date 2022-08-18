@@ -1,14 +1,12 @@
 #ifndef FIXEDPOINT_FIXEDPOINT_HPP
 #define FIXEDPOINT_FIXEDPOINT_HPP
 
-#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <concepts>
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
-#include <string_view>
 #include <type_traits>
 
 #ifndef BITINT_BACKEND
@@ -142,6 +140,10 @@ public:
 private:
   storage_t value_;
 public:
+
+  storage_t get_representation() const {
+    return value_;
+  }
 
   using format_t = Format;
   static constexpr auto width = Format::width;
