@@ -34,8 +34,8 @@ inline auto convert_to_double(storage_t val) {
 
 auto compute_ref(storage_t val) {
   auto val_d = convert_to_double(val);
-  auto sin = std::sin(val_d);
-  return sin * 1.5;
+  auto sin = std::sin(val_d / 64 * std::numbers::pi);
+  return sin;
 }
 
 bool compare_ref(storage_t val, auto res) {
@@ -57,8 +57,8 @@ int main() {
     auto val = static_cast<storage_t>(i);
     fpnum_t val_fixed{val};
     auto a = archgenlib::FreeVariable(val_fixed);
-    auto s = archgenlib::sin(a);
-    auto c = s * 0x1.8p0_cst * archgenlib::pi;
+    auto s = a * 0x1p-7_cst * archgenlib::pi;
+    auto c = archgenlib::sin(s);
     auto res = archgenlib::evaluate<archgenlib::FixedFormat<1, -10, signed>>(c);
     if constexpr (archgenlib::has_specialization_header) {
       assert(compare_ref(val, res));
