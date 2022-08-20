@@ -134,7 +134,7 @@ void check_freq(int offset, int f) {
 }
 
 int main() {
-  if (!archgenlib::has_specialization_header)
+  if (!archgenlib::has_implementation)
     exit(0);
   check_freq<archgenlib::FixedFormat<9, 0, unsigned>>(0, 1);
   check_freq<archgenlib::FixedFormat<9, -2, unsigned>>(0, 1);

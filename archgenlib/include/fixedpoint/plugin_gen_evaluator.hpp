@@ -11,8 +11,8 @@
 
 namespace archgenlib {
 
-/// Never has a specialization header
-constexpr bool has_specialization_header = false;
+/// Only one compilation always with implementation
+constexpr bool has_implementation = true;
 
 namespace detail {
 

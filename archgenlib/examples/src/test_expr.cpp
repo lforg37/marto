@@ -18,7 +18,32 @@ template <archgenlib::ExpressionType T> static constexpr bool ok<T> = true;
 
 using archgenlib::bitweight_t;
 
-using fpdim_t = archgenlib::FixedFormat<5, -10, unsigned>;
+auto compute_ref(auto val) {
+  auto val_d = val.template get_as<double>();
+  auto sin = std::sin(val_d * M_PI);
+  return sin;
+}
+
+bool check_against_ref(auto val, auto res) {
+  static int count = 0;
+  count++;
+
+  auto x = val.template get_as<double>();
+  auto outprec = decltype(res)::format_t::lsb_weight;
+  auto resval = res.template get_as<double>();
+  auto ref = compute_ref(val);
+  auto diffabs = std::abs(ref - resval);
+  static const double err_budget = ldexp(double{1}, outprec);
+  if (diffabs < err_budget)
+    return true;
+  static int errors = 0;
+  errors++;
+  std::cerr << std::hex << "f(0x" << (unsigned)val.get_representation() << ")=0x" << (unsigned)res.get_representation()<< " ";
+  std::cerr << std::dec << "error(" << errors << "/" << count << ") for f(" << x << ") (" << ref << " - " << resval << ") = " << diffabs << " > " << err_budget << std::endl;
+  return false; 
+} 
+
+using fpdim_t = archgenlib::FixedFormat<-1, -3, unsigned>;
 using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 
 using storage_t =
@@ -64,7 +89,7 @@ int main() {
       assert(compare_ref(val, res));
     }
   }
-  if constexpr (archgenlib::has_specialization_header) {
+  if constexpr (archgenlib::has_implementation) { 
     std::cout << "All results seems correct !\n";
   }
   return 0;

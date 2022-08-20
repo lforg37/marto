@@ -33,9 +33,9 @@
 namespace archgenlib {
 
 #ifdef INCLUDE_GENERATED_HEADER
-constexpr bool has_specialization_header = true;
+constexpr bool has_implementation = true;
 #else
-constexpr bool has_specialization_header = false;
+constexpr bool has_implementation = false;
 #endif
 
 template <typename ET, std::int32_t prec> class Evaluator {
