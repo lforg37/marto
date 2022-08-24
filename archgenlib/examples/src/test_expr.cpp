@@ -12,8 +12,10 @@
 #include "fixedpoint/evaluate.hpp"
 #include "fixedpoint/fixedpoint.hpp"
 
-/// debug function provided by archgen MLIR for now
-extern "C" double polynom_double_0(double);
+/// can be called from the MLIR to print intermediate results of the polynom
+extern "C" void debug_printer(int val, int bits, int id) {
+  std::cerr << "id = " << id << " bits = " << bits << " val = " << (val & ((1 << bits) - 1)) << std::endl;
+}
 
 template <typename T> static constexpr bool ok = false;
 
@@ -27,27 +29,26 @@ auto compute_ref(auto val) {
   return sin;
 }
 
-bool check_against_ref(auto val, auto res) {
-  static int count = 0;
-  count++;
+bool check_against_ref(auto val, auto res) { 
+  static int count = 0; 
+  count++; 
 
   auto x = val.template get_as<double>();
   auto outprec = decltype(res)::format_t::lsb_weight;
-  // auto resval = res.template get_as<double>();
+  auto resval = res.template get_as<double>();
   auto ref = compute_ref(val);
-  auto resval = polynom_double_0(x);
   auto diffabs = std::abs(ref - resval);
   static const double err_budget = ldexp(double{1}, outprec);
-  if (diffabs < err_budget)
+  if (diffabs < err_budget) 
     return true;
   static int errors = 0;
   errors++;
   std::cerr << std::hex << "f(0x" << (unsigned)val.get_representation() << ")=0x" << (unsigned)res.get_representation()<< " ";
   std::cerr << std::dec << "error(" << errors << "/" << count << ") for f(" << x << ") (" << ref << " - " << resval << ") = " << diffabs << " > " << err_budget << std::endl;
-  return false; 
+  return false;
 } 
 
-using fpdim_t = archgenlib::FixedFormat<-1, -3, unsigned>;
+using fpdim_t = archgenlib::FixedFormat<-1, -8, unsigned>; 
 using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 
 using storage_t =
@@ -55,15 +56,15 @@ using storage_t =
  
 int main() {
   using storage_t = unsigned _BitInt(fpdim_t::width);
-  for (unsigned int i = 0; i < (1 << fpdim_t::width); ++i) {
+  for (unsigned int i = 0; i < (1 << fpdim_t::width); ++i) { 
     auto val = static_cast<storage_t>(i);
     fpnum_t val_fixed{val};
     auto a = archgenlib::FreeVariable(val_fixed);
     auto c = archgenlib::sin(a * archgenlib::pi / 0x2p0_cst);
-    auto res = archgenlib::evaluate<archgenlib::FixedFormat<-1, -3, unsigned>>(c);
+    auto res = archgenlib::evaluate<archgenlib::FixedFormat<0, -16, unsigned>>(c);
     if constexpr (archgenlib::has_implementation) {
-      check_against_ref(val_fixed, res); 
-    }
+      check_against_ref(val_fixed, res);
+    } 
   }
   if constexpr (archgenlib::has_implementation) { 
     std::cout << "All results seems correct !\n";
