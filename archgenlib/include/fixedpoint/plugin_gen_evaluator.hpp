@@ -7,6 +7,12 @@
 
 #include "operators.hpp"
 
+#ifdef __SYCL_DEVICE_ONLY__
+#define ARCHGEN_MLIR_EXTERNAL SYCL_EXTERNAL
+#else
+#define ARCHGEN_MLIR_EXTERNAL
+#endif
+
 #define ARCHGEN_MLIR_ATTR(STR) __attribute__((annotate("archgen_mlir_" #STR)))
 
 namespace archgenlib {
@@ -18,9 +24,10 @@ namespace detail {
 
 struct ToBeFolded {};
 
-template <typename T = ToBeFolded>
+template <typename T = ToBeFolded, typename... Ts>
+ARCHGEN_MLIR_EXTERNAL
 ARCHGEN_MLIR_ATTR(generic_op)
-ARCHGEN_MLIR_ATTR(emit_as_mlir) T generic_op(...);
+ARCHGEN_MLIR_ATTR(emit_as_mlir) T generic_op(Ts...);
 
 template <typename ET> struct evaluatorImpl {};
 
@@ -72,10 +79,13 @@ struct evaluatorImpl<::archgenlib::Constant<FixedConstTy>> {
   }
 };
 
+/// everything here is passed by pointers such that the MLIR frontend doesn't
+/// have to care about the LLVMIR frontend ABI decisions of how to pass
+/// parameters and return types.
 template <typename T, typename ET, typename... Ts>
 ARCHGEN_MLIR_ATTR(emit_as_mlir)
-ARCHGEN_MLIR_ATTR(top_level) T evaluateImpl(Ts... ts) {
-  return detail::generic_op<T>("evaluate",
+ARCHGEN_MLIR_ATTR(top_level) void evaluateImpl(T &res, Ts &...ts) {
+  res = detail::generic_op<T>("evaluate",
                                detail::evaluatorImpl<ET>::evaluate());
 }
 

@@ -134,7 +134,6 @@ template<NullaryOpType Op>
 class NullaryOp : public ConstantExpr {
   public:
   using operation_t = Op;
-  NullaryOp() {}
 };
 
 namespace detail {

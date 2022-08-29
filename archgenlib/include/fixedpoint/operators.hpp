@@ -25,7 +25,7 @@ namespace archgenlib {
 #define CONSTANT_OPERATOR(NAME, BACKEND_NAME, FRONTEND_NAME)                   \
   using NAME##Op = detail::OperationType<OperationKind::NAME>;                 \
   using NAME##Expr = NullaryOp<NAME##Op>;                                      \
-  NAME##Expr FRONTEND_NAME{};
+  const NAME##Expr FRONTEND_NAME{};
 
 #include "operators.def"
 

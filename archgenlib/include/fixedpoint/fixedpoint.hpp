@@ -469,7 +469,7 @@ public:
     }
   }
 
-  constexpr auto operator<=>(FixedNumber const &val) {
+  constexpr auto operator<=>(FixedNumber const &val) const {
     return value_ <=> val.value_;
   }
 
