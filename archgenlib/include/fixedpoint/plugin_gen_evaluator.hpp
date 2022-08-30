@@ -91,8 +91,10 @@ ARCHGEN_MLIR_ATTR(top_level) void evaluateImpl(T &res, Ts &...ts) {
 
 template <typename T, typename ET, typename... Ts>
 T evaluate(std::tuple<Ts...> var) {
-  return std::apply([&](auto... val) { return evaluateImpl<T, ET>(val...); },
+  T res;
+  std::apply([&](auto... val) { return evaluateImpl<T, ET>(res, val...); },
                     var);
+  return res;
 }
 
 } // namespace detail

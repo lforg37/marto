@@ -147,7 +147,7 @@ public:
 
   using format_t = Format;
   static constexpr auto width = Format::width;
-  constexpr FixedNumber(storage_t const &val) : value_{val} {}
+  constexpr FixedNumber(storage_t const &val = {}) : value_{val} {}
 
   template <FixedFormatType FT>
   constexpr FixedNumber(FT, storage_t const &val) : value_{val} {}
