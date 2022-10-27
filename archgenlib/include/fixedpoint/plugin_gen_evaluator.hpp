@@ -82,17 +82,17 @@ struct evaluatorImpl<::archgenlib::Constant<FixedConstTy>> {
 /// everything here is passed by pointers such that the MLIR frontend doesn't
 /// have to care about the LLVMIR frontend ABI decisions of how to pass
 /// parameters and return types.
-template <typename T, typename ET, typename... Ts>
+template <typename T, auto AM, typename ET, typename... Ts>
 ARCHGEN_MLIR_ATTR(emit_as_mlir)
 ARCHGEN_MLIR_ATTR(top_level) void evaluateImpl(T &res, Ts &...ts) {
   res = detail::generic_op<T>("evaluate",
-                               detail::evaluatorImpl<ET>::evaluate());
+                               detail::evaluatorImpl<ET>::evaluate(), AM);
 }
 
-template <typename T, typename ET, typename... Ts>
+template <typename T, auto AM, typename ET, typename... Ts>
 T evaluate(std::tuple<Ts...> var) {
   T res;
-  std::apply([&](auto... val) { return evaluateImpl<T, ET>(res, val...); },
+  std::apply([&](auto... val) { return evaluateImpl<T, AM, ET>(res, val...); },
                     var);
   return res;
 }

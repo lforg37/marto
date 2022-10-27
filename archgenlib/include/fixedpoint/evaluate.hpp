@@ -15,7 +15,14 @@ template <ExpressionType ET, std::int32_t prec>
 static Evaluator<ET, prec> _evaluator{};
 #endif
 
-template <typename OutTy, ExprHoldType ET>
+/// This must match the approx_mode enum in sycl/clang/tools/archgen-mlir/include/archgen/Common.h
+enum class approx {
+  auto_select,
+  basic_poly,
+  bipartite_table,
+};
+
+template <typename OutTy, approx AM = approx::auto_select, ExprHoldType ET = void>
 #ifndef ARCHGEN_USE_MLIR_PLUGIN
 auto
 #else
@@ -25,9 +32,11 @@ evaluate(ET const &val) {
   auto holder = detail::get_holder(val);
   using h_t = decltype(holder);
 #ifndef ARCHGEN_USE_MLIR_PLUGIN
+  static_assert(AM == approx::auto_select || AM == approx::bipartite_table);
   return _evaluator<typename h_t::expression_t, OutTy::lsb_weight>.evaluate(holder.expression);
 #else
-  return detail::evaluate<archgenlib::FixedNumber<OutTy>, typename h_t::expression_t>(holder.expression.parameters);
+  static_assert(AM == approx::auto_select || AM == approx::basic_poly);
+  return detail::evaluate<archgenlib::FixedNumber<OutTy>, AM, typename h_t::expression_t>(holder.expression.parameters);
 #endif
 }
 } // namespace archgenlib
