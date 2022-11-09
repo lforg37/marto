@@ -48,7 +48,7 @@ bool check_against_ref(auto val, auto res) {
   return false;
 } 
 
-using fpdim_t = archgenlib::FixedFormat<-1, -8, unsigned>; 
+using fpdim_t = archgenlib::FixedFormat<0, -8, signed>;
 using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 
 using storage_t =
@@ -56,12 +56,13 @@ using storage_t =
  
 int main() {
   using storage_t = unsigned _BitInt(fpdim_t::width);
+  std::cerr << std::endl;
   for (unsigned int i = 0; i < (1 << fpdim_t::width); ++i) { 
     auto val = static_cast<storage_t>(i);
     fpnum_t val_fixed{val};
     auto a = archgenlib::FreeVariable(val_fixed);
     auto c = archgenlib::sin(a * archgenlib::pi / 0x2p0_cst);
-    auto res = archgenlib::evaluate<archgenlib::FixedFormat<0, -16, unsigned>>(c);
+    auto res = archgenlib::evaluate<archgenlib::FixedFormat<0, -16, signed>>(c);
     if constexpr (archgenlib::has_implementation) {
       check_against_ref(val_fixed, res);
     } 
