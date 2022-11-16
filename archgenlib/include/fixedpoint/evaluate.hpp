@@ -15,7 +15,7 @@ template <ExpressionType ET, std::int32_t prec>
 static Evaluator<ET, prec> _evaluator{};
 #endif
 
-/// This must match the approx_mode enum in sycl/clang/tools/archgen-mlir/include/archgen/Common.h
+/// This must match the approx_mode enum in clang/tools/archgen-mlir/include/archgen/Approx/Approx.td
 enum class approx {
   auto_select,
   basic_poly,
