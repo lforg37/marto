@@ -247,12 +247,8 @@ struct DisambiguationHolder<VET, DisambiguationMarker> {
   using disambiguation_t = DisambiguationMarker;
   using expression_t = VET;
   expression_t const expression;
-private:
   DisambiguationHolder(typename expression_t::type const & val):expression{val}{}
-  template<typename MarkingType, FixedNumberType... FNT, std::size_t... indexes>
-  friend auto get_free_variables(FNT const & ... fnt, std::index_sequence<indexes...>);
-  template<typename, FixedNumberType FNT>
-  friend auto FreeVariable(FNT const & fnt);
+private:
 };
 
 namespace detail {
