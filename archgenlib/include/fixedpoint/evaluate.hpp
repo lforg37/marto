@@ -20,6 +20,7 @@ enum class approx {
   auto_select,
   basic_poly,
   bipartite_table,
+  simple_table
 };
 
 template <typename OutTy, approx AM = approx::auto_select, ExprHoldType ET = void>
@@ -35,7 +36,7 @@ evaluate(ET const &val) {
   static_assert(AM == approx::auto_select || AM == approx::bipartite_table);
   return _evaluator<typename h_t::expression_t, OutTy::lsb_weight>.evaluate(holder.expression);
 #else
-  static_assert(AM == approx::auto_select || AM == approx::basic_poly);
+  static_assert(AM == approx::auto_select || AM == approx::basic_poly || AM == approx::simple_table );
   return detail::evaluate<archgenlib::FixedNumber<OutTy>, AM, typename h_t::expression_t>(holder.expression.parameters);
 #endif
 }

@@ -48,7 +48,7 @@ bool check_against_ref(auto val, auto res) {
   return false;
 } 
 
-using fpdim_t = archgenlib::FixedFormat<0, -8, signed>;
+using fpdim_t = archgenlib::FixedFormat<0, -4, signed>;
 using fpnum_t = archgenlib::FixedNumber<fpdim_t>;
 
 using storage_t =
@@ -62,7 +62,7 @@ int main() {
     fpnum_t val_fixed{val};
     auto a = archgenlib::FreeVariable(val_fixed);
     auto c = archgenlib::sin(a * archgenlib::pi / 0x2p0_cst);
-    auto res = archgenlib::evaluate<archgenlib::FixedFormat<0, -16, signed>>(c);
+    auto res = archgenlib::evaluate<archgenlib::FixedFormat<0, -16, signed>, archgenlib::approx::simple_table>(c);
     if constexpr (archgenlib::has_implementation) {
       check_against_ref(val_fixed, res);
     } 
